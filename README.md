@@ -36,12 +36,6 @@ A full-featured Twitter-inspired social media application built with Django and 
 - Like count displayed on each tweet
 - Real-time heart icon toggle (❤️ / 🤍)
 
-### 💬 Comments
-- Comment on any tweet
-- View all comments in tweet modal
-- Comment author links to profile
-- Timestamp on each comment
-
 ### 👤 Profiles
 - Custom profile photo
 - Bio, first name, last name, age
@@ -83,7 +77,7 @@ djangotweet/
 │   ├── urls.py
 │   └── wsgi.py
 ├── tweetapp/             # Main application
-│   ├── models.py         # Tweet, TweetImage, Profile, Like, Comment
+│   ├── models.py         # Tweet, TweetImage, Profile, Like
 │   ├── views.py          # All view functions
 │   ├── forms.py          # AddTweetForm, ProfileForm, RegisterForm
 │   ├── admin.py          # Admin configuration with inline images
