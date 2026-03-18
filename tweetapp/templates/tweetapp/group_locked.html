@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container text-center" style="max-width: 500px; margin-top: 60px;">
+    <div class="card">
+        <div class="card-body">
+            {% if group.image %}
+                <img src="{{ group.image.url }}" class="rounded-circle mb-3" style="width:80px; height:80px; object-fit:cover;">
+            {% else %}
+                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px; height:80px; font-size:32px; font-weight:bold;">
+                    {{ group.name|first|upper }}
+                </div>
+            {% endif %}
+            <h3>{{ group.name }}</h3>
+            <p style="color: #aaa;">{{ group.memberships.count }} members {% if group.is_private %}· Private{% else %}· Public{% endif %}</p>
+            {% if group.is_private %}
+                <p style="color: #ff6b6b;">This group is private. You need an invite to join.</p>
+            {% else %}
+                <form action="{% url 'tweetapp:group_join' pk=group.pk %}" method="POST">
+                    {% csrf_token %}
+                    <button class="btn btn-primary">Join Group</button>
+                </form>
+            {% endif %}
+            <a href="{% url 'tweetapp:group_list' %}" class="btn btn-secondary btn-sm mt-2">Back</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

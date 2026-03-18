@@ -44,7 +44,7 @@
                     <br><small style="color: #aaa;">Tweets</small>
                 </div>
             </div>
-            {% if user == profile_user or user.is_staff %}
+            {% if user == profile_user %}
                 <a href="{% url 'tweetapp:edit_profile' %}" class="btn btn-primary btn-sm">Edit Profile</a>
             {% endif %}
         </div>
@@ -126,6 +126,13 @@
                                     </div>
                                     {% endif %}
                                     <p style="white-space: pre-wrap; word-wrap: break-word;">{{tweet.message}}</p>
+                                    {% if user == tweet.user and tweet.can_edit %}
+                                    <form action="{% url 'tweetapp:edit_tweet' pk=tweet.pk %}" method="POST" class="edit-form" style="display:none;">
+                                        {% csrf_token %}
+                                        <textarea name="message" class="form-control tweetmessage mb-2" maxlength="280">{{ tweet.message }}</textarea>
+                                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                                    </form>
+                                    {% endif %}
 
                                     <hr style="border-color: #2a2a4a;">
                                     <div style="max-height: 200px; overflow-y: auto;">
@@ -171,6 +178,19 @@
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
                                         </form>
+                                    {% endif %}
+                                    {% if user == tweet.user and tweet.can_edit %}
+                                    <button class="btn btn-outline-warning btn-sm" onclick="
+                                        let body = this.closest('.modal-content').querySelector('.modal-body p');
+                                        let form = this.closest('.modal-content').querySelector('.edit-form');
+                                        if (form.style.display === 'none') {
+                                            body.style.display = 'none';
+                                            form.style.display = 'block';
+                                        } else {
+                                            body.style.display = '';
+                                            form.style.display = 'none';
+                                        }
+                                    ">Edit</button>
                                     {% endif %}
                                 </div>
                             </div>

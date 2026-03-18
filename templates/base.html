@@ -9,6 +9,22 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="{% static 'tweetapp/customform.css' %}">
 </head>
+<script>
+function toggleLike(btn, pk) {
+    fetch(`/tweetapp/like/${pk}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.querySelector('.like-icon').textContent = data.liked ? '❤️' : '🤍';
+        btn.closest('.like-wrapper').querySelector('.like-count').textContent = data.count;
+    });
+}
+</script>
 <body class="settingspage">
     <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
         <div class="container-fluid">
@@ -24,6 +40,10 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'tweetapp:addtweetbyform' %}">Post</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'tweetapp:userlist' %}">Users</a>
                     </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
@@ -43,6 +63,12 @@
                         <a class="nav-link" href="{% url 'tweetapp:register' %}">Register</a>
                     </li>
                     {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'tweetapp:group_list' %}">Groups</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'tweetapp:patchnotes' %}">Patch Notes</a>
+                    </li>
                 </ul>
                 <form class="d-flex" action="{% url 'tweetapp:searchtweet' %}" method="GET">
                     <input class="form-control me-2" type="search" name="q" placeholder="Search tweets...">

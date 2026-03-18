@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 700px; margin-top: 20px;">
+    <h1 class="text-center mb-4">Patch Notes</h1>
+
+    {% if user.is_staff %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="POST" action="{% url 'tweetapp:add_patchnote' %}">
+                {% csrf_token %}
+                <div class="d-flex gap-2 mb-2">
+                    <input type="text" name="version" class="form-control form-control-sm" placeholder="v1.0.0" style="max-width: 120px;">
+                    <input type="text" name="title" class="form-control form-control-sm" placeholder="Title" required>
+                </div>
+                <textarea name="content" class="form-control tweetmessage mb-2" rows="3" placeholder="What's new?" required></textarea>
+                <button type="submit" class="btn btn-primary btn-sm">Publish</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% for note in notes %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    {% if note.version %}
+                    <span class="badge bg-primary me-2">{{ note.version }}</span>
+                    {% endif %}
+                    <strong>{{ note.title }}</strong>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <small style="color: #666;">{{ note.created_at|date:"d M Y, H:i" }}</small>
+                    {% if user.is_staff %}
+                    <form action="{% url 'tweetapp:delete_patchnote' pk=note.pk %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm" style="background:none; border:none; color:#ff6b6b;" onclick="return confirm('Delete?')">✕</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <p class="mt-2 mb-0" style="white-space: pre-wrap; color: #aaa;">{{ note.content }}</p>
+        </div>
+    </div>
+    {% empty %}
+        <p class="text-center" style="color: #aaa;">No patch notes yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 700px; margin-top: 20px;">
+    <!-- Group Header -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    {% if group.image %}
+                        <img src="{{ group.image.url }}" class="rounded-circle flex-shrink-0" style="width:60px; height:60px; object-fit:cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:60px; height:60px; font-size:24px; font-weight:bold;">
+                            {{ group.name|first|upper }}
+                        </div>
+                    {% endif %}
+                    <div class="ms-3">
+                        <h4 class="mb-0">{{ group.name }}</h4>
+                        <small style="color: #aaa;">{{ members.count }} members {% if group.is_private %}· Private{% else %}· Public{% endif %}</small>
+                        {% if group.description %}
+                        <p class="mb-0 mt-1" style="color: #aaa;">{{ group.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    {% if membership.role == 'admin' %}
+                        <form action="{% url 'tweetapp:group_delete' pk=group.pk %}" method="POST">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete group?')">Delete Group</button>
+                        </form>
+                    {% else %}
+                        <form action="{% url 'tweetapp:group_leave' pk=group.pk %}" method="POST">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-warning btn-sm">Leave</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Messages -->
+        <div class="col-md-8">
+            <div class="card" style="height: 500px; display: flex; flex-direction: column;">
+                <div class="card-body" style="overflow-y: auto; flex: 1;" id="chatBox">
+                    {% for msg in messages_list %}
+                    <div class="mb-2">
+                        <a href="{% url 'tweetapp:profile' username=msg.user.username %}" style="color: #10f28c; text-decoration: none; font-weight: bold;">
+                            @{{ msg.user.username }}
+                        </a>
+                        {% if msg.message %}<span>{{ msg.message }}</span>{% endif %}
+                        {% if msg.image %}
+                        <br><img src="{{ msg.image.url }}" style="max-width: 300px; max-height: 200px; border-radius: 8px; margin-top: 4px; cursor: pointer;" onclick="window.open('{{ msg.image.url }}')">
+                        {% endif %}
+                        <br><small style="color: #666;">{{ msg.created_at|date:"d M Y, H:i" }}</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-center" style="color: #666;">No messages yet. Say hello!</p>
+                    {% endfor %}
+                </div>
+                <div class="card-footer" style="border-top: 1px solid #2a2a4a;">
+                    <form action="{% url 'tweetapp:group_send_message' pk=group.pk %}" method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="text" name="message" class="form-control form-control-sm" placeholder="Type a message..." maxlength="500">
+                            <label class="btn btn-outline-secondary btn-sm mb-0" style="cursor: pointer;">
+                                📷
+                                <input type="file" name="image" accept="image/*" style="display: none;">
+                            </label>
+                            <button type="submit" class="btn btn-primary btn-sm">Send</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Members -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Members</h6>
+                    {% for m in members %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <a href="{% url 'tweetapp:profile' username=m.user.username %}" style="color: inherit; text-decoration: none;">
+                                {{ m.user.username }}
+                            </a>
+                            {% if m.role == 'admin' %}
+                            <span class="badge bg-warning" style="font-size: 10px;">Admin</span>
+                            {% endif %}
+                        </div>
+                        {% if membership.role == 'admin' and m.role != 'admin' %}
+                        <form action="{% url 'tweetapp:group_kick' pk=group.pk user_id=m.user.pk %}" method="POST">
+                            {% csrf_token %}
+                            <button class="btn btn-sm" style="background:none; border:none; color:#ff6b6b; font-size:12px;" onclick="return confirm('Kick user?')">✕</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    {% if membership.role == 'admin' %}
+                    <hr style="border-color: #2a2a4a;">
+                    <form action="{% url 'tweetapp:group_invite' pk=group.pk %}" method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <input type="text" name="username" class="form-control form-control-sm" placeholder="Username" required>
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Invite</button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chatBox');
+    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+</script>
+{% endblock %}

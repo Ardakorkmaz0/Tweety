@@ -9,6 +9,10 @@ from tweetapp.forms import AddTweetForm, AddTweetModelForm, ProfileForm
 from django.contrib.auth.forms import UserCreationForm
 from django.views.generic import CreateView
 from tweetapp.forms import AddTweetForm, AddTweetModelForm, ProfileForm, RegisterForm
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+
+
 
 
 
@@ -16,7 +20,7 @@ from tweetapp.forms import AddTweetForm, AddTweetModelForm, ProfileForm, Registe
 # Create your views here.
 
 def listtweet(request):
-    all_tweets = models.Tweet.objects.all()
+    all_tweets = models.Tweet.objects.all().order_by('-created_at')
     if request.user.is_authenticated:
         liked_ids = models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True)
     else:
@@ -79,9 +83,9 @@ def searchtweet(request):
     if query:
         if query.startswith('@'):
             nickname = query[1:]
-            results = models.Tweet.objects.filter(nickname__iexact=nickname)
+            results = models.Tweet.objects.filter(nickname__iexact=nickname).order_by('-created_at')
         else:
-            results = models.Tweet.objects.filter(message__icontains=query)
+            results = models.Tweet.objects.filter(message__icontains=query).order_by('-created_at')
     else:
         results = models.Tweet.objects.none()
     if request.user.is_authenticated:
@@ -181,12 +185,15 @@ def delete_tweet(request, pk):
 
 def like_tweet(request, pk):
     if not request.user.is_authenticated:
-        return redirect('/login/')
+        return JsonResponse({'error': 'login'}, status=401)
     tweet = models.Tweet.objects.get(pk=pk)
     like, created = models.Like.objects.get_or_create(user=request.user, tweet=tweet)
     if not created:
         like.delete()
-    return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
+    return JsonResponse({
+        'liked': created,
+        'count': tweet.likes.count()
+    })
 
 def add_comment(request, pk):
     if not request.user.is_authenticated:
@@ -203,3 +210,168 @@ def delete_comment(request, pk):
     if request.user == comment.user or request.user.is_staff:
         comment.delete()
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
+
+
+def userlist(request):
+    users = User.objects.all()
+    return render(request, 'tweetapp/userlist.html', {'users': users})
+
+@login_required(login_url='/login/')
+def edit_tweet(request, pk):
+    tweet = models.Tweet.objects.get(pk=pk)
+    if request.user != tweet.user or not tweet.can_edit():
+        messages.warning(request, "Editing time expired! (5 min limit)")
+        return redirect(reverse('tweetapp:listtweet'))
+    if request.method == "POST":
+        message = request.POST.get('message', '')
+        if message:
+            tweet.message = message
+            tweet.save()
+    return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
+
+
+def patchnotes(request):
+    notes = models.PatchNote.objects.all()
+    return render(request, 'tweetapp/patchnotes.html', {'notes': notes})
+
+@login_required(login_url='/login/')
+def add_patchnote(request):
+    if not request.user.is_staff:
+        return redirect(reverse('tweetapp:patchnotes'))
+    if request.method == "POST":
+        title = request.POST.get('title', '')
+        content = request.POST.get('content', '')
+        version = request.POST.get('version', '')
+        if title and content:
+            models.PatchNote.objects.create(title=title, content=content, version=version)
+    return redirect(reverse('tweetapp:patchnotes'))
+
+@login_required(login_url='/login/')
+def delete_patchnote(request, pk):
+    if not request.user.is_staff:
+        return redirect(reverse('tweetapp:patchnotes'))
+    note = models.PatchNote.objects.get(pk=pk)
+    note.delete()
+    return redirect(reverse('tweetapp:patchnotes'))
+
+
+@login_required(login_url='/login/')
+def group_list(request):
+    my_groups = models.Group.objects.filter(memberships__user=request.user)
+    other_groups = models.Group.objects.exclude(memberships__user=request.user)
+    invites = models.GroupInvite.objects.filter(invited_user=request.user)
+    return render(request, 'tweetapp/group_list.html', {
+        'my_groups': my_groups,
+        'other_groups': other_groups,
+        'invites': invites,
+    })
+
+@login_required(login_url='/login/')
+def create_group(request):
+    if request.method == "POST":
+        name = request.POST.get('name', '')
+        description = request.POST.get('description', '')
+        is_private = request.POST.get('is_private') == 'on'
+        image = request.FILES.get('image')
+        if name:
+            group = models.Group.objects.create(
+                name=name, description=description,
+                is_private=is_private, creator=request.user, image=image
+            )
+            models.GroupMembership.objects.create(group=group, user=request.user, role='admin')
+            return redirect('tweetapp:group_detail', pk=group.pk)
+    return render(request, 'tweetapp/create_group.html')
+
+@login_required(login_url='/login/')
+def group_detail(request, pk):
+    group = models.Group.objects.get(pk=pk)
+    is_member = group.memberships.filter(user=request.user).exists()
+    if not is_member:
+        return render(request, 'tweetapp/group_locked.html', {'group': group})
+    
+    membership = group.memberships.get(user=request.user)
+    members = group.memberships.select_related('user').all()
+    messages_list = group.messages.select_related('user').all()
+    
+    return render(request, 'tweetapp/group_detail.html', {
+        'group': group,
+        'membership': membership,
+        'members': members,
+        'messages_list': messages_list,
+    })
+
+@login_required(login_url='/login/')
+def group_send_message(request, pk):
+    group = models.Group.objects.get(pk=pk)
+    if not group.memberships.filter(user=request.user).exists():
+        return redirect('tweetapp:group_list')
+    if request.method == "POST":
+        message = request.POST.get('message', '')
+        image = request.FILES.get('image')
+        if message or image:
+            models.GroupMessage.objects.create(group=group, user=request.user, message=message, image=image)
+    return redirect('tweetapp:group_detail', pk=pk)
+
+@login_required(login_url='/login/')
+def group_join(request, pk):
+    group = models.Group.objects.get(pk=pk)
+    if group.is_private:
+        return redirect('tweetapp:group_list')
+    if not group.memberships.filter(user=request.user).exists():
+        models.GroupMembership.objects.create(group=group, user=request.user, role='member')
+    return redirect('tweetapp:group_detail', pk=pk)
+
+@login_required(login_url='/login/')
+def group_leave(request, pk):
+    group = models.Group.objects.get(pk=pk)
+    membership = group.memberships.filter(user=request.user).first()
+    if membership and membership.role != 'admin':
+        membership.delete()
+    return redirect('tweetapp:group_list')
+
+@login_required(login_url='/login/')
+def group_invite(request, pk):
+    group = models.Group.objects.get(pk=pk)
+    if not group.memberships.filter(user=request.user, role='admin').exists():
+        return redirect('tweetapp:group_detail', pk=pk)
+    if request.method == "POST":
+        username = request.POST.get('username', '')
+        try:
+            invited_user = User.objects.get(username=username)
+            if not group.memberships.filter(user=invited_user).exists():
+                models.GroupInvite.objects.get_or_create(
+                    group=group, invited_user=invited_user, invited_by=request.user
+                )
+        except User.DoesNotExist:
+            messages.warning(request, "User not found!")
+    return redirect('tweetapp:group_detail', pk=pk)
+
+@login_required(login_url='/login/')
+def group_accept_invite(request, pk):
+    invite = models.GroupInvite.objects.get(pk=pk, invited_user=request.user)
+    models.GroupMembership.objects.create(group=invite.group, user=request.user, role='member')
+    invite.delete()
+    return redirect('tweetapp:group_detail', pk=invite.group.pk)
+
+@login_required(login_url='/login/')
+def group_decline_invite(request, pk):
+    invite = models.GroupInvite.objects.get(pk=pk, invited_user=request.user)
+    invite.delete()
+    return redirect('tweetapp:group_list')
+
+@login_required(login_url='/login/')
+def group_kick(request, pk, user_id):
+    group = models.Group.objects.get(pk=pk)
+    if not group.memberships.filter(user=request.user, role='admin').exists():
+        return redirect('tweetapp:group_detail', pk=pk)
+    membership = group.memberships.filter(user_id=user_id, role='member').first()
+    if membership:
+        membership.delete()
+    return redirect('tweetapp:group_detail', pk=pk)
+
+@login_required(login_url='/login/')
+def group_delete(request, pk):
+    group = models.Group.objects.get(pk=pk)
+    if group.creator == request.user or request.user.is_staff:
+        group.delete()
+    return redirect('tweetapp:group_list')

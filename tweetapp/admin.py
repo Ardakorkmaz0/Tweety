@@ -1,6 +1,8 @@
 from django.contrib import admin
 from tweetapp.models import Tweet, TweetImage
 from django.utils.html import format_html
+from tweetapp.models import PatchNote
+
 
 class TweetImageInline(admin.TabularInline):
     model = TweetImage
@@ -21,3 +23,8 @@ class TweetAdmin(admin.ModelAdmin):
     inlines = [TweetImageInline]
 
 admin.site.register(Tweet, TweetAdmin)
+
+
+@admin.register(PatchNote)
+class PatchNoteAdmin(admin.ModelAdmin):
+    list_display = ['version', 'title', 'created_at']
