@@ -156,3 +156,16 @@ input:focus, textarea:focus, select:focus {
     width: 100% !important;
     display: block;
 }
+
+.nav-tabs .nav-link.active {
+    background-color: #1a1a2e !important;
+    color: #10f28c !important;
+    border-color: #2a2a4a #2a2a4a #1a1a2e !important;
+}
+.nav-tabs .nav-link {
+    color: #aaa !important;
+}
+.nav-tabs .nav-link:hover {
+    border-color: #2a2a4a !important;
+    color: #10f28c !important;
+}

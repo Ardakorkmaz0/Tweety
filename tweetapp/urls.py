@@ -12,4 +12,6 @@ urlpatterns = [
     path('register/',views.RegisterView.as_view(), name="register"),
     path('delete/<int:pk>/', views.delete_tweet, name='delete_tweet'),
     path('like/<int:pk>/', views.like_tweet, name='like_tweet'),
+    path('comment/<int:pk>/', views.add_comment, name='add_comment'),
+    path('delete-comment/<int:pk>/', views.delete_comment, name='delete_comment'),
 ]

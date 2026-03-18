@@ -105,9 +105,13 @@ def profile(request, username):
     tweet_count = tweets.count()
     
     if request.user.is_authenticated:
-        liked_ids = models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True)
+        liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
     else:
         liked_ids = []
+    
+    user_comments = []
+    if user:
+        user_comments = models.Comment.objects.filter(user=user).select_related('tweet').order_by('-created_at')
     
     context = {
         'profile_user': user,
@@ -116,6 +120,7 @@ def profile(request, username):
         'tweet_count': tweet_count,
         'searched_username': username,
         'liked_ids': liked_ids,
+        'user_comments': user_comments,
     }
     return render(request, 'tweetapp/profile.html', context=context)
 
@@ -181,4 +186,20 @@ def like_tweet(request, pk):
     like, created = models.Like.objects.get_or_create(user=request.user, tweet=tweet)
     if not created:
         like.delete()
+    return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
+
+def add_comment(request, pk):
+    if not request.user.is_authenticated:
+        return redirect('/login/')
+    if request.method == "POST":
+        message = request.POST.get('comment_message', '')
+        if message:
+            tweet = models.Tweet.objects.get(pk=pk)
+            models.Comment.objects.create(user=request.user, tweet=tweet, message=message)
+    return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
+
+def delete_comment(request, pk):
+    comment = models.Comment.objects.get(pk=pk)
+    if request.user == comment.user or request.user.is_staff:
+        comment.delete()
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
