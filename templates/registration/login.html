@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 450px; margin-top: 50px;">
+    <div class="card">
+        <div class="card-body" style="padding: 30px;">
+            <h2 class="text-center mb-4" style="color: #10f28c;">Login</h2>
+            
+            {% if form.errors %}
+                <div style="color: #ff6b6b; text-align: center; margin-bottom: 15px;">
+                    Username or password is incorrect.
+                </div>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+                <h2 class="text-center">Welcome {{ user.username }}</h2>
+            {% else %}
+                <form method="POST" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label d-block">{{ field.label }}</label>
+                        <div>{{ field }}</div>
+                        {% if field.errors %}
+                            {% for error in field.errors %}
+                                <div style="color: #ff6b6b; font-size: 14px;">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary w-100 mt-2" style="padding: 12px;">Login</button>
+                </form>
+                <p class="text-center mt-3" style="color: #aaa;">
+                    Don't have an account? <a href="{% url 'tweetapp:register' %}" style="color: #10f28c;">Register</a>
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

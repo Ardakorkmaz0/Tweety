@@ -1,0 +1,38 @@
+{%extends "base.html"%}
+{% load static %}
+
+{%block content%}
+<h1>Add tweet By Model Form Page</h1>
+<div class="container tweetform ">
+<form action="" method="POST">
+    {% csrf_token %}
+
+
+  <!--
+  <div class="mb-3">
+      {{form.nickname_input.label_tag}} <br>
+      {{form.nickname_input}}
+      <br>
+      {{form.message_input.label_tag}} <br>
+      {{form.message_input}}
+  </div>
+  -->
+
+  {%for field in form%}
+  <div class="form-control">
+    {{field.label_tag}}
+    <br>
+    {{field}}
+  </div>
+  {%endfor%}
+
+
+    <br>
+    <button type="submit" class="btn btn-primary">Send Tweet</button>
+    
+
+</form>
+</div>
+
+
+{%endblock%}

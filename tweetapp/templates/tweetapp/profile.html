@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin-top: 20px;">
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            {% if profile_exists %}
+                {% if profile_user.profile.profile_image %}
+                    <img src="{{ profile_user.profile.profile_image.url }}" 
+                         class="rounded-circle mb-3" 
+                         style="width: 120px; height: 120px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3" 
+                         style="width: 120px; height: 120px; font-size: 48px; font-weight: bold;">
+                        {{ profile_user.username|first }}
+                    </div>
+                {% endif %}
+                
+                <h3 style="color: #10f28c; font-weight: bold;">@{{ profile_user.username }}</h3>
+
+                {% if profile_user.profile.first_name or profile_user.profile.last_name %}
+                    <p style="color: white; font-size: 18px;">{{ profile_user.profile.first_name }} {{ profile_user.profile.last_name }}</p>
+                {% endif %}
+
+                {% if profile_user.profile.age %}
+                    <p style="color: #aaa;">{{ profile_user.profile.age }} years old</p>
+                {% endif %}
+
+                {% if profile_user.profile.bio %}
+                    <p style="color: #aaa;">{{ profile_user.profile.bio }}</p>
+                {% endif %}                
+            {% else %}
+                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 120px; height: 120px; font-size: 48px; font-weight: bold;">
+                    {{ searched_username|first }}
+                </div>
+                <h3 style="color: #10f28c; font-weight: bold;">@{{ searched_username }}</h3>
+                <p style="color: #aaa;">Kayıtlı kullanıcı değil</p>
+            {% endif %}
+            
+            <div class="d-flex justify-content-center gap-4 mb-3">
+                <div>
+                    <strong>{{ tweet_count }}</strong>
+                    <br><small style="color: #aaa;">Tweets</small>
+                </div>
+            </div>
+            {% if user == profile_user or user.is_staff %}
+                <a href="{% url 'tweetapp:edit_profile' %}" class="btn btn-primary btn-sm">Edit Profile</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <h5 style="color: #aaa;">Tweets</h5>
+    
+    <div class="row row-cols-1 g-4">
+        {% for tweet in tweets %}
+        <div class="col">
+            <div class="card" data-bs-toggle="modal" data-bs-target="#tweet{{ tweet.pk }}" style="cursor: pointer;">
+                {% if tweet.images.all %}
+                <img src="{{ tweet.images.first.image.url }}" class="card-img-top" style="max-height: 300px; object-fit: cover;">
+                {% endif %}
+
+                <div class="card-body d-flex flex-column">
+                    <p class="card-text">{{tweet.message}}</p>
+                    <small style="color: #aaa;">{{ tweet.created_at|date:"d M Y, H:i" }} ({{ tweet.created_at|timesince }} ago)</small>
+                </div>
+            </div>
+
+            <!-- Modal -->
+            <div class="modal fade" id="tweet{{ tweet.pk }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content" style="background-color: #1a1a2e; color: white;">
+                        <div class="modal-header border-secondary">
+                            <div class="d-flex align-items-center">
+                                {% if tweet.user and tweet.user.profile.profile_image %}
+                                    <img src="{{ tweet.user.profile.profile_image.url }}" class="rounded-circle" style="width:35px; height:35px; object-fit:cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width:35px; height:35px; font-weight:bold;">
+                                        {{tweet.nickname|first}}
+                                    </div>
+                                {% endif %}
+                                <h5 class="modal-title ms-2 mb-0" style="color: #10f28c; font-weight: bold;">{{tweet.nickname}}</h5>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if tweet.images.all %}
+                            <div id="profilecarousel{{ tweet.pk }}" class="carousel slide mb-3" data-bs-ride="false">
+                                <div class="carousel-inner">
+                                    {% for img in tweet.images.all %}
+                                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                        <img src="{{ img.image.url }}" class="d-block w-100" style="max-height: 400px; object-fit: contain; background: #000;">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% if tweet.images.count > 1 %}
+                                <button class="carousel-control-prev" type="button" data-bs-target="#profilecarousel{{ tweet.pk }}" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon"></span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#profilecarousel{{ tweet.pk }}" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon"></span>
+                                </button>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            <p style="white-space: pre-wrap; word-wrap: break-word;">{{tweet.message}}</p>
+                        </div>
+                        <div class="modal-footer border-secondary d-flex align-items-center">
+                            <form action="{% url 'tweetapp:like_tweet' pk=tweet.pk %}" method="POST">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm" style="background: none; border: none; font-size: 18px;">
+                                    {% if tweet.pk in liked_ids %}
+                                        ❤️
+                                    {% else %}
+                                        🤍
+                                    {% endif %}
+                                </button>
+                            </form>
+                            <small style="color: #aaa;">{{ tweet.likes.count }}</small>
+                            <small style="color: #aaa; margin-left: auto;">{{ tweet.created_at|date:"d M Y, H:i" }}</small>
+                            {% if user == tweet.user or user.is_staff %}
+                                <form action="{% url 'tweetapp:delete_tweet' pk=tweet.pk %}" method="POST" class="ms-2">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+            <p style="color: #aaa;">Henüz tweet yok.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
