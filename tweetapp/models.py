@@ -105,3 +105,11 @@ class GroupInvite(models.Model):
 
     class Meta:
         unique_together = ('group', 'invited_user')
+
+class GroupJoinRequest(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='join_requests')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='join_requests')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('group', 'user')

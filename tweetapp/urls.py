@@ -30,4 +30,7 @@ urlpatterns = [
     path('groups/<int:pk>/delete/', views.group_delete, name='group_delete'),
     path('invite/accept/<int:pk>/', views.group_accept_invite, name='group_accept_invite'),
     path('invite/decline/<int:pk>/', views.group_decline_invite, name='group_decline_invite'),
+    path('groups/<int:pk>/request/', views.group_request_join, name='group_request_join'),
+    path('request/accept/<int:pk>/', views.group_accept_request, name='group_accept_request'),
+    path('request/decline/<int:pk>/', views.group_decline_request, name='group_decline_request'),
 ]

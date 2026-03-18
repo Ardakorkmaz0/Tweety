@@ -260,10 +260,12 @@ def group_list(request):
     my_groups = models.Group.objects.filter(memberships__user=request.user)
     other_groups = models.Group.objects.exclude(memberships__user=request.user)
     invites = models.GroupInvite.objects.filter(invited_user=request.user)
+    pending_request_ids = list(models.GroupJoinRequest.objects.filter(user=request.user).values_list('group_id', flat=True))
     return render(request, 'tweetapp/group_list.html', {
-        'my_groups': my_groups,
-        'other_groups': other_groups,
-        'invites': invites,
+    'my_groups': my_groups,
+    'other_groups': other_groups,
+    'invites': invites,
+    'pending_request_ids': pending_request_ids,
     })
 
 @login_required(login_url='/login/')
@@ -375,3 +377,27 @@ def group_delete(request, pk):
     if group.creator == request.user or request.user.is_staff:
         group.delete()
     return redirect('tweetapp:group_list')
+
+@login_required(login_url='/login/')
+def group_request_join(request, pk):
+    group = models.Group.objects.get(pk=pk)
+    if not group.memberships.filter(user=request.user).exists():
+        models.GroupJoinRequest.objects.get_or_create(group=group, user=request.user)
+    return redirect('tweetapp:group_list')
+
+@login_required(login_url='/login/')
+def group_accept_request(request, pk):
+    join_request = models.GroupJoinRequest.objects.get(pk=pk)
+    group = join_request.group
+    if group.memberships.filter(user=request.user, role='admin').exists():
+        models.GroupMembership.objects.create(group=group, user=join_request.user, role='member')
+        join_request.delete()
+    return redirect('tweetapp:group_detail', pk=group.pk)
+
+@login_required(login_url='/login/')
+def group_decline_request(request, pk):
+    join_request = models.GroupJoinRequest.objects.get(pk=pk)
+    group = join_request.group
+    if group.memberships.filter(user=request.user, role='admin').exists():
+        join_request.delete()
+    return redirect('tweetapp:group_detail', pk=group.pk)
