@@ -12,7 +12,7 @@ A full-featured Twitter-inspired social media application built with Django and 
 
 | Main Page | Profile | Post |
 |-----------|---------|------|
-| ![Main](https://github.com/user-attachments/assets/0349bc61-5360-4935-af45-8b0220af3926) | ![Profile](https://github.com/user-attachments/assets/fc9caca0-b56a-4bee-a330-51592f732582) | ![Post](https://github.com/user-attachments/assets/b194b684-d085-48ec-a39a-44fa536e5e13) |
+| ![Main](https://github.com/user-attachments/assets/362dad22-19ca-4c60-9fd6-6c2c725e799e) | ![Profile](https://github.com/user-attachments/assets/534d8edc-408c-4341-a0f5-edc076c6f86f) | ![Post](https://github.com/user-attachments/assets/0ba4a5c9-0c27-421d-85f1-ca202c6b5924) |
 
 ---
 
@@ -35,6 +35,12 @@ A full-featured Twitter-inspired social media application built with Django and 
 - Like / unlike tweets
 - Like count displayed on each tweet
 - Real-time heart icon toggle (❤️ / 🤍)
+
+### 💬 Comments
+- Comment on any tweet
+- View all comments in tweet modal
+- Comment author links to profile
+- Timestamp on each comment
 
 ### 👤 Profiles
 - Custom profile photo
