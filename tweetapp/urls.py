@@ -33,4 +33,6 @@ urlpatterns = [
     path('groups/<int:pk>/request/', views.group_request_join, name='group_request_join'),
     path('request/accept/<int:pk>/', views.group_accept_request, name='group_accept_request'),
     path('request/decline/<int:pk>/', views.group_decline_request, name='group_decline_request'),
+    path('follow/<str:username>/', views.follow_user, name='follow_user'),
+    path('visibility/<int:pk>/', views.toggle_visibility, name='toggle_visibility'),
 ]

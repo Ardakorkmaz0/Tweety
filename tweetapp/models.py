@@ -11,6 +11,8 @@ class Tweet(models.Model):
     message = models.CharField(max_length=280)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
+    VISIBILITY_CHOICES = [('public', 'Public'), ('followers', 'Followers Only')]
+    visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='public')
 
     def can_edit(self):
         return (timezone.now() - self.created_at).total_seconds() < 300
@@ -113,3 +115,12 @@ class GroupJoinRequest(models.Model):
 
     class Meta:
         unique_together = ('group', 'user')
+
+
+class Follow(models.Model):
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
+    following = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('follower', 'following')

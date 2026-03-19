@@ -43,9 +43,28 @@
                     <strong>{{ tweet_count }}</strong>
                     <br><small style="color: #aaa;">Tweets</small>
                 </div>
+                <div>
+                    <strong>{{ follower_count }}</strong>
+                    <br><small style="color: #aaa;">Followers</small>
+                </div>
+                <div>
+                    <strong>{{ following_count }}</strong>
+                    <br><small style="color: #aaa;">Following</small>
+                </div>
             </div>
+
             {% if user == profile_user %}
                 <a href="{% url 'tweetapp:edit_profile' %}" class="btn btn-primary btn-sm">Edit Profile</a>
+            {% endif %}
+            {% if user != profile_user and user.is_authenticated %}
+                <form action="{% url 'tweetapp:follow_user' username=profile_user.username %}" method="POST" class="d-inline">
+                    {% csrf_token %}
+                    {% if is_following %}
+                        <button class="btn btn-outline-danger btn-sm">Unfollow</button>
+                    {% else %}
+                        <button class="btn btn-success btn-sm">Follow</button>
+                    {% endif %}
+                </form>
             {% endif %}
         </div>
     </div>
@@ -76,11 +95,13 @@
                         {% endif %}
 
                         <div class="card-body d-flex flex-column">
-                            <p class="card-text">{{tweet.message}}</p>
+                            {% if tweet.visibility == 'followers' %}
+                                <span class="badge bg-warning mb-1 d-inline-block w-auto" style="font-size: 9px;">🔒 </span>
+                            {% endif %}                            <p class="card-text">{{tweet.message}}</p>
                             <div class="d-flex align-items-center mt-auto">
                                 <span style="font-size: 14px;">
-                                    {% if tweet.pk in liked_ids %}❤️{% else %}🤍{% endif %}
-                                    {{ tweet.likes.count }}
+                                    <span class="like-icon-{{ tweet.pk }}">{% if tweet.pk in liked_ids %}❤️{% else %}🤍{% endif %}</span>
+                                    <span class="like-count-{{ tweet.pk }}">{{ tweet.likes.count }}</span>
                                     <span class="ms-2">💬 {{ tweet.comments.count }}</span>
                                 </span>
                                 <small style="color: #aaa; margin-left: auto;">{{ tweet.created_at|date:"d M Y, H:i" }}</small>
@@ -100,6 +121,9 @@
                                             <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width:35px; height:35px; font-weight:bold;">
                                                 {{tweet.nickname|first}}
                                             </div>
+                                        {% endif %}
+                                        {% if tweet.visibility == 'followers' %}
+                                            <span class="badge bg-warning ms-1" style="font-size: 9px;">🔒</span>
                                         {% endif %}
                                         <h5 class="modal-title ms-2 mb-0" style="color: #10f28c; font-weight: bold;">{{tweet.nickname}}</h5>
                                     </div>
@@ -161,23 +185,27 @@
                                     {% endif %}
                                 </div>
                                 <div class="modal-footer border-secondary d-flex align-items-center">
-                                    <form action="{% url 'tweetapp:like_tweet' pk=tweet.pk %}" method="POST">
+                                    <div class="like-wrapper d-flex align-items-center">
                                         {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm" style="background: none; border: none; font-size: 18px;">
-                                            {% if tweet.pk in liked_ids %}
-                                                ❤️
-                                            {% else %}
-                                                🤍
-                                            {% endif %}
+                                        <button class="btn btn-sm" style="background: none; border: none; font-size: 18px;" onclick="toggleLike(this, {{ tweet.pk }})">
+                                            <span class="like-icon">{% if tweet.pk in liked_ids %}❤️{% else %}🤍{% endif %}</span>
                                         </button>
-                                    </form>
-                                    <small style="color: #aaa;">{{ tweet.likes.count }}</small>
+                                        <small class="like-count" style="color: #aaa;">{{ tweet.likes.count }}</small>
+                                    </div>
                                     <small style="color: #aaa; margin-left: auto;">{{ tweet.created_at|date:"d M Y, H:i" }}</small>
                                     {% if user == tweet.user or user.is_staff %}
                                         <form action="{% url 'tweetapp:delete_tweet' pk=tweet.pk %}" method="POST" class="ms-2">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
                                         </form>
+                                    {% endif %}
+                                    {% if user == tweet.user %}
+                                    <form action="{% url 'tweetapp:toggle_visibility' pk=tweet.pk %}" method="POST" class="ms-2">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                            {% if tweet.visibility == 'followers' %}🔒{% else %}🌐{% endif %}
+                                        </button>
+                                    </form>
                                     {% endif %}
                                     {% if user == tweet.user and tweet.can_edit %}
                                     <button class="btn btn-outline-warning btn-sm" onclick="
@@ -198,7 +226,7 @@
                     </div>
                 </div>
                 {% empty %}
-                    <p style="color: #aaa;">Henüz tweet yok.</p>
+                    <p style="color: #aaa;">There is no tweet yet.</p>
                 {% endfor %}
             </div>
         </div>
@@ -206,29 +234,37 @@
         <!-- Comments  -->
         <div class="tab-pane fade" id="comments-tab">
             <div class="row row-cols-1 g-3">
-                {% for comment in user_comments %}
-                <div class="col">
-                    <div class="card">
-                        <div class="card-body d-flex justify-content-between align-items-start">
-                            <div>
-                                <small style="color: #666;">on @{{ comment.tweet.nickname }}'s tweet:</small>
-                                <p class="mb-1" style="color: #aaa; font-style: italic;">"{{ comment.tweet.message|truncatechars:80 }}"</p>
-                                <p class="mb-1">{{ comment.message }}</p>
-                                <small style="color: #666;">{{ comment.created_at|timesince }} ago</small>
+                            {% for comment in user_comments %}
+                            <div class="col">
+                                <div class="card w-100">
+                                    <div class="card-body d-flex justify-content-between align-items-start gap-2">
+                                        
+                                        <div class="flex-grow-1" style="min-width: 0;">
+                                            <small style="color: #666;">on @{{ comment.tweet.nickname }}'s tweet:</small>
+                                            <p class="mb-1" style="color: #aaa; font-style: italic;">"{{ comment.tweet.message|truncatechars:80 }}"</p>
+                                            
+                                            <p class="mb-1 text-break" style="overflow-wrap: anywhere; word-break: break-word;">{{ comment.message }}</p>
+                                            
+                                            <small style="color: #666;">{{ comment.created_at|timesince }} ago</small>
+                                        </div>
+                                        
+                                        {% if user == comment.user or user.is_staff %}
+                                        <div class="flex-shrink-0 ms-2">
+                                            <form action="{% url 'tweetapp:delete_comment' pk=comment.pk %}" method="POST">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm p-0" style="background: none; border: none; color: #ff6b6b; font-size: 16px;" onclick="return confirm('Delete comment?')">✕</button>
+                                            </form>
+                                        </div>
+                                        {% endif %}
+                                        
+                                    </div>
+                                </div>
                             </div>
-                            {% if user == comment.user or user.is_staff %}
-                            <form action="{% url 'tweetapp:delete_comment' pk=comment.pk %}" method="POST">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm" style="background: none; border: none; color: #ff6b6b; font-size: 12px;" onclick="return confirm('Delete comment?')">✕</button>
-                            </form>
-                            {% endif %}
+                            {% empty %}
+                                <p style="color: #aaa;">There is no comment.</p>
+                            {% endfor %}
                         </div>
                     </div>
-                </div>
-                {% empty %}
-                    <p style="color: #aaa;">There is no comment.</p>
-                {% endfor %}
-            </div>
         </div>
     </div>
 </div>
