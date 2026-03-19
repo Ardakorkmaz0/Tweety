@@ -10,10 +10,11 @@ class AddTweetForm(forms.Form):
 
     
 
-class AddTweetModelForm(ModelForm):
-    class Meta:
-        model = Tweet
-        fields = ["nickname","message"]
+class AddTweetForm(forms.Form):
+    message_input = forms.CharField(label="Message", max_length=280, 
+                                    widget=forms.Textarea(attrs={"class":"tweetmessage"}))
+    visibility = forms.ChoiceField(choices=[('public', 'Public'), ('followers', 'Followers Only')], 
+                                   initial='public')
 
 class ProfileForm(forms.Form):
     first_name = forms.CharField(label="First Name", max_length=50, required=False)
@@ -30,3 +31,8 @@ class RegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'password1', 'password2', 'first_name', 'last_name']
+
+class AddTweetModelForm(ModelForm):
+    class Meta:
+        model = Tweet
+        fields = ["nickname", "message"]
