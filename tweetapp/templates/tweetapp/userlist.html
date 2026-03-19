@@ -1,32 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="container text-center mb-4">Users</h1>
-
-<div class="row row-cols-1 row-cols-md-4 g-4 container mx-auto">
-    {% for u in users %}
-    <div class="col">
-        <a href="{% url 'tweetapp:profile' username=u.username %}" style="text-decoration: none; color: inherit;">
-            <div class="card h-100" style="background-color: #1a1a2e; border: 1px solid #2a2a4a; cursor: pointer;">
-                <div class="card-body d-flex align-items-center">
-                    {% if u.profile.profile_image %}
-                        <img src="{{ u.profile.profile_image.url }}" class="rounded-circle flex-shrink-0" style="width:50px; height:50px; object-fit:cover;">
-                    {% else %}
-                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:50px; height:50px; font-size:20px; font-weight:bold;">
-                            {{ u.username|first|upper }}
+<div class="container" style="max-width: 800px; margin-top: 20px;">
+    <h2 class="mb-4" style="color: white;">All Users</h2>
+    
+    <div class="row row-cols-1 g-3">
+        {% for u in users %}
+        <div class="col">
+            <div class="card" style="background-color: #1a1a2e; border: 1px solid #2a2a4a;">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    
+                    <div class="d-flex align-items-center">
+                        {% if u.profile.profile_image %}
+                            <img src="{{ u.profile.profile_image.url }}" class="rounded-circle" style="width: 45px; height: 45px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; font-weight: bold; color: white;">
+                                {{ u.username|first|upper }}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="ms-3">
+                            <a href="{% url 'tweetapp:profile' username=u.username %}" style="color: #10f28c; text-decoration: none; font-weight: bold; font-size: 18px;">
+                                @{{ u.username }}
+                            </a>
                         </div>
-                    {% endif %}
-                    <div class="ms-3">
-                        <h6 class="mb-0">{{ u.username }}</h6>
-                        <small style="color: #aaa;">{{ u.profile.bio|truncatewords:10|default:"No bio yet." }}</small>
                     </div>
-                </div>
-                <div class="card-footer" style="background-color: #1a1a2e; border-top: 1px solid #2a2a4a;">
-                    <small style="color: #666;">Joined {{ u.date_joined|date:"d M Y" }}</small>
+
+                    {% if request.user.is_staff %}
+                    <div class="text-end">
+                        <span class="badge bg-dark border border-secondary">
+                            {% if u.profile.last_active %}
+                                Last seen: {{ u.profile.last_active|date:"d M Y, H:i" }}
+                            {% else %}
+                                Last seen: Never
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    
                 </div>
             </div>
-        </a>
+        </div>
+        {% empty %}
+            <p style="color: #aaa;">No users found.</p>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
 {% endblock %}

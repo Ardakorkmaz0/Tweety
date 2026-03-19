@@ -1,170 +1,138 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="container text-center">Main Page</h1>
+<div class="container-fluid" style="max-width: 1200px; margin-top: 20px;">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-md-8">
+            <h2 class="mb-3">Home</h2>
 
-<div class="row row-cols-1 row-cols-md-5 g-4">
-    {% for tweet in tweets %}
-    <div class="col">
-        <div class="card h-100" data-bs-toggle="modal" data-bs-target="#tweet{{ tweet.pk }}" style="cursor: pointer;">
-            <div class="card-header d-flex align-items-center" style="background-color: #1a1a2e; border-bottom: 1px solid #2a2a4a; padding: 8px 12px;">
-                {% if tweet.user and tweet.user.profile.profile_image %}
-                    <img src="{{ tweet.user.profile.profile_image.url }}" class="rounded-circle flex-shrink-0" style="width:30px; height:30px; object-fit:cover;">
-                {% else %}
-                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:30px; height:30px; font-size:14px; font-weight:bold;">
-                        {{tweet.nickname|first}}
-                    </div>
-                {% endif %}
-                <small class="ms-2 fw-bold text-truncate">
-                    <a href="{% url 'tweetapp:profile' username=tweet.nickname %}" style="color: inherit; text-decoration: none;" onclick="event.stopPropagation();">
-                        {{tweet.nickname}}
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-3" style="border-bottom-color: #2a2a4a;">
+                <li class="nav-item">
+                    <a class="nav-link {% if active_tab == 'latest' %}active{% endif %}" href="?tab=latest" style="{% if active_tab == 'latest' %}color: white; background: none; border-color: #2a2a4a; border-bottom-color: #10f28c;{% else %}color: #aaa; background: none; border-color: transparent;{% endif %}">
+                        🕐 Latest
                     </a>
-                </small>
-                {% if tweet.visibility == 'followers' %}
-                    <span class="badge bg-warning ms-1" style="font-size: 10px;">🔒 </span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_tab == 'recommended' %}active{% endif %}" href="?tab=recommended" style="{% if active_tab == 'recommended' %}color: white; background: none; border-color: #2a2a4a; border-bottom-color: #10f28c;{% else %}color: #aaa; background: none; border-color: transparent;{% endif %}">
+                        ⭐ For You
+                    </a>
+                </li>
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link {% if active_tab == 'following' %}active{% endif %}" href="?tab=following" style="{% if active_tab == 'following' %}color: white; background: none; border-color: #2a2a4a; border-bottom-color: #10f28c;{% else %}color: #aaa; background: none; border-color: transparent;{% endif %}">
+                        👥 Following
+                    </a>
+                </li>
                 {% endif %}
-            </div>
+            </ul>
 
-            {% if tweet.images.all %}
-            <img src="{{ tweet.images.first.image.url }}" class="card-img-top" style="height: 150px; object-fit: cover;">
-            {% endif %}
-
-            <div class="card-body d-flex flex-column">
-                <p class="card-text text-truncate">{{tweet.message}}</p>
-                <div class="d-flex align-items-center mt-auto">
-                    <span style="font-size: 14px;">
-                        <span class="like-icon-{{ tweet.pk }}">{% if tweet.pk in liked_ids %}❤️{% else %}🤍{% endif %}</span>
-                        <span class="like-count-{{ tweet.pk }}">{{ tweet.likes.count }}</span>
-                        <span class="ms-2">💬 {{ tweet.comments.count }}</span>
-                    </span>
-                    <small style="color: #aaa; margin-left: auto;">{{ tweet.created_at|date:"d M Y, H:i" }}</small>
-                </div>
+            <!-- Tweet Grid -->
+            <div class="row row-cols-1 row-cols-md-3 g-3">
+                {% if active_tab == 'latest' %}
+                    {% for tweet in latest_tweets %}
+                        {% include "tweetapp/tweet_card.html" %}
+                    {% empty %}
+                        <p style="color: #aaa;">No tweets yet.</p>
+                    {% endfor %}
+                {% elif active_tab == 'recommended' %}
+                    {% for tweet in recommended_tweets %}
+                        {% include "tweetapp/tweet_card.html" %}
+                    {% empty %}
+                        <p style="color: #aaa;">No recommendations yet.</p>
+                    {% endfor %}
+                {% elif active_tab == 'following' %}
+                    {% for tweet in following_tweets %}
+                        {% include "tweetapp/tweet_card.html" %}
+                    {% empty %}
+                        <p style="color: #aaa;">Follow people to see their tweets here.</p>
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
 
-        <!-- Modal -->
-        <div class="modal fade" id="tweet{{ tweet.pk }}" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content" style="background-color: #1a1a2e; color: white;">
-                    <div class="modal-header border-secondary">
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Profile Card -->
+            {% if user.is_authenticated %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <a href="{% url 'tweetapp:profile' username=user.username %}" style="text-decoration: none; color: inherit;">
                         <div class="d-flex align-items-center">
-                            {% if tweet.user and tweet.user.profile.profile_image %}
-                                <img src="{{ tweet.user.profile.profile_image.url }}" class="rounded-circle" style="width:35px; height:35px; object-fit:cover;">
+                            {% if user.profile.profile_image %}
+                                <img src="{{ user.profile.profile_image.url }}" class="rounded-circle flex-shrink-0" style="width:50px; height:50px; object-fit:cover;">
                             {% else %}
-                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width:35px; height:35px; font-weight:bold;">
-                                    {{tweet.nickname|first}}
+                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:50px; height:50px; font-size:20px; font-weight:bold;">
+                                    {{ user.username|first|upper }}
                                 </div>
                             {% endif %}
-                            <h5 class="modal-title card-title ms-2 mb-0">{{tweet.nickname}}</h5>
-                        </div>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        {% if tweet.images.all %}
-                        <div id="carousel{{ tweet.pk }}" class="carousel slide mb-3" data-bs-ride="false">
-                            <div class="carousel-inner">
-                                {% for img in tweet.images.all %}
-                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                                    <img src="{{ img.image.url }}" class="d-block w-100" style="max-height: 400px; object-fit: contain; background: #000;">
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% if tweet.images.count > 1 %}
-                            <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ tweet.pk }}" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon"></span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ tweet.pk }}" data-bs-slide="next">
-                                <span class="carousel-control-next-icon"></span>
-                            </button>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                        <p style="white-space: pre-wrap; word-wrap: break-word;">{{tweet.message}}</p>
-                        {% if user == tweet.user and tweet.can_edit %}
-                        <form action="{% url 'tweetapp:edit_tweet' pk=tweet.pk %}" method="POST" class="edit-form" style="display:none;">
-                            {% csrf_token %}
-                            <textarea name="message" class="form-control tweetmessage mb-2" maxlength="280">{{ tweet.message }}</textarea>
-                            <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                        </form>
-                        {% endif %}
-                        {% if user == tweet.user %}
-                        <form action="{% url 'tweetapp:toggle_visibility' pk=tweet.pk %}" method="POST" class="ms-2">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                {% if tweet.visibility == 'followers' %}🔒{% else %}🌐{% endif %}
-                            </button>
-                        </form>
-                        {% endif %}
-
-                        <!-- Comments -->
-                        <hr style="border-color: #2a2a4a;">
-                        <div style="max-height: 200px; overflow-y: auto;">
-                            {% for comment in tweet.comments.all %}
-                            <div class="mb-2 d-flex justify-content-between align-items-start">
-                                <div>
-                                    <a href="{% url 'tweetapp:profile' username=comment.user.username %}" style="color: #10f28c; text-decoration: none; font-weight: bold;">
-                                        @{{ comment.user.username }}
-                                    </a>
-                                    <span>{{ comment.message }}</span>
-                                    <br>
-                                    <small style="color: #666;">{{ comment.created_at|date:"d M Y, H:i" }}</small>
-                                </div>
-                                {% if user == comment.user or user.is_staff %}
-                                <form action="{% url 'tweetapp:delete_comment' pk=comment.pk %}" method="POST">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm" style="background: none; border: none; color: #ff6b6b; font-size: 12px;" onclick="return confirm('Delete comment?')">✕</button>
-                                </form>
+                            <div class="ms-3">
+                                <strong>{{ user.username }}</strong>
+                                {% if user.profile.bio %}
+                                <br><small style="color: #aaa;">{{ user.profile.bio|truncatewords:8 }}</small>
                                 {% endif %}
                             </div>
-                            {% empty %}
-                                <small style="color: #666;">No comments yet.</small>
-                            {% endfor %}
                         </div>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
 
-                        {% if user.is_authenticated %}
-                        <form action="{% url 'tweetapp:add_comment' pk=tweet.pk %}" method="POST" class="mt-2">
-                            {% csrf_token %}
-                            <div class="d-flex gap-2">
-                                <input type="text" name="comment_message" class="form-control form-control-sm" placeholder="Write a comment..." maxlength="280" required>
-                                <button type="submit" class="btn btn-primary btn-sm">Send</button>
+            <!-- Suggested Users -->
+            {% if suggested_users %}
+            <div class="card">
+                <div class="card-body">
+                    <h6 style="color: #aaa;">Suggested for you</h6>
+                    {% for su in suggested_users %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <a href="{% url 'tweetapp:profile' username=su.username %}" class="d-flex align-items-center" style="text-decoration: none; color: inherit;">
+                            {% if su.profile.profile_image %}
+                                <img src="{{ su.profile.profile_image.url }}" class="rounded-circle flex-shrink-0" style="width:35px; height:35px; object-fit:cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:35px; height:35px; font-size:14px; font-weight:bold;">
+                                    {{ su.username|first|upper }}
+                                </div>
+                            {% endif %}
+                            <div class="ms-2">
+                                <strong style="font-size: 14px;">{{ su.username }}</strong>
+                                {% if su.profile.bio %}
+                                <br><small style="color: #666; font-size: 11px;">{{ su.profile.bio|truncatewords:5 }}</small>
+                                {% endif %}
                             </div>
+                        </a>
+                        {% if user.is_authenticated %}
+                        <form action="{% url 'tweetapp:follow_user' username=su.username %}" method="POST">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-primary btn-sm" style="font-size: 11px;">Follow</button>
                         </form>
                         {% endif %}
                     </div>
-                    <div class="modal-footer border-secondary d-flex align-items-center">
-                        <div class="like-wrapper d-flex align-items-center">
-                            {% csrf_token %}
-                            <button class="btn btn-sm" style="background: none; border: none; font-size: 18px;" onclick="toggleLike(this, {{ tweet.pk }})">
-                                <span class="like-icon">{% if tweet.pk in liked_ids %}❤️{% else %}🤍{% endif %}</span>
-                            </button>
-                            <small class="like-count" style="color: #aaa;">{{ tweet.likes.count }}</small>
-                        </div>
-                        <small style="color: #aaa; margin-left: auto;">{{ tweet.created_at|date:"d M Y, H:i" }}</small>
-                        {% if user == tweet.user or user.is_staff %}
-                            <form action="{% url 'tweetapp:delete_tweet' pk=tweet.pk %}" method="POST" class="ms-2">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
-                            </form>
-                        {% endif %}
-                        {% if user == tweet.user and tweet.can_edit %}
-                        <button class="btn btn-outline-warning btn-sm" onclick="
-                            let body = this.closest('.modal-content').querySelector('.modal-body p');
-                            let form = this.closest('.modal-content').querySelector('.edit-form');
-                            if (form.style.display === 'none') {
-                                body.style.display = 'none';
-                                form.style.display = 'block';
-                            } else {
-                                body.style.display = '';
-                                form.style.display = 'none';
-                            }
-                        ">Edit</button>
-                        {% endif %}
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
+             {% if online_users %}
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 style="color: #aaa;">🟢 Online Now</h6>
+                    {% for ou in online_users %}
+                    <a href="{% url 'tweetapp:profile' username=ou.username %}" class="d-flex align-items-center mb-2" style="text-decoration: none; color: inherit;">
+                        {% if ou.profile.profile_image %}
+                            <img src="{{ ou.profile.profile_image.url }}" class="rounded-circle flex-shrink-0" style="width:30px; height:30px; object-fit:cover; border: 2px solid #10f28c;">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:30px; height:30px; font-size:12px; font-weight:bold; border: 2px solid #10f28c;">
+                                {{ ou.username|first|upper }}
+                            </div>
+                        {% endif %}
+                        <small class="ms-2">{{ ou.username }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
         </div>
     </div>
-    {% endfor %}
 </div>
-
 {% endblock %}

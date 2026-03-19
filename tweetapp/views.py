@@ -11,24 +11,65 @@ from django.views.generic import CreateView
 from tweetapp.forms import AddTweetForm, AddTweetModelForm, ProfileForm, RegisterForm
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from django.db.models import Count
+from django.utils import timezone
+import datetime
 
 
 def listtweet(request):
     if request.user.is_authenticated:
+        liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
+        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+        
         if request.user.is_staff:
-            all_tweets = models.Tweet.objects.all().order_by('-created_at')
+            latest_tweets = models.Tweet.objects.all().order_by('-created_at')
+            recommended_tweets = models.Tweet.objects.all().annotate(like_count=Count('likes')).order_by('-like_count', '-created_at')[:20]
         else:
             authors_following_me = models.Follow.objects.filter(following=request.user).values_list('follower_id', flat=True)
-            all_tweets = models.Tweet.objects.filter(
+            visible = models.Tweet.objects.filter(
                 Q(visibility='public') |
                 Q(user=request.user) |
                 Q(user_id__in=authors_following_me, visibility='followers')
-            ).order_by('-created_at')
-        liked_ids = models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True)
+            )
+            latest_tweets = visible.order_by('-created_at')
+            recommended_tweets = visible.annotate(like_count=Count('likes')).order_by('-like_count', '-created_at')[:20]
+        
+        following_tweets = models.Tweet.objects.filter(
+            user_id__in=following_ids
+        ).filter(
+            Q(visibility='public') |
+            Q(visibility='followers')
+        ).order_by('-created_at')
+        
+        suggested_users = User.objects.exclude(
+            pk__in=following_ids + [request.user.pk]
+        ).order_by('?')[:5]
+        
+        # Kendini de listede görmek için exclude kaldırıldı
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        online_users = User.objects.filter(
+            profile__last_active__gte=five_minutes_ago
+        )[:10]  
     else:
-        all_tweets = models.Tweet.objects.filter(visibility='public').order_by('-created_at')
+        latest_tweets = models.Tweet.objects.filter(visibility='public').order_by('-created_at')
+        recommended_tweets = latest_tweets[:20]
+        following_tweets = models.Tweet.objects.none()
         liked_ids = []
-    return render(request, 'tweetapp/listtweet.html', {"tweets": all_tweets, "liked_ids": liked_ids})
+        suggested_users = User.objects.order_by('?')[:5]
+        online_users = User.objects.none()
+        
+    
+    tab = request.GET.get('tab', 'latest')
+    
+    return render(request, 'tweetapp/listtweet.html', {
+        'latest_tweets': latest_tweets,
+        'recommended_tweets': recommended_tweets,
+        'following_tweets': following_tweets,
+        'liked_ids': liked_ids,
+        'suggested_users': suggested_users,
+        'active_tab': tab,
+        'online_users': online_users,
+    })
 
 
 def addtweet(request):
@@ -88,11 +129,17 @@ def searchtweet(request):
     else:
         results = models.Tweet.objects.none()
     if request.user.is_authenticated:
-        liked_ids = models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True)
+        liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
     else:
         liked_ids = []
-    return render(request, 'tweetapp/listtweet.html', context={"tweets": results, "liked_ids": liked_ids})
-
+    return render(request, 'tweetapp/listtweet.html', {
+        'latest_tweets': results,
+        'recommended_tweets': results,
+        'following_tweets': results,
+        'liked_ids': liked_ids,
+        'suggested_users': [],
+        'active_tab': 'latest',
+    })
 
 def profile(request, username):
     try:
@@ -132,6 +179,15 @@ def profile(request, username):
         following_count = models.Follow.objects.filter(follower=user).count()
         if request.user.is_authenticated and request.user != user:
             is_following = models.Follow.objects.filter(follower=request.user, following=user).exists()
+            
+    if request.user.is_authenticated:
+        # Kendini de profilde görmek için exclude kaldırıldı
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        online_users = User.objects.filter(
+            profile__last_active__gte=five_minutes_ago
+        )[:10]
+    else:
+        online_users = User.objects.none()
 
     context = {
         'profile_user': user,
@@ -144,6 +200,7 @@ def profile(request, username):
         'is_following': is_following,
         'follower_count': follower_count,
         'following_count': following_count,
+        'online_users': online_users,
     }
     return render(request, 'tweetapp/profile.html', context=context)
 
@@ -236,8 +293,13 @@ def delete_comment(request, pk):
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
 
 
+@login_required(login_url='/login/')
 def userlist(request):
-    users = User.objects.all()
+    if request.user.is_staff:
+        users = User.objects.select_related('profile').order_by('-profile__last_active')
+    else:
+        users = User.objects.select_related('profile').all()
+        
     return render(request, 'tweetapp/userlist.html', {'users': users})
 
 

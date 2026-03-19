@@ -170,3 +170,6 @@ input:focus, textarea:focus, select:focus {
     border-color: #2a2a4a !important;
     color: #10f28c !important;
 }
+.nav-link.active {
+    color: white !important;
+}

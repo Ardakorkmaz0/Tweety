@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="{% static 'tweetapp/customform.css' %}">
 </head>
+
 <script>
 function toggleLike(btn, pk) {
     fetch(`/tweetapp/like/${pk}/`, {
@@ -26,51 +27,53 @@ function toggleLike(btn, pk) {
     });
 }
 </script>
+
 <body class="settingspage">
     <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'tweetapp:listtweet' %}">
-            <img src="{% static 'tweetapp/favicon.png' %}" width="30" height="30" class="me-2"> Tweety </a>
+                <img src="{% static 'tweetapp/favicon.png' %}" width="30" height="30" class="me-2"> Tweety 
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{% url 'tweetapp:listtweet' %}">Tweets</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'listtweet' %}active{% endif %}" href="{% url 'tweetapp:listtweet' %}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'tweetapp:addtweetbyform' %}">Post</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'addtweetbyform' %}active{% endif %}" href="{% url 'tweetapp:addtweetbyform' %}">Post</a>
                     </li>
-
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'tweetapp:userlist' %}">Users</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_detail' %}active{% endif %}" href="{% url 'tweetapp:group_list' %}">Groups</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'userlist' %}active{% endif %}" href="{% url 'tweetapp:userlist' %}">Users</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'patchnotes' %}active{% endif %}" href="{% url 'tweetapp:patchnotes' %}">Patch Notes</a>
                     </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'tweetapp:profile' username=user.username %}">{{ user.username }}</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'tweetapp:profile' username=user.username %}">{{ user.username }}</a>
                     </li>
                     <li class="nav-item">
                         <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="nav-link" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: inherit; line-height: inherit; padding: 8px;">Logout</button>
+                            {% csrf_token %}
+                            <button type="submit" class="nav-link" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: inherit; line-height: inherit; padding: 8px;">Logout</button>
                         </form>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" href="{% url 'login' %}">Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'tweetapp:register' %}">Register</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'register' %}active{% endif %}" href="{% url 'tweetapp:register' %}">Register</a>
                     </li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'tweetapp:group_list' %}">Groups</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'tweetapp:patchnotes' %}">Patch Notes</a>
-                    </li>
                 </ul>
+                
                 <form class="d-flex" action="{% url 'tweetapp:searchtweet' %}" method="GET">
                     <input class="form-control me-2" type="search" name="q" placeholder="Search tweets...">
                     <button class="btn btn-outline-light" type="submit">Search</button>
@@ -78,14 +81,17 @@ function toggleLike(btn, pk) {
             </div>
         </div>
     </nav>
-        {% if messages %}
-            {% for message in messages %}
-            <div class="alert alert-warning text-center" style="margin: 0;">
-                {{ message }}
-            </div>
-            {% endfor %}
-        {% endif %}
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-warning text-center" style="margin: 0;">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
     <a href="#top" class="scroll-top">↑</a>
+
     {% block content %}
     {% endblock %}
 </body>
