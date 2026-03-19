@@ -1,48 +1,44 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container" style="max-width: 800px; margin-top: 20px;">
-    <h2 class="mb-4" style="color: white;">All Users</h2>
-    
-    <div class="row row-cols-1 g-3">
-        {% for u in users %}
-        <div class="col">
-            <div class="card" style="background-color: #1a1a2e; border: 1px solid #2a2a4a;">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    
-                    <div class="d-flex align-items-center">
-                        {% if u.profile.profile_image %}
-                            <img src="{{ u.profile.profile_image.url }}" class="rounded-circle" style="width: 45px; height: 45px; object-fit: cover;">
-                        {% else %}
-                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; font-weight: bold; color: white;">
-                                {{ u.username|first|upper }}
-                            </div>
-                        {% endif %}
-                        
-                        <div class="ms-3">
-                            <a href="{% url 'tweetapp:profile' username=u.username %}" style="color: #10f28c; text-decoration: none; font-weight: bold; font-size: 18px;">
-                                @{{ u.username }}
-                            </a>
-                        </div>
-                    </div>
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold" style="color: var(--text-primary)">Connect with Users</h2>
+    </div>
 
-                    {% if request.user.is_staff %}
-                    <div class="text-end">
-                        <span class="badge bg-dark border border-secondary">
-                            {% if u.profile.last_active %}
-                                Last seen: {{ u.profile.last_active|date:"d M Y, H:i" }}
-                            {% else %}
-                                Last seen: Never
-                            {% endif %}
-                        </span>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for u in users %}
+        <div class="glass-card p-4 flex justify-between items-center transition-all hover:border-[var(--border-glow)] hover:-translate-y-0.5 group">
+            <div class="flex items-center gap-4">
+                {% if u.profile.profile_image %}
+                    <img src="{{ u.profile.profile_image.url }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: rgba(255,255,255,0.1)">
+                {% else %}
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg" style="background: var(--surface-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-primary);">
+                        {{ u.username|first|upper }}
                     </div>
-                    {% endif %}
-                    
+                {% endif %}
+                
+                <div>
+                    <a href="{% url 'tweetapp:profile' username=u.username %}" class="font-bold text-lg hover:underline decoration-transparent transition-all" style="color: var(--neon-green)">
+                        @{{ u.username }}
+                    </a>
                 </div>
             </div>
+
+            {% if request.user.is_staff %}
+            <div class="text-right">
+                <span class="text-xs px-2 py-1 rounded" style="background: rgba(255,255,255,0.05); color: var(--text-muted)">
+                    {% if u.profile.last_active %}
+                        Seen: {{ u.profile.last_active|date:"M d, H:i" }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
         </div>
         {% empty %}
-            <p style="color: #aaa;">No users found.</p>
+            <div class="col-span-full glass-card p-6 text-center" style="color: var(--text-muted)">No users found.</div>
         {% endfor %}
     </div>
 </div>

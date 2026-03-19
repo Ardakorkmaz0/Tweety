@@ -1,119 +1,176 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container" style="max-width: 700px; margin-top: 20px;">
+<div class="max-w-5xl mx-auto space-y-6">
     <!-- Group Header -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    {% if group.image %}
-                        <img src="{{ group.image.url }}" class="rounded-circle flex-shrink-0" style="width:60px; height:60px; object-fit:cover;">
-                    {% else %}
-                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:60px; height:60px; font-size:24px; font-weight:bold;">
-                            {{ group.name|first|upper }}
-                        </div>
-                    {% endif %}
-                    <div class="ms-3">
-                        <h4 class="mb-0">{{ group.name }}</h4>
-                        <small style="color: #aaa;">{{ members.count }} members {% if group.is_private %}· Private{% else %}· Public{% endif %}</small>
-                        {% if group.description %}
-                        <p class="mb-0 mt-1" style="color: #aaa;">{{ group.description }}</p>
-                        {% endif %}
+    <div class="glass-card p-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                {% if group.image %}
+                    <img src="{{ group.image.url }}" class="w-16 h-16 rounded-xl object-cover shadow-[0_4px_10px_rgba(0,0,0,0.2)]">
+                {% else %}
+                    <div class="w-16 h-16 rounded-xl flex items-center justify-center font-bold text-2xl" style="background: var(--surface-bg); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                        {{ group.name|first|upper }}
                     </div>
-                </div>
-                <div class="d-flex gap-2">
-                    {% if membership.role == 'admin' %}
-                        <form action="{% url 'tweetapp:group_delete' pk=group.pk %}" method="POST">
-                            {% csrf_token %}
-                            <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete group?')">Delete Group</button>
-                        </form>
-                    {% else %}
-                        <form action="{% url 'tweetapp:group_leave' pk=group.pk %}" method="POST">
-                            {% csrf_token %}
-                            <button class="btn btn-outline-warning btn-sm">Leave</button>
-                        </form>
+                {% endif %}
+                <div class="ml-4">
+                    <h4 class="text-2xl font-bold m-0" style="color: var(--text-primary)">{{ group.name }}</h4>
+                    <small class="text-sm font-medium" style="color: var(--text-muted)">
+                        {{ members.count }} members · 
+                        {% if group.is_private %}
+                            <span style="color: var(--warning)">Private</span>
+                        {% else %}
+                            <span style="color: var(--neon-green)">Public</span>
+                        {% endif %}
+                    </small>
+                    {% if group.description %}
+                    <p class="mt-2 text-sm" style="color: var(--text-secondary)">{{ group.description }}</p>
                     {% endif %}
                 </div>
+            </div>
+            
+            <div class="flex gap-2">
+                {% if membership.role == 'admin' %}
+                    <form action="{% url 'tweetapp:group_delete' pk=group.pk %}" method="POST" class="m-0">
+                        {% csrf_token %}
+                        <button class="px-4 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(255,107,107,0.1)]" style="color: var(--danger); border: 1px solid var(--danger);" onclick="return confirm('Delete group?')">Delete Group</button>
+                    </form>
+                {% else %}
+                    <form action="{% url 'tweetapp:group_leave' pk=group.pk %}" method="POST" class="m-0">
+                        {% csrf_token %}
+                        <button class="px-4 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(251,191,36,0.1)]" style="color: var(--warning); border: 1px solid var(--warning);">Leave</button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="row">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Messages -->
-        <div class="col-md-8">
-            <div class="card" style="height: 500px; display: flex; flex-direction: column;">
-                <div class="card-body" style="overflow-y: auto; flex: 1;" id="chatBox">
+        <div class="lg:col-span-2">
+            <div class="glass-card flex flex-col" style="height: 600px;">
+                <div class="flex-1 p-4 overflow-y-auto space-y-4" id="chatBox">
                     {% for msg in messages_list %}
-                    <div class="mb-2">
-                        <a href="{% url 'tweetapp:profile' username=msg.user.username %}" style="color: #10f28c; text-decoration: none; font-weight: bold;">
-                            @{{ msg.user.username }}
-                        </a>
-                        {% if msg.message %}<span>{{ msg.message }}</span>{% endif %}
-                        {% if msg.image %}
-                        <br><img src="{{ msg.image.url }}" style="max-width: 300px; max-height: 200px; border-radius: 8px; margin-top: 4px; cursor: pointer;" onclick="window.open('{{ msg.image.url }}')">
-                        {% endif %}
-                        <br><small style="color: #666;">{{ msg.created_at|date:"d M Y, H:i" }}</small>
+                    <div class="flex flex-col mb-4">
+                        <div class="flex items-baseline gap-2 mb-1">
+                            <a href="{% url 'tweetapp:profile' username=msg.user.username %}" class="font-bold text-sm hover:underline decoration-transparent transition-all" style="color: var(--neon-green)">
+                                @{{ msg.user.username }}
+                            </a>
+                            <small class="text-xs" style="color: var(--text-muted)">{{ msg.created_at|date:"d M Y, H:i" }}</small>
+                        </div>
+                        
+                        <div class="w-full">
+                            {% if msg.message %}
+                                <p class="text-[15px] leading-relaxed break-words" style="color: var(--text-primary)">{{ msg.message }}</p>
+                            {% endif %}
+                            {% if msg.image %}
+                                <div class="mt-2 text-center sm:text-left">
+                                    <img src="{{ msg.image.url }}" class="rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity border" style="border-color: rgba(255,255,255,0.1); max-height: 250px; width: auto;" onclick="window.open('{{ msg.image.url }}')">
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
                     {% empty %}
-                    <p class="text-center" style="color: #666;">No messages yet. Say hello!</p>
+                    <div class="h-full flex items-center justify-center">
+                        <p class="text-center" style="color: var(--text-muted)">No messages yet. Say hello!</p>
+                    </div>
                     {% endfor %}
                 </div>
-                <div class="card-footer" style="border-top: 1px solid #2a2a4a;">
-                    <form action="{% url 'tweetapp:group_send_message' pk=group.pk %}" method="POST" enctype="multipart/form-data">
+                
+                <div class="p-4" style="border-top: 1px solid var(--border-subtle)">
+                    <form action="{% url 'tweetapp:group_send_message' pk=group.pk %}" method="POST" enctype="multipart/form-data" class="m-0">
                         {% csrf_token %}
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="text" name="message" class="form-control form-control-sm" placeholder="Type a message..." maxlength="500">
-                            <label class="btn btn-outline-secondary btn-sm mb-0" style="cursor: pointer;">
-                                📷
-                                <input type="file" name="image" accept="image/*" style="display: none;">
+                        <div class="flex items-center gap-3">
+                            <label class="cursor-pointer p-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-colors flex items-center justify-center group" title="Upload Image">
+                                <i data-lucide="image" class="w-5 h-5 transition-colors group-hover:text-[var(--neon-green)]" style="color: var(--text-muted)"></i>
+                                <input type="file" name="image" accept="image/*" class="hidden" onchange="this.parentElement.style.color = 'var(--neon-green)';">
                             </label>
-                            <button type="submit" class="btn btn-primary btn-sm">Send</button>
+                            
+                            <input type="text" name="message" class="flex-1 p-3 rounded-xl focus:outline-none transition-all placeholder:text-[var(--text-muted)]" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Type a message..." maxlength="500">
+                            
+                            <button type="submit" class="btn-gradient px-5 py-3 rounded-xl font-bold flex items-center justify-center group">
+                                <i data-lucide="send" class="w-5 h-5 text-black group-hover:translate-x-1 transition-transform"></i>
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Members -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h6>Members</h6>
+        <!-- Members Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="glass-card p-6">
+                <h6 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.1em;">Members ({{ members.count }})</h6>
+                <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {% for m in members %}
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <a href="{% url 'tweetapp:profile' username=m.user.username %}" style="color: inherit; text-decoration: none;">
+                    <div class="flex justify-between items-center p-2 rounded-lg hover:bg-[rgba(255,255,255,0.02)] transition-colors group">
+                        <div class="flex items-center gap-3 min-w-0">
+                            {% if m.user.profile.profile_image %}
+                                <img src="{{ m.user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover shrink-0">
+                            {% else %}
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">
+                                    {{ m.user.username|first|upper }}
+                                </div>
+                            {% endif %}
+                            
+                            <a href="{% url 'tweetapp:profile' username=m.user.username %}" class="font-medium hover:underline decoration-transparent transition-all truncate" style="color: var(--text-primary)">
                                 {{ m.user.username }}
                             </a>
+                            
                             {% if m.role == 'admin' %}
-                            <span class="badge bg-warning" style="font-size: 10px;">Admin</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0" style="background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid var(--warning)">Admin</span>
                             {% endif %}
                         </div>
+                        
                         {% if membership.role == 'admin' and m.role != 'admin' %}
-                        <form action="{% url 'tweetapp:group_kick' pk=group.pk user_id=m.user.pk %}" method="POST">
+                        <form action="{% url 'tweetapp:group_kick' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                             {% csrf_token %}
-                            <button class="btn btn-sm" style="background:none; border:none; color:#ff6b6b; font-size:12px;" onclick="return confirm('Kick user?')">✕</button>
+                            <button class="p-1.5 rounded hover:bg-[rgba(255,107,107,0.1)] transition-colors" onclick="return confirm('Kick user?')">
+                                <i data-lucide="user-minus" class="w-4 h-4" style="color: var(--danger)"></i>
+                            </button>
                         </form>
                         {% endif %}
                     </div>
                     {% endfor %}
+                </div>
 
-                    {% if membership.role == 'admin' %}
-                    <hr style="border-color: #2a2a4a;">
-                    <form action="{% url 'tweetapp:group_invite' pk=group.pk %}" method="POST">
+                {% if membership.role == 'admin' %}
+                <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-subtle)">
+                    <h6 class="font-bold text-sm uppercase mb-3 whitespace-nowrap" style="color: var(--neon-green); letter-spacing: 0.1em;">Invite Member</h6>
+                    <form action="{% url 'tweetapp:group_invite' pk=group.pk %}" method="POST" class="m-0">
                         {% csrf_token %}
-                        <div class="d-flex gap-2">
-                            <input type="text" name="username" class="form-control form-control-sm" placeholder="Username" required>
-                            <button type="submit" class="btn btn-outline-primary btn-sm">Invite</button>
+                        <div class="flex flex-col gap-3">
+                            <input type="text" name="username" class="w-full p-2.5 rounded-xl text-sm focus:outline-none transition-all placeholder:text-[var(--text-muted)] hover:border-[var(--neon-green)]" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Username" required>
+                            <button type="submit" class="w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-[rgba(16,242,140,0.1)]" style="color: var(--neon-green); border: 1px solid var(--neon-green)">Invite</button>
                         </div>
                     </form>
-                    {% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* Custom scrollbar for chat box and members */
+.custom-scrollbar::-webkit-scrollbar,
+#chatBox::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track,
+#chatBox::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb,
+#chatBox::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+#chatBox::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+</style>
 
 <script>
     const chatBox = document.getElementById('chatBox');

@@ -1,39 +1,52 @@
-{%extends "base.html"%}
+{% extends "base.html" %}
 {% load static %}
 
-{%block content%}
-<h1 class="container text-center">Add tweet</h1>
-<div class="container tweetform ">
-<form action="" method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="glass-card p-8">
+        <h2 class="text-2xl font-bold mb-6" style="color: var(--neon-green)">Post a New Tweet</h2>
+        
+        <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            
+            {% for field in form %}
+            <div>
+                <label class="block mb-2 font-medium" style="color: var(--text-secondary)">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
 
+            <div>
+                <label class="block mb-2 font-medium" style="color: var(--text-secondary)">Attach Images</label>
+                <input type="file" name="images" multiple class="w-full p-3 rounded-xl focus:outline-none transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+            </div>
 
-  <!--
-  <div class="mb-3">
-      {{form.nickname_input.label_tag}} <br>
-      {{form.nickname_input}}
-      <br>
-      {{form.message_input.label_tag}} <br>
-      {{form.message_input}}
-  </div>
-  -->
+            <div class="pt-4">
+                <button type="submit" class="btn-gradient w-full py-3 rounded-xl font-bold text-lg">Send Tweet</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-  {% for field in form %}
-          <div class="form-control">
-              {{field.label_tag}}
-              <br>
-              {{field}}
-          </div>
-          {% endfor %}
-
-          <div class="form-control">
-              <label>Images</label>
-              <br>
-              <input type="file" name="images" multiple>
-          </div>
-
-          <br>
-          <button type="submit" class="btn btn-primary">Send Tweet</button>
-      </form>
-  </div>
-  {% endblock %}
+<style>
+/* Style the django rendered form fields natively */
+form textarea, form select, form input[type="text"], form input[type="password"], form input[type="email"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--input);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+form textarea:focus, form select:focus, form input[type="text"]:focus, form input[type="password"]:focus, form input[type="email"]:focus {
+    outline: none;
+    border-color: var(--neon-green);
+    box-shadow: 0 0 10px rgba(16, 242, 140, 0.2);
+}
+form textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+</style>
+{% endblock %}

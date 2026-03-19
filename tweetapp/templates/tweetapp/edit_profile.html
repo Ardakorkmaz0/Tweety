@@ -1,21 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="container text-center">Edit Profile</h1>
-<div class="container tweetform">
-    <form action="" method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
+<div class="max-w-xl mx-auto space-y-6">
+    <div class="glass-card p-8">
+        <h2 class="text-2xl font-bold mb-6 text-center" style="color: var(--neon-green)">Edit Profile</h2>
         
-        {% for field in form %}
-        <div class="form-control">
-            {{ field.label_tag }}
-            <br>
-            {{ field }}
-        </div>
-        {% endfor %}
+        <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            
+            {% for field in form %}
+            <div>
+                <label class="block mb-2 font-medium" style="color: var(--text-secondary)">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
 
-        <br>
-        <button type="submit" class="btn btn-primary">Save</button>
-    </form>
+            <div class="pt-4">
+                <button type="submit" class="btn-gradient w-full py-3 rounded-xl font-bold text-lg">Save Changes</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<style>
+/* Style the django rendered form fields */
+form textarea, form select, form input[type="text"], form input[type="file"], form input[type="email"], form input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--input);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+form textarea:focus, form select:focus, form input[type="text"]:focus, form input[type="email"]:focus, form input[type="number"]:focus {
+    outline: none;
+    border-color: var(--neon-green);
+    box-shadow: 0 0 10px rgba(16, 242, 140, 0.2);
+}
+</style>
 {% endblock %}

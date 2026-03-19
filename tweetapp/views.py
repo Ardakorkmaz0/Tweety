@@ -25,11 +25,10 @@ def listtweet(request):
             latest_tweets = models.Tweet.objects.all().order_by('-created_at')
             recommended_tweets = models.Tweet.objects.all().annotate(like_count=Count('likes')).order_by('-like_count', '-created_at')[:20]
         else:
-            authors_following_me = models.Follow.objects.filter(following=request.user).values_list('follower_id', flat=True)
             visible = models.Tweet.objects.filter(
                 Q(visibility='public') |
                 Q(user=request.user) |
-                Q(user_id__in=authors_following_me, visibility='followers')
+                Q(user_id__in=following_ids, visibility='followers')
             )
             latest_tweets = visible.order_by('-created_at')
             recommended_tweets = visible.annotate(like_count=Count('likes')).order_by('-like_count', '-created_at')[:20]
@@ -123,9 +122,22 @@ def searchtweet(request):
     if query:
         if query.startswith('@'):
             nickname = query[1:]
-            results = models.Tweet.objects.filter(nickname__iexact=nickname).order_by('-created_at')
+            results = models.Tweet.objects.filter(nickname__iexact=nickname)
         else:
-            results = models.Tweet.objects.filter(message__icontains=query).order_by('-created_at')
+            results = models.Tweet.objects.filter(message__icontains=query)
+            
+        if request.user.is_authenticated:
+            if not request.user.is_staff:
+                following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+                results = results.filter(
+                    Q(visibility='public') |
+                    Q(user=request.user) |
+                    Q(user_id__in=following_ids, visibility='followers')
+                )
+        else:
+            results = results.filter(visibility='public')
+            
+        results = results.order_by('-created_at')
     else:
         results = models.Tweet.objects.none()
     if request.user.is_authenticated:
@@ -155,8 +167,8 @@ def profile(request, username):
         if request.user.is_staff or (user and request.user == user):
             tweets = models.Tweet.objects.filter(nickname__iexact=username)
         else:
-            author_follows_me = user and models.Follow.objects.filter(follower=user, following=request.user).exists()
-            if author_follows_me:
+            i_follow_author = user and models.Follow.objects.filter(follower=request.user, following=user).exists()
+            if i_follow_author:
                 tweets = models.Tweet.objects.filter(nickname__iexact=username)
             else:
                 tweets = models.Tweet.objects.filter(nickname__iexact=username, visibility='public')

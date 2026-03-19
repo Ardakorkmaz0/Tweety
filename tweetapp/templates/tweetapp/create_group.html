@@ -1,31 +1,37 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container" style="max-width: 500px; margin-top: 20px;">
-    <div class="card">
-        <div class="card-body">
-            <h3 class="text-center mb-3">Create Group</h3>
-            <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label class="form-label" style="color: #aaa;">Group Name</label>
-                    <input type="text" name="name" class="form-control" maxlength="50" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" style="color: #aaa;">Description</label>
-                    <textarea name="description" class="form-control tweetmessage" rows="2"></textarea>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" style="color: #aaa;">Group Image</label>
-                    <input type="file" name="image" class="form-control" accept="image/*">
-                </div>
-                <div class="form-check mb-3">
-                    <input type="checkbox" name="is_private" class="form-check-input" id="privateCheck">
-                    <label class="form-check-label" for="privateCheck" style="color: #aaa;">Private (invite only)</label>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">Create</button>
-            </form>
-        </div>
+<div class="max-w-xl mx-auto space-y-6">
+    <div class="glass-card p-8">
+        <h2 class="text-2xl font-bold mb-6 text-center" style="color: var(--neon-green)">Create Group</h2>
+        
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block mb-2 font-medium" style="color: var(--text-secondary)">Group Name</label>
+                <input type="text" name="name" class="w-full p-3 rounded-xl focus:outline-none transition-all placeholder:text-[var(--text-muted)]" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" maxlength="50" required>
+            </div>
+            
+            <div>
+                <label class="block mb-2 font-medium" style="color: var(--text-secondary)">Description</label>
+                <textarea name="description" class="w-full p-3 rounded-xl focus:outline-none transition-all placeholder:text-[var(--text-muted)] min-h-[100px] resize-y" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" rows="2"></textarea>
+            </div>
+            
+            <div>
+                <label class="block mb-2 font-medium" style="color: var(--text-secondary)">Group Image</label>
+                <input type="file" name="image" class="w-full p-3 rounded-xl focus:outline-none transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" accept="image/*">
+            </div>
+            
+            <div class="pt-2 flex items-center gap-3">
+                <input type="checkbox" name="is_private" id="privateCheck" class="w-5 h-5 rounded accent-[var(--neon-green)] focus:ring-[var(--neon-green)] border-[var(--border-subtle)] bg-[var(--input)] cursor-pointer">
+                <label for="privateCheck" class="font-medium cursor-pointer selects-none" style="color: var(--text-secondary)">Private (invite only)</label>
+            </div>
+            
+            <div class="pt-6">
+                <button type="submit" class="btn-gradient w-full py-3 rounded-xl font-bold text-lg">Create Group</button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}

@@ -1,138 +1,127 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container-fluid" style="max-width: 1200px; margin-top: 20px;">
-    <div class="row">
-        <!-- Main Content -->
-        <div class="col-md-8">
-            <h2 class="mb-3">Home</h2>
+<!-- Tab Bar -->
+<div class="glass-card mb-6 p-1.5 flex items-center gap-2">
+    <a href="?tab=latest" class="flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" style="{% if active_tab == 'latest' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
+        <i data-lucide="clock" class="w-4 h-4"></i>
+        <span style="font-weight: {% if active_tab == 'latest' %}600{% else %}400{% endif %}; font-size: 14px;">Latest</span>
+        {% if active_tab == 'latest' %}<div class="absolute bottom-0 left-4 right-4 h-0.5 rounded-full glow-green" style="background-color: var(--neon-green);"></div>{% endif %}
+    </a>
 
-            <!-- Tabs -->
-            <ul class="nav nav-tabs mb-3" style="border-bottom-color: #2a2a4a;">
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'latest' %}active{% endif %}" href="?tab=latest" style="{% if active_tab == 'latest' %}color: white; background: none; border-color: #2a2a4a; border-bottom-color: #10f28c;{% else %}color: #aaa; background: none; border-color: transparent;{% endif %}">
-                        🕐 Latest
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'recommended' %}active{% endif %}" href="?tab=recommended" style="{% if active_tab == 'recommended' %}color: white; background: none; border-color: #2a2a4a; border-bottom-color: #10f28c;{% else %}color: #aaa; background: none; border-color: transparent;{% endif %}">
-                        ⭐ For You
-                    </a>
-                </li>
-                {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'following' %}active{% endif %}" href="?tab=following" style="{% if active_tab == 'following' %}color: white; background: none; border-color: #2a2a4a; border-bottom-color: #10f28c;{% else %}color: #aaa; background: none; border-color: transparent;{% endif %}">
-                        👥 Following
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
+    <a href="?tab=recommended" class="flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" style="{% if active_tab == 'recommended' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
+        <i data-lucide="star" class="w-4 h-4"></i>
+        <span style="font-weight: {% if active_tab == 'recommended' %}600{% else %}400{% endif %}; font-size: 14px;">For You</span>
+        {% if active_tab == 'recommended' %}<div class="absolute bottom-0 left-4 right-4 h-0.5 rounded-full glow-green" style="background-color: var(--neon-green);"></div>{% endif %}
+    </a>
 
-            <!-- Tweet Grid -->
-            <div class="row row-cols-1 row-cols-md-3 g-3">
-                {% if active_tab == 'latest' %}
-                    {% for tweet in latest_tweets %}
-                        {% include "tweetapp/tweet_card.html" %}
-                    {% empty %}
-                        <p style="color: #aaa;">No tweets yet.</p>
-                    {% endfor %}
-                {% elif active_tab == 'recommended' %}
-                    {% for tweet in recommended_tweets %}
-                        {% include "tweetapp/tweet_card.html" %}
-                    {% empty %}
-                        <p style="color: #aaa;">No recommendations yet.</p>
-                    {% endfor %}
-                {% elif active_tab == 'following' %}
-                    {% for tweet in following_tweets %}
-                        {% include "tweetapp/tweet_card.html" %}
-                    {% empty %}
-                        <p style="color: #aaa;">Follow people to see their tweets here.</p>
-                    {% endfor %}
-                {% endif %}
+    {% if user.is_authenticated %}
+    <a href="?tab=following" class="flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" style="{% if active_tab == 'following' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
+        <i data-lucide="users" class="w-4 h-4"></i>
+        <span style="font-weight: {% if active_tab == 'following' %}600{% else %}400{% endif %}; font-size: 14px;">Following</span>
+        {% if active_tab == 'following' %}<div class="absolute bottom-0 left-4 right-4 h-0.5 rounded-full glow-green" style="background-color: var(--neon-green);"></div>{% endif %}
+    </a>
+    {% endif %}
+</div>
+
+<!-- Quick Post Action -->
+{% if user.is_authenticated %}
+<div class="glass-card mb-6 p-4 flex items-center justify-between cursor-pointer hover:border-[var(--border-glow)] transition-colors" onclick="window.location.href='{% url 'tweetapp:addtweetbyform' %}'">
+    <div class="flex items-center gap-3">
+        {% if user.profile.profile_image %}
+            <img src="{{ user.profile.profile_image.url }}" class="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)]">
+        {% else %}
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold" style="background: var(--surface-bg); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                {{ user.username|first|upper }}
             </div>
-        </div>
+        {% endif %}
+        <span style="color: var(--text-muted); font-size: 15px;">What's happening?</span>
+    </div>
+    <div class="btn-gradient px-4 py-2 rounded-xl text-sm font-bold">Post</div>
+</div>
+{% endif %}
 
-        <!-- Sidebar -->
-        <div class="col-md-4">
-            <!-- Profile Card -->
-            {% if user.is_authenticated %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <a href="{% url 'tweetapp:profile' username=user.username %}" style="text-decoration: none; color: inherit;">
-                        <div class="d-flex align-items-center">
-                            {% if user.profile.profile_image %}
-                                <img src="{{ user.profile.profile_image.url }}" class="rounded-circle flex-shrink-0" style="width:50px; height:50px; object-fit:cover;">
-                            {% else %}
-                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:50px; height:50px; font-size:20px; font-weight:bold;">
-                                    {{ user.username|first|upper }}
-                                </div>
-                            {% endif %}
-                            <div class="ms-3">
-                                <strong>{{ user.username }}</strong>
-                                {% if user.profile.bio %}
-                                <br><small style="color: #aaa;">{{ user.profile.bio|truncatewords:8 }}</small>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            </div>
-            {% endif %}
+<!-- Tweet Cards Container -->
+<div class="space-y-4 mb-6">
+    {% if active_tab == 'latest' %}
+        {% for tweet in latest_tweets %}
+            {% include "tweetapp/tweet_card.html" %}
+        {% empty %}
+            <div class="glass-card p-5 text-center" style="color: var(--text-muted)">No tweets yet.</div>
+        {% endfor %}
+    {% elif active_tab == 'recommended' %}
+        {% for tweet in recommended_tweets %}
+            {% include "tweetapp/tweet_card.html" %}
+        {% empty %}
+            <div class="glass-card p-5 text-center" style="color: var(--text-muted)">No recommendations yet.</div>
+        {% endfor %}
+    {% elif active_tab == 'following' %}
+        {% for tweet in following_tweets %}
+            {% include "tweetapp/tweet_card.html" %}
+        {% empty %}
+            <div class="glass-card p-5 text-center" style="color: var(--text-muted)">Follow people to see their tweets here.</div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
 
-            <!-- Suggested Users -->
-            {% if suggested_users %}
-            <div class="card">
-                <div class="card-body">
-                    <h6 style="color: #aaa;">Suggested for you</h6>
-                    {% for su in suggested_users %}
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <a href="{% url 'tweetapp:profile' username=su.username %}" class="d-flex align-items-center" style="text-decoration: none; color: inherit;">
-                            {% if su.profile.profile_image %}
-                                <img src="{{ su.profile.profile_image.url }}" class="rounded-circle flex-shrink-0" style="width:35px; height:35px; object-fit:cover;">
-                            {% else %}
-                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:35px; height:35px; font-size:14px; font-weight:bold;">
-                                    {{ su.username|first|upper }}
-                                </div>
-                            {% endif %}
-                            <div class="ms-2">
-                                <strong style="font-size: 14px;">{{ su.username }}</strong>
-                                {% if su.profile.bio %}
-                                <br><small style="color: #666; font-size: 11px;">{{ su.profile.bio|truncatewords:5 }}</small>
-                                {% endif %}
-                            </div>
-                        </a>
-                        {% if user.is_authenticated %}
-                        <form action="{% url 'tweetapp:follow_user' username=su.username %}" method="POST">
-                            {% csrf_token %}
-                            <button class="btn btn-outline-primary btn-sm" style="font-size: 11px;">Follow</button>
-                        </form>
-                        {% endif %}
+{% block right_sidebar %}
+<!-- Suggested Users -->
+{% if suggested_users %}
+<div class="glass-card p-5">
+    <h3 class="mb-4" style="color: var(--text-secondary); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Suggested for you</h3>
+    <div class="space-y-4">
+        {% for su in suggested_users %}
+        <div class="flex items-center justify-between">
+            <a href="{% url 'tweetapp:profile' username=su.username %}" class="flex items-center gap-2 decoration-transparent group">
+                {% if su.profile.profile_image %}
+                    <img src="{{ su.profile.profile_image.url }}" class="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)]">
+                {% else %}
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold" style="background: var(--surface-bg); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                        {{ su.username|first|upper }}
                     </div>
-                    {% endfor %}
+                {% endif %}
+                <div>
+                    <strong class="block text-sm transition-colors group-hover:text-[var(--neon-green)]" style="color: var(--text-primary)">{{ su.username }}</strong>
+                    {% if su.profile.bio %}
+                    <span class="block text-xs" style="color: var(--text-muted)">{{ su.profile.bio|truncatewords:5 }}</span>
+                    {% endif %}
                 </div>
-            </div>
-            {% endif %}
-             {% if online_users %}
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h6 style="color: #aaa;">🟢 Online Now</h6>
-                    {% for ou in online_users %}
-                    <a href="{% url 'tweetapp:profile' username=ou.username %}" class="d-flex align-items-center mb-2" style="text-decoration: none; color: inherit;">
-                        {% if ou.profile.profile_image %}
-                            <img src="{{ ou.profile.profile_image.url }}" class="rounded-circle flex-shrink-0" style="width:30px; height:30px; object-fit:cover; border: 2px solid #10f28c;">
-                        {% else %}
-                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:30px; height:30px; font-size:12px; font-weight:bold; border: 2px solid #10f28c;">
-                                {{ ou.username|first|upper }}
-                            </div>
-                        {% endif %}
-                        <small class="ms-2">{{ ou.username }}</small>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
+            </a>
+            
+            {% if user.is_authenticated %}
+            <form action="{% url 'tweetapp:follow_user' username=su.username %}" method="POST" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors hover:bg-[rgba(16,242,140,0.1)]" style="color: var(--neon-green); border: 1px solid var(--neon-green);">Follow</button>
+            </form>
             {% endif %}
         </div>
-        </div>
+        {% endfor %}
     </div>
 </div>
+{% endif %}
+
+<!-- Online Now -->
+{% if online_users %}
+<div class="glass-card p-5">
+    <h3 class="mb-4 flex items-center gap-2" style="color: var(--text-secondary); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+        <span class="w-2 h-2 rounded-full" style="background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green);"></span>
+        Online Now
+    </h3>
+    <div class="flex flex-wrap gap-3">
+        {% for ou in online_users %}
+        <a href="{% url 'tweetapp:profile' username=ou.username %}" class="flex items-center gap-2 decoration-transparent group hover:bg-[rgba(255,255,255,0.05)] p-1 rounded-full transition-colors pr-3">
+            {% if ou.profile.profile_image %}
+                <img src="{{ ou.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover" style="border: 2px solid var(--neon-green);">
+            {% else %}
+                <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style="background: var(--surface-bg); border: 2px solid var(--neon-green); color: var(--text-primary);">
+                    {{ ou.username|first|upper }}
+                </div>
+            {% endif %}
+            <span class="text-sm font-medium transition-colors group-hover:text-[var(--neon-green)]" style="color: var(--text-primary)">{{ ou.username }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 {% endblock %}
