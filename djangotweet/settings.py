@@ -101,4 +101,4 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Authentication
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'tweetapp:index'
+LOGIN_REDIRECT_URL = 'tweetapp:listtweet'
