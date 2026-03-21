@@ -20,7 +20,7 @@ Follow these steps to get the project running on your local machine.
 **Terminal: PowerShell**
 ```powershell
 # 1. Clone the repository from GitHub
-git clone [https://github.com/Ardakorkmaz0/Tweety.git](https://github.com/Ardakorkmaz0/Tweety.git)
+git clone https://github.com/Ardakorkmaz0/Tweety.git
 
 # 2. Navigate into the project directory
 cd Tweety
@@ -31,20 +31,24 @@ python -m venv venv
 # 4. Activate the virtual environment
 .\venv\Scripts\Activate.ps1
 
-# 5. Install all required Python packages from requirements.txt
+# 5. Install all required Python packages
 pip install -r requirements.txt
 
-# 6. Create migration files based on model changes
+# 6. Generate a secure .env file (SECRET_KEY etc.)
+python create_env.py
+
+# 7. Create migration files based on model changes
 python manage.py makemigrations
 
-# 7. Apply migrations to create database tables
+# 8. Apply migrations to create database tables
 python manage.py migrate
 
-# 8. Create an administrative user for the project
+# 9. Create an administrative user
 python manage.py createsuperuser
 
-# 9. Start the Django development server
+# 10. Start the Django development server
 python manage.py runserver
+
 ```
 
 Once started, visit **`http://127.0.0.1:8000/`** in your web browser.
