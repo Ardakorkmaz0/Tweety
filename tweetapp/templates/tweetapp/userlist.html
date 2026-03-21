@@ -2,6 +2,59 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
+    <!-- Online Users & Suggestions (Mobile) -->
+    <div class="lg:hidden space-y-4">
+        {% if online_users %}
+        <div class="glass-card p-6">
+            <h5 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.05em;">Online Now ({{ online_users.count }})</h5>
+            <div class="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+                {% for online_user in online_users %}
+                <a href="{% url 'tweetapp:profile' username=online_user.username %}" class="flex items-center gap-2 p-3 rounded-lg hover:bg-[rgba(16,242,140,0.05)] transition-colors decoration-transparent group">
+                    {% if online_user.profile.profile_image %}
+                        <img src="{{ online_user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover shrink-0">
+                    {% else %}
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">{{ online_user.username|first|upper }}</div>
+                    {% endif %}
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-sm truncate group-hover:text-[var(--neon-green)]" style="color: var(--text-primary);">@{{ online_user.username }}</div>
+                        <div class="inline-flex items-center gap-1 mt-0.5">
+                            <div class="w-2 h-2 rounded-full" style="background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green);"></div>
+                            <span class="text-xs" style="color: var(--neon-green);">Online</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if suggested_users %}
+        <div class="glass-card p-6">
+            <h5 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.05em;">Suggestions for You</h5>
+            <div class="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+                {% for suggested in suggested_users %}
+                <div class="flex items-center justify-between p-3 rounded-lg hover:bg-[rgba(16,242,140,0.05)] transition-colors group">
+                    <a href="{% url 'tweetapp:profile' username=suggested.username %}" class="flex items-center gap-2 flex-1 decoration-transparent min-w-0">
+                        {% if suggested.profile.profile_image %}
+                            <img src="{{ suggested.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover shrink-0">
+                        {% else %}
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">{{ suggested.username|first|upper }}</div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-sm truncate group-hover:text-[var(--neon-green)]" style="color: var(--text-primary);">@{{ suggested.username }}</div>
+                        </div>
+                    </a>
+                    <form action="{% url 'tweetapp:follow_user' username=suggested.username %}" method="POST" class="m-0 shrink-0 ml-2">
+                        {% csrf_token %}
+                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-[rgba(16,242,140,0.2)]" style="border: 1px solid var(--neon-green); color: var(--neon-green);">Follow</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold" style="color: var(--text-primary)">Connect with Users</h2>
     </div>
@@ -42,4 +95,58 @@
         {% endfor %}
     </div>
 </div>
+{% endblock %}
+
+{% block right_sidebar %}
+<!-- Online Users -->
+{% if online_users %}
+<div class="glass-card p-6">
+    <h5 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.05em;">Online Now ({{ online_users.count }})</h5>
+    <div class="space-y-3 max-h-[350px] overflow-y-auto pr-2">
+        {% for online_user in online_users %}
+        <a href="{% url 'tweetapp:profile' username=online_user.username %}" class="flex items-center gap-2 p-3 rounded-lg hover:bg-[rgba(16,242,140,0.05)] transition-colors decoration-transparent group">
+            {% if online_user.profile.profile_image %}
+                <img src="{{ online_user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover shrink-0">
+            {% else %}
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">{{ online_user.username|first|upper }}</div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+                <div class="font-medium text-sm truncate group-hover:text-[var(--neon-green)]" style="color: var(--text-primary);">@{{ online_user.username }}</div>
+                <div class="inline-flex items-center gap-1 mt-0.5">
+                    <div class="w-2 h-2 rounded-full" style="background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green);"></div>
+                    <span class="text-xs" style="color: var(--neon-green);">Online</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Suggested Users -->
+{% if suggested_users %}
+<div class="glass-card p-6">
+    <h5 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.05em;">Suggestions for You</h5>
+    <div class="space-y-3 max-h-[350px] overflow-y-auto pr-2">
+        {% for suggested in suggested_users %}
+        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-[rgba(16,242,140,0.05)] transition-colors group">
+            <a href="{% url 'tweetapp:profile' username=suggested.username %}" class="flex items-center gap-2 flex-1 decoration-transparent min-w-0">
+                {% if suggested.profile.profile_image %}
+                    <img src="{{ suggested.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover shrink-0">
+                {% else %}
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">{{ suggested.username|first|upper }}</div>
+                {% endif %}
+                <div class="flex-1 min-w-0">
+                    <div class="font-medium text-sm truncate group-hover:text-[var(--neon-green)]" style="color: var(--text-primary);">@{{ suggested.username }}</div>
+                </div>
+            </a>
+            <form action="{% url 'tweetapp:follow_user' username=suggested.username %}" method="POST" class="m-0 shrink-0 ml-2">
+                {% csrf_token %}
+                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-[rgba(16,242,140,0.2)]" style="border: 1px solid var(--neon-green); color: var(--neon-green);">Follow</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 {% endblock %}

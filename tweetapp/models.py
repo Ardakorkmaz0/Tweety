@@ -125,3 +125,25 @@ class Follow(models.Model):
 
     class Meta:
         unique_together = ('follower', 'following')
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('like', 'Like'),
+        ('comment', 'Comment'),
+        ('thread', 'Thread Comment'),
+        ('follow', 'Follow'),
+        ('group_invite', 'Group Invite'),
+    )
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    actor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='actions')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    tweet = models.ForeignKey('Tweet', on_delete=models.CASCADE, null=True, blank=True)
+    group = models.ForeignKey('Group', on_delete=models.CASCADE, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.actor.username} -> {self.recipient.username}: {self.notification_type}"

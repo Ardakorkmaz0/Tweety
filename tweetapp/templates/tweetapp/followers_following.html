@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold" style="color: var(--text-primary)">@{{ profile_user.username }}'s Network</h2>
+    </div>
+
+    <!-- Tabs -->
+    <div class="glass-card mb-6 p-1.5 flex items-center gap-2">
+        <button class="tab-btn flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative" data-tab="followers" style="background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+            <span style="font-weight: 600; font-size: 14px;">Followers ({{ followers_count }})</span>
+            <div class="absolute bottom-0 left-4 right-4 h-0.5 rounded-full glow-green" style="background-color: var(--neon-green);"></div>
+        </button>
+
+        <button class="tab-btn flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative" data-tab="following" style="background-color: transparent; color: var(--text-inactive);">
+            <i data-lucide="user-check" class="w-4 h-4"></i>
+            <span style="font-weight: 400; font-size: 14px;">Following ({{ following_count }})</span>
+        </button>
+    </div>
+
+    <!-- Followers Tab -->
+    <div id="followers-tab" class="space-y-4">
+        {% if followers %}
+            {% for follow in followers %}
+            <div class="glass-card p-4 flex justify-between items-center transition-all hover:border-[var(--border-glow)] hover:-translate-y-0.5">
+                <a href="{% url 'tweetapp:profile' username=follow.follower.username %}" class="flex items-center gap-4 flex-1 decoration-transparent group">
+                    {% if follow.follower.profile.profile_image %}
+                        <img src="{{ follow.follower.profile.profile_image.url }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: rgba(255,255,255,0.1)">
+                    {% else %}
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg" style="background: var(--surface-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-primary);">
+                            {{ follow.follower.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    <div>
+                        <div class="font-bold text-lg group-hover:underline transition-all" style="color: var(--neon-green)">
+                            @{{ follow.follower.username }}
+                        </div>
+                        {% if follow.follower.profile.bio %}
+                        <div class="text-sm" style="color: var(--text-muted)">{{ follow.follower.profile.bio|truncatewords:10 }}</div>
+                        {% endif %}
+                    </div>
+                </a>
+
+                {% if request.user.pk != follow.follower.pk %}
+                <form action="{% url 'tweetapp:follow_user' username=follow.follower.username %}" method="POST" class="m-0 ml-4">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:bg-[rgba(16,242,140,0.2)]" style="border: 1px solid var(--neon-green); color: var(--neon-green);">
+                        Follow
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="glass-card p-6 text-center" style="color: var(--text-muted)">No followers yet.</div>
+        {% endif %}
+    </div>
+
+    <!-- Following Tab -->
+    <div id="following-tab" class="space-y-4 hidden">
+        {% if following %}
+            {% for follow in following %}
+            <div class="glass-card p-4 flex justify-between items-center transition-all hover:border-[var(--border-glow)] hover:-translate-y-0.5">
+                <a href="{% url 'tweetapp:profile' username=follow.following.username %}" class="flex items-center gap-4 flex-1 decoration-transparent group">
+                    {% if follow.following.profile.profile_image %}
+                        <img src="{{ follow.following.profile.profile_image.url }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: rgba(255,255,255,0.1)">
+                    {% else %}
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg" style="background: var(--surface-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-primary);">
+                            {{ follow.following.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    <div>
+                        <div class="font-bold text-lg group-hover:underline transition-all" style="color: var(--neon-green)">
+                            @{{ follow.following.username }}
+                        </div>
+                        {% if follow.following.profile.bio %}
+                        <div class="text-sm" style="color: var(--text-muted)">{{ follow.following.profile.bio|truncatewords:10 }}</div>
+                        {% endif %}
+                    </div>
+                </a>
+
+                {% if request.user.pk == profile_user.pk %}
+                <form action="{% url 'tweetapp:follow_user' username=follow.following.username %}" method="POST" class="m-0 ml-4">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:bg-[var(--danger)/0.2)]" style="border: 1px solid var(--danger); color: var(--danger);">
+                        Unfollow
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="glass-card p-6 text-center" style="color: var(--text-muted)">Not following anyone yet.</div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tab = this.dataset.tab;
+            switchTab(tab);
+            // Update URL without reload
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tab);
+            window.history.replaceState({}, '', url);
+        });
+    });
+
+    function switchTab(tab) {
+        // Hide all tabs
+        document.getElementById('followers-tab').classList.add('hidden');
+        document.getElementById('following-tab').classList.add('hidden');
+        
+        // Show selected tab
+        document.getElementById(tab + '-tab').classList.remove('hidden');
+        
+        // Update button styles
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            if (b.dataset.tab === tab) {
+                b.style.backgroundColor = 'rgba(16, 242, 140, 0.08)';
+                b.style.color = 'var(--text-active)';
+                b.querySelector('span').style.fontWeight = '600';
+                const underline = b.querySelector('.absolute.bottom-0');
+                if (underline) underline.style.display = 'block';
+            } else {
+                b.style.backgroundColor = 'transparent';
+                b.style.color = 'var(--text-inactive)';
+                b.querySelector('span').style.fontWeight = '400';
+                const underline = b.querySelector('.absolute.bottom-0');
+                if (underline) underline.style.display = 'none';
+            }
+        });
+    }
+
+    // Auto-select tab from URL param on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    if (activeTab === 'following') {
+        switchTab('following');
+    }
+</script>
+{% endblock %}

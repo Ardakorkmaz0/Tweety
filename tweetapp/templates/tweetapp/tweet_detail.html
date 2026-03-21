@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-[600px] mx-auto space-y-6">
+    <a href="{% url 'tweetapp:listtweet' %}" class="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--neon-green)] transition-all decoration-transparent">
+        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        <span class="font-bold text-sm">Back to Feed</span>
+    </a>
+
+    <div class="glass-card p-6">
+        <div class="flex items-center gap-4 mb-6">
+            {% if tweet.user.profile.profile_image %}
+                <img src="{{ tweet.user.profile.profile_image.url }}" class="w-12 h-12 rounded-full object-cover">
+            {% endif %}
+            <div>
+                <div class="font-bold text-lg" style="color: var(--neon-green)">@{{ tweet.nickname }}</div>
+                <div class="text-xs opacity-50">{{ tweet.created_at|date:"M d, Y · H:i" }}</div>
+            </div>
+        </div>
+
+        <p class="text-xl leading-relaxed mb-8">{{ tweet.message|safe }}</p>
+
+        <div class="flex items-center gap-8 py-4 border-y border-white/5">
+            <button onclick="toggleLike(this, {{ tweet.pk }})" class="flex items-center gap-2 group transition-colors">
+                <i data-lucide="heart" class="w-6 h-6 transition-transform group-active:scale-125 {% if tweet.pk in liked_ids %}fill-current text-[var(--danger)]{% endif %}"></i>
+                <span class="like-count font-bold">{{ tweet.likes.count }}</span>
+            </button>
+            
+            <button onclick="shareTweet('{{ request.build_absolute_uri }}', '{{ tweet.nickname }}')" class="flex items-center gap-2 hover:text-[var(--neon-purple)] transition-colors">
+                <i data-lucide="share-2" class="w-6 h-6"></i>
+                <span class="text-sm font-bold">Share</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="space-y-4">
+        <h4 class="text-xs uppercase tracking-widest opacity-50 px-2">Replies</h4>
+        <div class="space-y-3">
+            {% for comment in tweet.comments.all %}
+            <div class="glass-card p-4 border-l-4 border-[var(--neon-green)]">
+                <p class="text-sm opacity-90"><b class="text-[var(--neon-green)]">@{{ comment.user.username }}</b>: {{ comment.message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

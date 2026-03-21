@@ -119,6 +119,8 @@ def addtweetbymodelform(request):
 
 def searchtweet(request):
     query = request.GET.get('q', '')
+    tab = request.GET.get('tab', 'latest')
+    
     if query:
         if query.startswith('@'):
             nickname = query[1:]
@@ -138,19 +140,36 @@ def searchtweet(request):
             results = results.filter(visibility='public')
             
         results = results.order_by('-created_at')
+        
+        # For search results, filter based on active tab
+        if tab == 'following' and request.user.is_authenticated:
+            following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+            latest_tweets = results.filter(user_id__in=following_ids)
+            recommended_tweets = latest_tweets
+            following_tweets = latest_tweets
+        else:
+            latest_tweets = results
+            recommended_tweets = results
+            following_tweets = results
     else:
-        results = models.Tweet.objects.none()
+        latest_tweets = models.Tweet.objects.none()
+        recommended_tweets = models.Tweet.objects.none()
+        following_tweets = models.Tweet.objects.none()
+        
     if request.user.is_authenticated:
         liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
     else:
         liked_ids = []
+    
     return render(request, 'tweetapp/listtweet.html', {
-        'latest_tweets': results,
-        'recommended_tweets': results,
-        'following_tweets': results,
+        'latest_tweets': latest_tweets,
+        'recommended_tweets': recommended_tweets,
+        'following_tweets': following_tweets,
         'liked_ids': liked_ids,
         'suggested_users': [],
-        'active_tab': 'latest',
+        'active_tab': tab,
+        'is_search': bool(query),
+        'search_query': query,
     })
 
 def profile(request, username):
@@ -165,15 +184,15 @@ def profile(request, username):
 
     if request.user.is_authenticated:
         if request.user.is_staff or (user and request.user == user):
-            tweets = models.Tweet.objects.filter(nickname__iexact=username)
+            tweets = models.Tweet.objects.filter(nickname__iexact=username).order_by('-created_at')
         else:
             i_follow_author = user and models.Follow.objects.filter(follower=request.user, following=user).exists()
             if i_follow_author:
-                tweets = models.Tweet.objects.filter(nickname__iexact=username)
+                tweets = models.Tweet.objects.filter(nickname__iexact=username).order_by('-created_at')
             else:
-                tweets = models.Tweet.objects.filter(nickname__iexact=username, visibility='public')
+                tweets = models.Tweet.objects.filter(nickname__iexact=username, visibility='public').order_by('-created_at')
     else:
-        tweets = models.Tweet.objects.filter(nickname__iexact=username, visibility='public')    
+        tweets = models.Tweet.objects.filter(nickname__iexact=username, visibility='public').order_by('-created_at')    
     tweet_count = tweets.count()
 
     if request.user.is_authenticated:
@@ -192,15 +211,6 @@ def profile(request, username):
         if request.user.is_authenticated and request.user != user:
             is_following = models.Follow.objects.filter(follower=request.user, following=user).exists()
             
-    if request.user.is_authenticated:
-        # Kendini de profilde görmek için exclude kaldırıldı
-        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        online_users = User.objects.filter(
-            profile__last_active__gte=five_minutes_ago
-        )[:10]
-    else:
-        online_users = User.objects.none()
-
     context = {
         'profile_user': user,
         'profile_exists': profile_exists,
@@ -212,7 +222,6 @@ def profile(request, username):
         'is_following': is_following,
         'follower_count': follower_count,
         'following_count': following_count,
-        'online_users': online_users,
     }
     return render(request, 'tweetapp/profile.html', context=context)
 
@@ -281,6 +290,18 @@ def like_tweet(request, pk):
     like, created = models.Like.objects.get_or_create(user=request.user, tweet=tweet)
     if not created:
         like.delete()
+        # Remove notification if unliked
+        models.Notification.objects.filter(
+            recipient=tweet.user, actor=request.user,
+            notification_type='like', tweet=tweet
+        ).delete()
+    else:
+        # Create notification if liked (and not liking your own tweet)
+        if request.user != tweet.user:
+            models.Notification.objects.create(
+                recipient=tweet.user, actor=request.user,
+                notification_type='like', tweet=tweet
+            )
     return JsonResponse({
         'liked': created,
         'count': tweet.likes.count()
@@ -295,6 +316,24 @@ def add_comment(request, pk):
         if message:
             tweet = models.Tweet.objects.get(pk=pk)
             models.Comment.objects.create(user=request.user, tweet=tweet, message=message)
+            
+            # Notify the Tweet Owner (if commenter is not the owner)
+            if request.user != tweet.user:
+                models.Notification.objects.create(
+                    recipient=tweet.user, actor=request.user,
+                    notification_type='comment', tweet=tweet
+                )
+            
+            # Notify other commenters on this tweet (thread notification)
+            other_commenters = User.objects.filter(
+                comment__tweet=tweet
+            ).exclude(id=request.user.id).exclude(id=tweet.user.id).distinct()
+            
+            for commenter in other_commenters:
+                models.Notification.objects.create(
+                    recipient=commenter, actor=request.user,
+                    notification_type='thread', tweet=tweet
+                )
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
 
 
@@ -311,8 +350,27 @@ def userlist(request):
         users = User.objects.select_related('profile').order_by('-profile__last_active')
     else:
         users = User.objects.select_related('profile').all()
+    
+    # Online users
+    if request.user.is_authenticated:
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        online_users = User.objects.filter(
+            profile__last_active__gte=five_minutes_ago
+        ).select_related('profile')[:10]
+        # Suggest users not following
+        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+        suggested_users = User.objects.exclude(
+            pk__in=following_ids + [request.user.pk]
+        ).select_related('profile').order_by('?')[:8]
+    else:
+        online_users = User.objects.none()
+        suggested_users = User.objects.select_related('profile').order_by('?')[:8]
         
-    return render(request, 'tweetapp/userlist.html', {'users': users})
+    return render(request, 'tweetapp/userlist.html', {
+        'users': users,
+        'online_users': online_users,
+        'suggested_users': suggested_users,
+    })
 
 
 @login_required(login_url='/login/')
@@ -453,6 +511,11 @@ def group_invite(request, pk):
                 models.GroupInvite.objects.get_or_create(
                     group=group, invited_user=invited_user, invited_by=request.user
                 )
+                # Create group invite notification
+                models.Notification.objects.create(
+                    recipient=invited_user, actor=request.user,
+                    notification_type='group_invite', group=group
+                )
         except User.DoesNotExist:
             messages.warning(request, "User not found!")
     return redirect('tweetapp:group_detail', pk=pk)
@@ -526,7 +589,43 @@ def follow_user(request, username):
         follow, created = models.Follow.objects.get_or_create(follower=request.user, following=target)
         if not created:
             follow.delete()
+        else:
+            # Create follow notification
+            models.Notification.objects.create(
+                recipient=target, actor=request.user,
+                notification_type='follow'
+            )
     return redirect('tweetapp:profile', username=username)
+
+
+@login_required(login_url='/login/')
+def followers_following(request, username):
+    """Display followers and following for a user. Only user and staff can view."""
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return redirect('tweetapp:listtweet')
+    
+    # Permission check - only user themselves or staff can view
+    if request.user != user and not request.user.is_staff:
+        messages.error(request, "You don't have permission to view this page.")
+        return redirect('tweetapp:profile', username=username)
+    
+    # Get followers (users who follow this user)
+    followers = models.Follow.objects.filter(following=user).select_related('follower', 'follower__profile')
+    
+    # Get following (users this user follows)
+    following = models.Follow.objects.filter(follower=user).select_related('following', 'following__profile')
+    
+    context = {
+        'profile_user': user,
+        'followers': followers,
+        'following': following,
+        'followers_count': followers.count(),
+        'following_count': following.count(),
+    }
+    
+    return render(request, 'tweetapp/followers_following.html', context)
 
 
 @login_required(login_url='/login/')
@@ -539,3 +638,49 @@ def toggle_visibility(request, pk):
             tweet.visibility = 'public'
         tweet.save()
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
+
+
+@login_required(login_url='/login/')
+def notifications_view(request):
+    notifs = models.Notification.objects.filter(recipient=request.user).select_related('actor', 'tweet').order_by('-created_at')
+    notifs.filter(is_read=False).update(is_read=True)
+    
+    if request.user.is_authenticated:
+        liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
+        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+        suggested_users = User.objects.exclude(pk__in=following_ids + [request.user.pk]).order_by('?')[:5]
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        online_users = User.objects.filter(profile__last_active__gte=five_minutes_ago)[:10]
+    else:
+        liked_ids = []
+        suggested_users = User.objects.order_by('?')[:5]
+        online_users = User.objects.none()
+    
+    return render(request, 'tweetapp/notifications.html', {
+        'notifications': notifs,
+        'liked_ids': liked_ids,
+        'suggested_users': suggested_users,
+        'online_users': online_users,
+    })
+
+
+def tweet_detail(request, pk):
+    tweet = models.Tweet.objects.select_related('user', 'user__profile').prefetch_related('images', 'comments', 'comments__user').get(pk=pk)
+    
+    if request.user.is_authenticated:
+        liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
+        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+        suggested_users = User.objects.exclude(pk__in=following_ids + [request.user.pk]).order_by('?')[:5]
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        online_users = User.objects.filter(profile__last_active__gte=five_minutes_ago)[:10]
+    else:
+        liked_ids = []
+        suggested_users = User.objects.order_by('?')[:5]
+        online_users = User.objects.none()
+    
+    return render(request, 'tweetapp/tweet_detail.html', {
+        'tweet': tweet,
+        'liked_ids': liked_ids,
+        'suggested_users': suggested_users,
+        'online_users': online_users,
+    })

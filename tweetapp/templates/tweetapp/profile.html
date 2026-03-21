@@ -44,6 +44,16 @@
                     <span class="block text-xl font-bold" style="color: var(--text-primary)">{{ tweet_count }}</span>
                     <span class="text-xs uppercase tracking-wider" style="color: var(--text-muted)">Posts</span>
                 </div>
+                {% if user == profile_user or user.is_staff and profile_exists %}
+                <a href="{% url 'tweetapp:followers_following' username=profile_user.username %}" class="text-center group cursor-pointer decoration-transparent">
+                    <span class="block text-xl font-bold group-hover:text-[var(--neon-green)] transition-colors" style="color: var(--text-primary)">{{ follower_count }}</span>
+                    <span class="text-xs uppercase tracking-wider group-hover:text-[var(--neon-green)] transition-colors" style="color: var(--text-muted)">Followers</span>
+                </a>
+                <a href="{% url 'tweetapp:followers_following' username=profile_user.username %}" class="text-center group cursor-pointer decoration-transparent">
+                    <span class="block text-xl font-bold group-hover:text-[var(--neon-green)] transition-colors" style="color: var(--text-primary)">{{ following_count }}</span>
+                    <span class="text-xs uppercase tracking-wider group-hover:text-[var(--neon-green)] transition-colors" style="color: var(--text-muted)">Following</span>
+                </a>
+                {% else %}
                 <div class="text-center">
                     <span class="block text-xl font-bold" style="color: var(--text-primary)">{{ follower_count }}</span>
                     <span class="text-xs uppercase tracking-wider" style="color: var(--text-muted)">Followers</span>
@@ -52,6 +62,7 @@
                     <span class="block text-xl font-bold" style="color: var(--text-primary)">{{ following_count }}</span>
                     <span class="text-xs uppercase tracking-wider" style="color: var(--text-muted)">Following</span>
                 </div>
+                {% endif %}
             </div>
 
             <!-- Actions -->

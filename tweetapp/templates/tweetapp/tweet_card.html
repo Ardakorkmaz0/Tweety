@@ -78,7 +78,7 @@
         </form>
         {% endif %}
 
-        <button class="flex items-center gap-2 group transition-all" onclick="event.stopPropagation()">
+        <button class="flex items-center gap-2 group transition-all" onclick="event.stopPropagation(); shareTweet(window.location.origin + '/tweetapp/tweet/{{ tweet.pk }}/', '{{ tweet.nickname }}')" title="Share">
             <i data-lucide="share-2" class="w-[18px] h-[18px] group-hover:stroke-[var(--neon-purple)] transition-colors" style="color: var(--text-muted)"></i>
         </button>
     </div>

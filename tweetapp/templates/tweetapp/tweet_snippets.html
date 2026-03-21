@@ -1,0 +1,38 @@
+{% load static %}
+{% for tweet in page_obj %}
+<div class="card shadow-sm mb-4 p-3 tweet-card">
+    <div class="d-flex align-items-center mb-3">
+        <img src="{% if tweet.user.profile.profile_image %}{{ tweet.user.profile.profile_image.url }}{% else %}{% static 'default.png' %}{% endif %}" class="rounded-circle me-3" width="45" height="45">
+        <div>
+            <a href="{% url 'tweetapp:profile' tweet.user.username %}" class="fw-bold teal-text text-decoration-none">@{{ tweet.user.username }}</a>
+            <div class="text-muted small">{{ tweet.created_at|date:"M d, Y · H:i" }}</div>
+        </div>
+    </div>
+
+    <p class="mb-3 px-1" style="font-size: 1.1rem; color: #333;">{{ tweet.message }}</p>
+
+    {% if tweet.images.all %}
+    <div class="row g-2 mb-3 rounded-3 overflow-hidden border">
+        {% for img in tweet.images.all %}
+        <div class="col-12 text-center">
+            <img src="{{ img.image.url }}" class="img-fluid w-100" style="max-height: 400px; object-fit: cover;">
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-4 border-top pt-2 mt-2">
+        <a href="{% url 'tweetapp:like_tweet' tweet.pk %}" class="like-btn text-decoration-none text-muted">
+            <i class="bi {% if tweet.id in liked_ids %}bi-heart-fill text-danger{% else %}bi-heart{% endif %} fs-5"></i>
+            <span class="like-count ms-1 fw-bold">{{ tweet.likes.count }}</span>
+        </a>
+        <a href="{% url 'tweetapp:tweet_detail' tweet.pk %}" class="text-decoration-none text-muted">
+            <i class="bi bi-chat fs-5"></i>
+            <span class="ms-1 fw-bold">{{ tweet.comments.count }} Replies</span>
+        </a>
+        <a href="#" class="text-decoration-none text-muted ms-auto">
+            <i class="bi bi-share fs-5"></i>
+        </a>
+    </div>
+</div>
+{% endfor %}

@@ -3,244 +3,313 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tweety</title>
     <link rel="icon" href="{% static 'tweetapp/favicon.png' %}" type="image/png">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+    
     <script>
         const savedTheme = localStorage.getItem('tweety_theme') || 'dark';
-        if (savedTheme === 'light') {
-            document.documentElement.classList.add('light-theme');
-        }
+        if (savedTheme === 'light') { document.documentElement.classList.add('light-theme'); }
     </script>
+
+    <style>
+        body { overflow-x: hidden; word-wrap: break-word; background-color: var(--deep-bg); color: var(--text-primary); }
+        .glass-card, #tweet-container { word-break: break-all; overflow-wrap: break-word; content-visibility: auto; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .active-indicator { box-shadow: 0 0 15px currentColor; }
+        .glass-elevated { will-change: transform, opacity; }
+    </style>
 </head>
-<body class="min-h-screen pb-24 lg:pb-0" style="background-color: var(--deep-bg); color: var(--text-primary); position: relative; overflow-x: hidden;">
+<body class="min-h-screen pb-24 lg:pb-0 relative">
     
-    <!-- Background decorations -->
     <div class="fixed top-20 left-10 w-96 h-96 rounded-full opacity-10 pointer-events-none blur-3xl -z-10" style="background: radial-gradient(circle, var(--neon-green), transparent);"></div>
     <div class="fixed bottom-20 right-10 w-96 h-96 rounded-full opacity-10 pointer-events-none blur-3xl -z-10" style="background: radial-gradient(circle, var(--neon-purple), transparent);"></div>
 
-    <div class="relative z-10 w-full">
-        <!-- Header -->
-        <header class="sticky top-0 z-40 glass-elevated" style="border-bottom: 1px solid var(--border-subtle);">
-            <div class="max-w-[1440px] mx-auto px-8 py-4 flex items-center justify-between">
-                <!-- Brand -->
-                <a href="{% url 'tweetapp:listtweet' %}" class="flex items-center gap-3 decoration-transparent group">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center relative glow-green transition-transform group-hover:scale-105" style="background: var(--gradient-primary);">
-                        <img src="{% static 'tweetapp/favicon.png' %}" width="20" height="20" class="z-10 absolute filter invert" style="mix-blend-mode: plus-lighter;">
-                    </div>
-                    <h1 class="text-gradient" style="font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin: 0;">Tweety</h1>
+    <header class="sticky top-0 z-40 glass-elevated" style="border-bottom: 1px solid var(--border-subtle);">
+        <div class="max-w-[1440px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+            <a href="{% url 'tweetapp:listtweet' %}" class="flex items-center gap-3 decoration-transparent group">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center relative glow-green transition-transform group-hover:scale-105" style="background: var(--gradient-primary);">
+                    <img src="{% static 'tweetapp/favicon.png' %}" width="20" height="20" class="z-10 absolute filter invert" style="mix-blend-mode: plus-lighter;">
+                </div>
+                <h1 class="text-gradient" style="font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin: 0;">Tweety</h1>
+            </a>
+            
+            <div class="flex items-center gap-2">
+                <a href="{% url 'tweetapp:patchnotes' %}" class="lg:hidden p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--neon-purple);">
+                    <i data-lucide="scroll-text" class="w-6 h-6"></i>
                 </a>
-                
-                <!-- Theme Toggle -->
-                <button id="themeToggle" class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)] cursor-pointer" style="color: var(--text-primary);">
+                <button id="themeToggle" class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)] cursor-pointer">
                     <div id="themeIconContainer"></div>
                 </button>
             </div>
-        </header>
-    </div>
-
-    {% if messages %}
-    <div class="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none">
-        {% for message in messages %}
-        <div class="glass-card px-6 py-3 animate-slide-up" style="border-color: var(--warning); color: var(--text-active);">
-            {{ message }}
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
-    <!-- Main Content -->
-    <main class="max-w-[1440px] mx-auto px-8 py-8">
-        <div class="flex gap-0 relative">
+        <!-- Mobile Search Bar -->
+        <div class="lg:hidden max-w-[1440px] mx-auto px-4 md:px-8 py-3 border-t border-[var(--border-subtle)]">
+            <form action="{% url 'tweetapp:searchtweet' %}" method="GET" class="flex gap-2 m-0">
+                <div class="flex-1 relative">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"></i>
+                    <input type="text" name="q" placeholder="Search tweets..." class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--card-bg)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--neon-green)]">
+                </div>
+                <button type="submit" class="px-4 py-2.5 rounded-lg font-semibold transition-all" style="background: var(--neon-green); color: black;">
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <main class="max-w-[1440px] mx-auto px-4 lg:px-8 py-4 lg:py-8">
+        <div class="flex flex-col lg:flex-row gap-6 relative justify-center">
             
-            <!-- Left Sidebar -->
-            <div class="w-[280px] flex-shrink-0 pr-6 space-y-6 sticky top-[90px] h-fit">
-                
+            <div class="w-full lg:w-[280px] flex-shrink-0 lg:pr-6 space-y-6 lg:sticky lg:top-[90px] h-fit">
                 {% if user.is_authenticated %}
-                <!-- Profile Card -->
-                <div class="glass-card p-5 transition-all duration-300 hover:glow-green">
-                    <div class="flex flex-col items-center text-center">
-                        <div class="relative mb-3" style="background: var(--gradient-border); border-radius: 50%; padding: 3px;">
-                            {% if user.profile.profile_image %}
-                                <img src="{{ user.profile.profile_image.url }}" alt="{{ user.username }}" class="w-20 h-20 rounded-full object-cover" style="border: 3px solid var(--deep-bg)">
-                            {% else %}
-                                <div class="w-20 h-20 rounded-full flex items-center justify-center font-bold text-2xl" style="border: 3px solid var(--deep-bg); background: var(--surface-bg); color: var(--neon-green)">
-                                    {{ user.username|make_list|first|upper }}
-                                </div>
-                            {% endif %}
-                        </div>
-                        <a href="{% url 'tweetapp:profile' username=user.username %}" class="font-semibold mb-1 decoration-transparent hover:underline" style="color: var(--neon-green); font-weight: 700;">@{{ user.username }}</a>
-                        <p class="mb-3 line-clamp-2 px-2" style="color: var(--text-secondary); font-size: 13px; line-height: 1.4;">{{ user.profile.bio|default:"No bio yet." }}</p>
+                <div class="glass-card p-5 hidden lg:block text-center">
+                    <div class="relative mb-3 inline-block p-1 rounded-full active-indicator" style="color: var(--neon-green)">
+                        {% if user.profile.profile_image %}<img src="{{ user.profile.profile_image.url }}" class="w-20 h-20 rounded-full object-cover border-4 border-[var(--deep-bg)]">
+                        {% else %}<div class="w-20 h-20 rounded-full flex items-center justify-center font-bold text-2xl" style="background: var(--surface-bg);">{{ user.username|first|upper }}</div>{% endif %}
                     </div>
+                    <a href="{% url 'tweetapp:profile' username=user.username %}" class="block font-semibold decoration-transparent hover:underline" style="color: var(--neon-green);">@{{ user.username }}</a>
                 </div>
                 {% else %}
-                <div class="glass-card p-5 transition-all duration-300 hover:glow-green text-center">
-                    <h3 style="color: var(--text-active); font-weight: 600;" class="mb-2">Join Tweety</h3>
-                    <p style="color: var(--text-secondary); font-size: 13px;" class="mb-4">Sign up or login to interact with the community.</p>
+                <div class="glass-card p-5 hidden lg:block text-center space-y-4">
+                    <h3 class="font-bold">New to Tweety?</h3>
                     <div class="flex flex-col gap-2">
-                        <a href="{% url 'login' %}" class="btn-gradient w-full py-2 rounded-xl text-center decoration-transparent text-sm font-semibold">Login</a>
-                        <a href="{% url 'tweetapp:register' %}" class="w-full py-2 rounded-xl text-center decoration-transparent text-sm font-semibold glass-surface" style="color: var(--text-active);">Register</a>
+                        <a href="{% url 'login' %}" class="btn-gradient w-full py-2 rounded-xl text-sm font-bold decoration-transparent" style="color: black;">Login</a>
+                        <a href="{% url 'tweetapp:register' %}" class="w-full py-2 rounded-xl text-sm font-bold border border-[var(--border-subtle)] decoration-transparent">Register</a>
                     </div>
                 </div>
                 {% endif %}
 
-                <!-- Navigation -->
-                <div class="space-y-2">
-                    <a href="{% url 'tweetapp:listtweet' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" style="{% if request.resolver_match.url_name == 'listtweet' %}background-color: rgba(16, 242, 140, 0.1); color: var(--text-active);{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if request.resolver_match.url_name == 'listtweet' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full glow-green" style="background-color: var(--neon-green)"></div>{% endif %}
-                        <i data-lucide="home" class="w-5 h-5"></i>
-                        <span style="font-weight: {% if request.resolver_match.url_name == 'listtweet' %}600{% else %}400{% endif %}">Home</span>
-                    </a>
-                    
-                    <a href="{% url 'tweetapp:addtweetbyform' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" style="{% if request.resolver_match.url_name == 'addtweetbyform' %}background-color: rgba(16, 242, 140, 0.1); color: var(--text-active);{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if request.resolver_match.url_name == 'addtweetbyform' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full glow-green" style="background-color: var(--neon-green)"></div>{% endif %}
-                        <i data-lucide="pen-square" class="w-5 h-5"></i>
-                        <span style="font-weight: {% if request.resolver_match.url_name == 'addtweetbyform' %}600{% else %}400{% endif %}">Post</span>
-                    </a>
-
-                    <a href="{% url 'tweetapp:group_list' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" style="{% if request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_detail' %}background-color: rgba(16, 242, 140, 0.1); color: var(--text-active);{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_detail' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full glow-green" style="background-color: var(--neon-green)"></div>{% endif %}
-                        <i data-lucide="users" class="w-5 h-5"></i>
-                        <span style="font-weight: {% if request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_detail' %}600{% else %}400{% endif %}">Groups</span>
-                    </a>
-
-                    <a href="{% url 'tweetapp:userlist' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" style="{% if request.resolver_match.url_name == 'userlist' %}background-color: rgba(16, 242, 140, 0.1); color: var(--text-active);{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if request.resolver_match.url_name == 'userlist' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full glow-green" style="background-color: var(--neon-green)"></div>{% endif %}
-                        <i data-lucide="search" class="w-5 h-5"></i>
-                        <span style="font-weight: {% if request.resolver_match.url_name == 'userlist' %}600{% else %}400{% endif %}">Users</span>
+                <div class="space-y-2 hidden lg:block">
+                    <a href="{% url 'tweetapp:listtweet' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" 
+                       style="{% if request.resolver_match.url_name == 'listtweet' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if request.resolver_match.url_name == 'listtweet' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                        <i data-lucide="home" class="w-5 h-5"></i><span>Home</span>
                     </a>
 
                     {% if user.is_authenticated %}
-                    <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="w-full m-0">
-                        {% csrf_token %}
-                        <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer hover:bg-[rgba(255,107,107,0.1)]" style="color: var(--danger); border: none; background: none;">
-                            <i data-lucide="log-out" class="w-5 h-5"></i>
-                            <span style="font-weight: 400">Logout</span>
-                        </button>
-                    </form>
+                    <a href="{% url 'tweetapp:notifications' %}" class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" 
+                       style="{% if request.resolver_match.url_name == 'notifications' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                        <div class="flex items-center gap-3">
+                            {% if request.resolver_match.url_name == 'notifications' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                            <i data-lucide="bell" class="w-5 h-5"></i><span>Notifications</span>
+                        </div>
+                        {% if unread_notif_count > 0 %}<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)]">{{ unread_notif_count }}</span>{% endif %}
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'tweetapp:group_list' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(0,210,255,0.05)]" 
+                       style="{% if 'group' in request.resolver_match.url_name %}background: rgba(0, 210, 255, 0.1); color: #00d2ff;{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if 'group' in request.resolver_match.url_name %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: #00d2ff; color: #00d2ff;"></div>{% endif %}
+                        <i data-lucide="users" class="w-5 h-5"></i><span>Groups</span>
+                    </a>
+
+                    <a href="{% url 'tweetapp:userlist' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" 
+                       style="{% if request.resolver_match.url_name == 'userlist' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if request.resolver_match.url_name == 'userlist' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                        <i data-lucide="user-search" class="w-5 h-5"></i><span>Users</span>
+                    </a>
+
+                    <a href="{% url 'tweetapp:patchnotes' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(167,139,250,0.05)]" 
+                       style="{% if request.resolver_match.url_name == 'patchnotes' %}background: rgba(167, 139, 250, 0.1); color: var(--neon-purple);{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if request.resolver_match.url_name == 'patchnotes' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-purple); color: var(--neon-purple);"></div>{% endif %}
+                        <i data-lucide="scroll-text" class="w-5 h-5"></i><span>Patch Notes</span>
+                    </a>
+
+                    {% if user.is_authenticated %}
+                    <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="w-full m-0">{% csrf_token %}<button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--danger)] bg-transparent border-none cursor-pointer hover:bg-[rgba(255,107,107,0.1)] transition-all"><i data-lucide="log-out" class="w-5 h-5"></i><span>Logout</span></button></form>
                     {% endif %}
                 </div>
-
-                <!-- Footer Links -->
-                <div class="text-center mt-6">
-                    <a href="{% url 'tweetapp:patchnotes' %}" class="decoration-transparent hover:text-[var(--neon-green)] transition-colors inline-block mb-1" style="color: var(--text-inactive); font-size: 12px;">Patch Notes v2.0</a>
-                    <div style="color: var(--text-muted); font-size: 12px;">© 2026 Tweety</div>
-                </div>
             </div>
 
-            <!-- Center Content -->
-            <div class="flex-1 max-w-[600px] px-6">
-                {% block content %}
-                {% endblock %}
+            <div class="flex-1 w-full max-w-[600px] lg:px-6">
+                {% block content %}{% endblock %}
             </div>
 
-            <!-- Right Sidebar -->
-            <div class="w-[320px] hidden xl:flex flex-col gap-6 flex-shrink-0 pl-6 sticky top-[90px] h-fit">
-                <!-- Search -->
+            <div class="w-[320px] hidden lg:flex flex-col gap-6 flex-shrink-0 pl-6 sticky top-[90px] h-fit">
                 <form action="{% url 'tweetapp:searchtweet' %}" method="GET" class="relative m-0">
-                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none w-4 h-4" style="color: var(--text-muted)"></i>
-                    <input type="text" name="q" placeholder="Search tweets..." class="w-full pl-11 pr-4 py-3 rounded-xl transition-all duration-300 focus:outline-none focus:border-[var(--border-glow)] focus:glow-green" style="background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border-subtle); color: var(--text-primary); font-size: 14px;">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"></i>
+                    <input type="text" name="q" placeholder="Search..." class="w-full pl-11 pr-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--card-bg)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--neon-green)]">
                 </form>
-
-                {% block right_sidebar %}
-                {% endblock %}
+                {% block right_sidebar %}{% endblock %}
             </div>
         </div>
     </main>
 
-    <!-- Mobile Bottom Navigation -->
-    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300" style="background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(16px); border-top: 1px solid var(--border-subtle); padding-bottom: env(safe-area-inset-bottom);">
-        <div class="flex justify-around items-center px-2 py-3">
-            <a href="{% url 'tweetapp:listtweet' %}" class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--text-primary);">
-                <i data-lucide="home" class="w-6 h-6"></i>
-            </a>
-            
-            <a href="{% url 'tweetapp:searchtweet' %}" class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--text-primary);">
-                <i data-lucide="search" class="w-6 h-6"></i>
-            </a>
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-50 transition-all duration-300" style="background: rgba(15, 15, 20, 0.96); backdrop-filter: blur(20px); border-top: 1px solid var(--border-subtle); height: 70px;">
+        <div class="flex justify-between items-center h-full px-3">
+            <a href="{% url 'tweetapp:listtweet' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'listtweet' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="home" class="w-6 h-6"></i></a>
             
             {% if user.is_authenticated %}
-            <a href="{% url 'tweetapp:addtweetbyform' %}" class="p-3 rounded-full shadow-lg transform -translate-y-4 shadow-[var(--neon-green)]" style="background: var(--neon-green); color: black;">
-                <i data-lucide="plus" class="w-6 h-6"></i>
-            </a>
-            {% endif %}
-            
-            <a href="{% url 'tweetapp:group_list' %}" class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--text-primary);">
-                <i data-lucide="users" class="w-6 h-6"></i>
-            </a>
-            
-            {% if user.is_authenticated %}
-            <a href="{% url 'tweetapp:profile' username=user.username %}" class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--text-primary);">
-                {% if user.profile.profile_image %}
-                    <img src="{{ user.profile.profile_image.url }}" class="w-7 h-7 rounded-full object-cover">
-                {% else %}
-                    <i data-lucide="user" class="w-6 h-6"></i>
-                {% endif %}
-            </a>
+                <a href="{% url 'tweetapp:group_list' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if 'group' in request.resolver_match.url_name %}#00d2ff{% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="users" class="w-6 h-6"></i></a>
+                
+                <a href="{% url 'tweetapp:addtweetbyform' %}" class="flex items-center justify-center w-12 h-12 rounded-full bg-[var(--neon-green)] text-black relative -top-4 shadow-lg border-4 border-[var(--deep-bg)]"><i data-lucide="plus" class="w-5 h-5" style="stroke-width: 3px;"></i></a>
+                
+                <a href="{% url 'tweetapp:notifications' %}" class="p-2 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'notifications' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="bell" class="w-6 h-6"></i>{% if unread_notif_count > 0 %}<span class="absolute top-0 right-0 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14]">{{ unread_notif_count }}</span>{% endif %}</a>
+                
+                <div class="flex-1 flex justify-center relative">
+                    <button class="p-2 w-full flex justify-center menu-toggle transition-colors" style="color: rgba(255, 255, 255, 0.5);" id="moreBtn"><i data-lucide="more-horizontal" class="w-6 h-6"></i></button>
+                    <div class="absolute bottom-full right-0 mb-2 bg-[var(--card-bg)] rounded-lg border border-[var(--border-subtle)] shadow-xl menu-dropdown hidden transition-all duration-200 z-50" style="width: 140px; min-width: max-content;">
+                        <a href="{% url 'tweetapp:userlist' %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] rounded-t-lg transition-colors text-sm" style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
+                            <i data-lucide="user-search" class="w-4 h-4"></i>
+                            <span>Users</span>
+                        </a>
+                        <a href="{% url 'tweetapp:profile' username=user.username %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] transition-colors text-sm" style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                            <span>Profile</span>
+                        </a>
+                        <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="m-0 w-full">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full flex items-center gap-2 px-4 py-3 hover:bg-[rgba(255,59,48,0.05)] rounded-b-lg transition-colors text-sm border-none bg-transparent cursor-pointer" style="color: var(--danger);">
+                                <i data-lucide="log-out" class="w-4 h-4"></i>
+                                <span>Logout</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
             {% else %}
-            <a href="{% url 'login' %}" class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--text-primary);">
-                <i data-lucide="log-in" class="w-6 h-6"></i>
-            </a>
+                <a href="{% url 'tweetapp:userlist' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'userlist' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="user-search" class="w-6 h-6"></i></a>
+                <a href="{% url 'login' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'login' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="log-in" class="w-6 h-6"></i></a>
+                <a href="{% url 'tweetapp:register' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'register' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="user-plus" class="w-6 h-6"></i></a>
             {% endif %}
         </div>
     </div>
+
     <script>
-        lucide.createIcons();
         
-        // Theme Toggle Logic
+        lucide.createIcons();
+
         const themeToggle = document.getElementById('themeToggle');
         const themeIconContainer = document.getElementById('themeIconContainer');
-        
+
         function updateThemeIcon() {
             if(!themeIconContainer) return;
-            if (document.documentElement.classList.contains('light-theme')) {
-                themeIconContainer.innerHTML = '<i data-lucide="moon" class="w-6 h-6"></i>';
-            } else {
-                themeIconContainer.innerHTML = '<i data-lucide="sun" class="w-6 h-6"></i>';
-            }
+            const isLight = document.documentElement.classList.contains('light-theme');
+            themeIconContainer.innerHTML = isLight ? '<i data-lucide="moon" class="w-6 h-6"></i>' : '<i data-lucide="sun" class="w-6 h-6"></i>';
             lucide.createIcons({root: themeIconContainer});
         }
-        
+
         if (themeToggle) {
             updateThemeIcon();
             themeToggle.addEventListener('click', () => {
                 document.documentElement.classList.toggle('light-theme');
-                const newTheme = document.documentElement.classList.contains('light-theme') ? 'light' : 'dark';
-                localStorage.setItem('tweety_theme', newTheme);
+                localStorage.setItem('tweety_theme', document.documentElement.classList.contains('light-theme') ? 'light' : 'dark');
                 updateThemeIcon();
             });
         }
 
-        function toggleLike(btn, pk) {
-            fetch(`/tweetapp/like/${pk}/`, {
+        function openTweetyModal(pk) {
+            const modal = document.getElementById('modal-' + pk);
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Sayfa arkada kaymasın
+            lucide.createIcons({ root: modal });
+        }
+
+        function closeTweetyModal(pk) {
+            const modal = document.getElementById('modal-' + pk);
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Kaydırmayı geri aç
+        }
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) {
+                return parts.pop().split(';').shift();
+            }
+            return '';
+        }
+
+        function toggleLike(btn, tweetId) {
+            const iconWrap = btn.querySelector('.like-icon');
+            const countSpan = btn.querySelector('.like-count');
+            const csrfToken = getCookie('csrftoken');
+
+            fetch(`/tweetapp/like/${tweetId}/`, {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : "{{ csrf_token }}",
+                    'X-CSRFToken': csrfToken,
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(r => r.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.error === 'login') {
-                    window.location.href = '/login/';
-                    return;
+                if (iconWrap) {
+                    iconWrap.innerHTML = data.liked
+                        ? '<i data-lucide="heart" fill="currentColor" class="w-5 h-5 text-[var(--danger)]"></i>'
+                        : '<i data-lucide="heart" class="w-5 h-5"></i>';
+                    lucide.createIcons({ root: iconWrap });
                 }
-                const iconSpan = btn.querySelector('.like-icon');
-                if(iconSpan) {
-                    if(data.liked) {
-                        iconSpan.innerHTML = '<i data-lucide="heart" fill="currentColor" class="w-5 h-5 text-[var(--danger)]"></i>';
-                    } else {
-                        iconSpan.innerHTML = '<i data-lucide="heart" class="w-5 h-5"></i>';
-                    }
-                    lucide.createIcons({root: iconSpan});
+                if (countSpan) {
+                    countSpan.innerText = data.count;
                 }
-                const countSpan = btn.querySelector('.like-count');
-                if(countSpan) countSpan.textContent = data.count;
+            })
+            .catch(error => {
+                console.error('Like toggle error:', error);
             });
         }
+
+        function shareTweet(url, username) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Tweety',
+                    text: `@${username} has a new post!`,
+                    url: url
+                }).catch(err => console.log('Error sharing', err));
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Link copied to clipboard!');
+                });
+            }
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('tab', tab);
+                window.location.href = window.location.pathname + '?' + urlParams.toString();
+            });
+        });
+
+        // Mobile menu toggle
+        document.querySelectorAll('.menu-toggle').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dropdown = this.nextElementSibling;
+                const isOpen = !dropdown.classList.contains('hidden');
+                dropdown.classList.toggle('hidden');
+                
+                // Change button color based on open/close state
+                if (isOpen) {
+                    this.style.color = 'rgba(255, 255, 255, 0.5)';
+                } else {
+                    this.style.color = 'var(--neon-green)';
+                }
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            document.querySelectorAll('.menu-dropdown').forEach(dropdown => {
+                if (!dropdown.parentElement.contains(e.target)) {
+                    if (!dropdown.classList.contains('hidden')) {
+                        dropdown.classList.add('hidden');
+                        const btn = dropdown.parentElement.querySelector('.menu-toggle');
+                        if (btn) btn.style.color = 'rgba(255, 255, 255, 0.5)';
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>

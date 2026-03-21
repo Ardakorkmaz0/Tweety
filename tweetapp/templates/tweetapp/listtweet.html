@@ -3,24 +3,24 @@
 {% block content %}
 <!-- Tab Bar -->
 <div class="glass-card mb-6 p-1.5 flex items-center gap-2">
-    <a href="?tab=latest" class="flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" style="{% if active_tab == 'latest' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
+    <button class="tab-btn flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" data-tab="latest" style="{% if active_tab == 'latest' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
         <i data-lucide="clock" class="w-4 h-4"></i>
         <span style="font-weight: {% if active_tab == 'latest' %}600{% else %}400{% endif %}; font-size: 14px;">Latest</span>
         {% if active_tab == 'latest' %}<div class="absolute bottom-0 left-4 right-4 h-0.5 rounded-full glow-green" style="background-color: var(--neon-green);"></div>{% endif %}
-    </a>
+    </button>
 
-    <a href="?tab=recommended" class="flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" style="{% if active_tab == 'recommended' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
+    <button class="tab-btn flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" data-tab="recommended" style="{% if active_tab == 'recommended' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
         <i data-lucide="star" class="w-4 h-4"></i>
         <span style="font-weight: {% if active_tab == 'recommended' %}600{% else %}400{% endif %}; font-size: 14px;">For You</span>
         {% if active_tab == 'recommended' %}<div class="absolute bottom-0 left-4 right-4 h-0.5 rounded-full glow-green" style="background-color: var(--neon-green);"></div>{% endif %}
-    </a>
+    </button>
 
     {% if user.is_authenticated %}
-    <a href="?tab=following" class="flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" style="{% if active_tab == 'following' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
+    <button class="tab-btn flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative decoration-transparent" data-tab="following" style="{% if active_tab == 'following' %}background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);{% else %}background-color: transparent; color: var(--text-inactive);{% endif %}">
         <i data-lucide="users" class="w-4 h-4"></i>
         <span style="font-weight: {% if active_tab == 'following' %}600{% else %}400{% endif %}; font-size: 14px;">Following</span>
         {% if active_tab == 'following' %}<div class="absolute bottom-0 left-4 right-4 h-0.5 rounded-full glow-green" style="background-color: var(--neon-green);"></div>{% endif %}
-    </a>
+    </button>
     {% endif %}
 </div>
 

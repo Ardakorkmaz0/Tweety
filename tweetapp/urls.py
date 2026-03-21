@@ -8,6 +8,7 @@ urlpatterns = [
     path('addtweetbymodelform',views.addtweetbymodelform, name="addtweetbymodelform"), #ardakorkmaz.com/tweetapp/addtweetbymodelform/
     path('search/', views.searchtweet, name='searchtweet'),
     path('profile/<str:username>/', views.profile, name='profile'),
+    path('profile/<str:username>/followers-following/', views.followers_following, name='followers_following'),
     path('edit-profile/', views.edit_profile, name='edit_profile'),
     path('register/',views.RegisterView.as_view(), name="register"),
     path('delete/<int:pk>/', views.delete_tweet, name='delete_tweet'),
@@ -35,4 +36,6 @@ urlpatterns = [
     path('request/decline/<int:pk>/', views.group_decline_request, name='group_decline_request'),
     path('follow/<str:username>/', views.follow_user, name='follow_user'),
     path('visibility/<int:pk>/', views.toggle_visibility, name='toggle_visibility'),
+    path('notifications/', views.notifications_view, name='notifications'),
+    path('tweet/<int:pk>/', views.tweet_detail, name='tweet_detail'),
 ]

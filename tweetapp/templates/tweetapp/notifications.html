@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="glass-card p-6 min-h-[500px]">
+    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: var(--text-active);">
+        <i data-lucide="bell" class="w-6 h-6" style="color: var(--neon-green)"></i>
+        Notifications
+    </h2>
+    <div class="space-y-4">
+        {% for notif in notifications %}
+            <div class="p-4 rounded-xl flex items-start gap-4 transition-colors hover:bg-[rgba(255,255,255,0.02)]" style="border: 1px solid var(--border-subtle); {% if not notif.is_read %}background: rgba(16, 242, 140, 0.05); border-color: var(--neon-green);{% endif %}">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: var(--surface-bg);">
+                    {% if notif.notification_type == 'like' %}
+                        <i data-lucide="heart" class="w-5 h-5 text-[var(--danger)]" fill="currentColor"></i>
+                    {% elif notif.notification_type == 'comment' or notif.notification_type == 'thread' %}
+                        <i data-lucide="message-circle" class="w-5 h-5" style="color: var(--neon-green)"></i>
+                    {% elif notif.notification_type == 'follow' %}
+                        <i data-lucide="user-plus" class="w-5 h-5" style="color: var(--text-active)"></i>
+                    {% elif notif.notification_type == 'group_invite' %}
+                        <i data-lucide="users" class="w-5 h-5" style="color: var(--neon-purple)"></i>
+                    {% endif %}
+                </div>
+                <div class="flex-1 pt-1">
+                    <p class="text-sm" style="color: var(--text-primary);">
+                        <a href="{% url 'tweetapp:profile' username=notif.actor.username %}" class="font-bold hover:underline" style="color: var(--text-active);">@{{ notif.actor.username }}</a>
+                        {% if notif.notification_type == 'like' %} liked your tweet.
+                        {% elif notif.notification_type == 'comment' %} commented on your tweet.
+                        {% elif notif.notification_type == 'thread' %} replied to a thread you commented on.
+                        {% elif notif.notification_type == 'follow' %} started following you.
+                        {% elif notif.notification_type == 'group_invite' %} invited you to join the group <strong>{{ notif.group.name }}</strong>.
+                        {% endif %}
+                    </p>
+                    {% if notif.tweet %}
+                    <p class="mt-2 text-xs italic line-clamp-2 pl-3 border-l-2" style="color: var(--text-muted); border-color: var(--border-subtle); word-break: break-all; overflow-wrap: break-word;">
+                    "{{ notif.tweet.message }}"
+                    </p>
+                    {% endif %}
+                    <span class="text-xs mt-2 block" style="color: var(--text-muted);">{{ notif.created_at|timesince }} ago</span>
+                </div>
+            </div>
+        {% empty %}
+            <div class="text-center py-10" style="color: var(--text-muted);">
+                <i data-lucide="bell-off" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                <p>You don't have any notifications yet.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
