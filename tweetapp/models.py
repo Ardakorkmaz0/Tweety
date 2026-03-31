@@ -65,9 +65,6 @@ class PatchNote(models.Model):
     class Meta:
         ordering = ['-created_at']
 
-class Meta:
-    ordering = ['-created_at']
-
 
 class Group(models.Model):
     name = models.CharField(max_length=50)

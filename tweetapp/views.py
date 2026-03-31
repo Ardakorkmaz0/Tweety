@@ -1,19 +1,37 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from . import models
 from django.urls import reverse, reverse_lazy
-from tweetapp.forms import AddTweetForm, AddTweetModelForm
+from tweetapp.forms import AddTweetForm, ProfileForm, RegisterForm
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from tweetapp.forms import AddTweetForm, AddTweetModelForm, ProfileForm
 from django.contrib.auth.forms import UserCreationForm
 from django.views.generic import CreateView
-from tweetapp.forms import AddTweetForm, AddTweetModelForm, ProfileForm, RegisterForm
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.db.models import Count
 from django.utils import timezone
+from django.core.paginator import Paginator
 import datetime
+
+
+def get_sidebar_context(request):
+    if request.user.is_authenticated:
+        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+        suggested_users = User.objects.exclude(
+            pk__in=following_ids + [request.user.pk]
+        ).select_related('profile').order_by('?')[:5]
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        online_users = User.objects.filter(
+            profile__last_active__gte=five_minutes_ago
+        ).select_related('profile')[:10]
+    else:
+        suggested_users = User.objects.select_related('profile').order_by('?')[:5]
+        online_users = User.objects.none()
+    return {
+        'suggested_users': suggested_users,
+        'online_users': online_users,
+    }
 
 
 def listtweet(request):
@@ -39,46 +57,28 @@ def listtweet(request):
             Q(visibility='public') |
             Q(visibility='followers')
         ).order_by('-created_at')
-        
-        suggested_users = User.objects.exclude(
-            pk__in=following_ids + [request.user.pk]
-        ).order_by('?')[:5]
-        
-        # Kendini de listede görmek için exclude kaldırıldı
-        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        online_users = User.objects.filter(
-            profile__last_active__gte=five_minutes_ago
-        )[:10]  
     else:
         latest_tweets = models.Tweet.objects.filter(visibility='public').order_by('-created_at')
         recommended_tweets = latest_tweets[:20]
         following_tweets = models.Tweet.objects.none()
         liked_ids = []
-        suggested_users = User.objects.order_by('?')[:5]
-        online_users = User.objects.none()
-        
-    
+
     tab = request.GET.get('tab', 'latest')
+
+    paginator = Paginator(latest_tweets, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
-    return render(request, 'tweetapp/listtweet.html', {
-        'latest_tweets': latest_tweets,
+    context = {
+        'latest_tweets': page_obj,
         'recommended_tweets': recommended_tweets,
         'following_tweets': following_tweets,
         'liked_ids': liked_ids,
-        'suggested_users': suggested_users,
         'active_tab': tab,
-        'online_users': online_users,
-    })
-
-
-def addtweet(request):
-    if request.POST:
-        nickname = request.POST["nickname"]
-        message = request.POST["message"]
-        models.Tweet.objects.create(nickname=nickname, message=message)
-        return redirect(reverse('tweetapp:listtweet'))
-    else:
-        return render(request, 'tweetapp/addtweet.html')
+        'page_obj': page_obj,
+    }
+    context.update(get_sidebar_context(request))
+    return render(request, 'tweetapp/listtweet.html', context)
 
 
 @login_required(login_url='/login/')
@@ -100,21 +100,6 @@ def addtweetbyform(request):
     else:
         form = AddTweetForm()
         return render(request, 'tweetapp/addtwetbyform.html', context={"form": form})
-
-
-def addtweetbymodelform(request):
-    if request.method == "POST":
-        form = AddTweetModelForm(request.POST)
-        if form.is_valid():
-            nickname = form.cleaned_data["nickname"]
-            message = form.cleaned_data["message"]
-            models.Tweet.objects.create(nickname=nickname, message=message)
-            return redirect(reverse('tweetapp:listtweet'))
-        else:
-            return render(request, 'tweetapp/addtweetbymodelform.html', context={"form": form})
-    else:
-        form = AddTweetModelForm()
-        return render(request, 'tweetapp/addtweetbymodelform.html', context={"form": form})
 
 
 def searchtweet(request):
@@ -141,7 +126,6 @@ def searchtweet(request):
             
         results = results.order_by('-created_at')
         
-        # For search results, filter based on active tab
         if tab == 'following' and request.user.is_authenticated:
             following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
             latest_tweets = results.filter(user_id__in=following_ids)
@@ -275,10 +259,12 @@ class RegisterView(CreateView):
         return response
 
 
+@login_required(login_url='/login/')
 def delete_tweet(request, pk):
-    tweet = models.Tweet.objects.get(pk=pk)
-    is_moderator = request.user.groups.filter(name='moderator').exists()
-    if request.user == tweet.user or is_moderator:
+    if request.method != "POST":
+        return redirect(reverse('tweetapp:listtweet'))
+    tweet = get_object_or_404(models.Tweet, pk=pk)
+    if request.user == tweet.user or request.user.is_staff:
         tweet.delete()
     return redirect(reverse('tweetapp:listtweet'))
 
@@ -286,17 +272,21 @@ def delete_tweet(request, pk):
 def like_tweet(request, pk):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login'}, status=401)
-    tweet = models.Tweet.objects.get(pk=pk)
+    tweet = get_object_or_404(models.Tweet, pk=pk)
+    
+    # Security: Prevent unauthorized users from liking private tweets
+    if tweet.visibility == 'followers' and request.user != tweet.user and not request.user.is_staff:
+        if not models.Follow.objects.filter(follower=request.user, following=tweet.user).exists():
+            return JsonResponse({'error': 'unauthorized'}, status=403)
+            
     like, created = models.Like.objects.get_or_create(user=request.user, tweet=tweet)
     if not created:
         like.delete()
-        # Remove notification if unliked
         models.Notification.objects.filter(
             recipient=tweet.user, actor=request.user,
             notification_type='like', tweet=tweet
         ).delete()
     else:
-        # Create notification if liked (and not liking your own tweet)
         if request.user != tweet.user:
             models.Notification.objects.create(
                 recipient=tweet.user, actor=request.user,
@@ -308,37 +298,45 @@ def like_tweet(request, pk):
     })
 
 
+@login_required(login_url='/login/')
 def add_comment(request, pk):
-    if not request.user.is_authenticated:
-        return redirect('/login/')
-    if request.method == "POST":
-        message = request.POST.get('comment_message', '')
-        if message:
-            tweet = models.Tweet.objects.get(pk=pk)
-            models.Comment.objects.create(user=request.user, tweet=tweet, message=message)
-            
-            # Notify the Tweet Owner (if commenter is not the owner)
-            if request.user != tweet.user:
-                models.Notification.objects.create(
-                    recipient=tweet.user, actor=request.user,
-                    notification_type='comment', tweet=tweet
-                )
-            
-            # Notify other commenters on this tweet (thread notification)
-            other_commenters = User.objects.filter(
-                comment__tweet=tweet
-            ).exclude(id=request.user.id).exclude(id=tweet.user.id).distinct()
-            
-            for commenter in other_commenters:
-                models.Notification.objects.create(
-                    recipient=commenter, actor=request.user,
-                    notification_type='thread', tweet=tweet
-                )
+    from django.http import Http404
+    if request.method != "POST":
+        return redirect(reverse('tweetapp:listtweet'))
+    message = request.POST.get('comment_message', '')
+    if message:
+        tweet = get_object_or_404(models.Tweet, pk=pk)
+        
+        # Security: Prevent unauthorized users from commenting on private tweets
+        if tweet.visibility == 'followers' and request.user != tweet.user and not request.user.is_staff:
+            if not models.Follow.objects.filter(follower=request.user, following=tweet.user).exists():
+                raise Http404()
+                
+        models.Comment.objects.create(user=request.user, tweet=tweet, message=message)
+        
+        if request.user != tweet.user:
+            models.Notification.objects.create(
+                recipient=tweet.user, actor=request.user,
+                notification_type='comment', tweet=tweet
+            )
+        
+        other_commenters = User.objects.filter(
+            comment__tweet=tweet
+        ).exclude(id=request.user.id).exclude(id=tweet.user.id).distinct()
+        
+        for commenter in other_commenters:
+            models.Notification.objects.create(
+                recipient=commenter, actor=request.user,
+                notification_type='thread', tweet=tweet
+            )
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
 
 
+@login_required(login_url='/login/')
 def delete_comment(request, pk):
-    comment = models.Comment.objects.get(pk=pk)
+    if request.method != "POST":
+        return redirect(reverse('tweetapp:listtweet'))
+    comment = get_object_or_404(models.Comment, pk=pk)
     if request.user == comment.user or request.user.is_staff:
         comment.delete()
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
@@ -351,39 +349,23 @@ def userlist(request):
     else:
         users = User.objects.select_related('profile').all()
     
-    # Online users
-    if request.user.is_authenticated:
-        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        online_users = User.objects.filter(
-            profile__last_active__gte=five_minutes_ago
-        ).select_related('profile')[:10]
-        # Suggest users not following
-        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
-        suggested_users = User.objects.exclude(
-            pk__in=following_ids + [request.user.pk]
-        ).select_related('profile').order_by('?')[:8]
-    else:
-        online_users = User.objects.none()
-        suggested_users = User.objects.select_related('profile').order_by('?')[:8]
-        
-    return render(request, 'tweetapp/userlist.html', {
-        'users': users,
-        'online_users': online_users,
-        'suggested_users': suggested_users,
-    })
+    context = {'users': users}
+    context.update(get_sidebar_context(request))
+    return render(request, 'tweetapp/userlist.html', context)
 
 
 @login_required(login_url='/login/')
 def edit_tweet(request, pk):
-    tweet = models.Tweet.objects.get(pk=pk)
+    if request.method != "POST":
+        return redirect(reverse('tweetapp:listtweet'))
+    tweet = get_object_or_404(models.Tweet, pk=pk)
     if request.user != tweet.user or not tweet.can_edit():
         messages.warning(request, "Editing time expired! (5 min limit)")
         return redirect(reverse('tweetapp:listtweet'))
-    if request.method == "POST":
-        message = request.POST.get('message', '')
-        if message:
-            tweet.message = message
-            tweet.save()
+    message = request.POST.get('message', '')
+    if message:
+        tweet.message = message
+        tweet.save()
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
 
 
@@ -409,7 +391,9 @@ def add_patchnote(request):
 def delete_patchnote(request, pk):
     if not request.user.is_staff:
         return redirect(reverse('tweetapp:patchnotes'))
-    note = models.PatchNote.objects.get(pk=pk)
+    if request.method != "POST":
+        return redirect(reverse('tweetapp:patchnotes'))
+    note = get_object_or_404(models.PatchNote, pk=pk)
     note.delete()
     return redirect(reverse('tweetapp:patchnotes'))
 
@@ -447,7 +431,7 @@ def create_group(request):
 
 @login_required(login_url='/login/')
 def group_detail(request, pk):
-    group = models.Group.objects.get(pk=pk)
+    group = get_object_or_404(models.Group, pk=pk)
     is_member = group.memberships.filter(user=request.user).exists()
     if not is_member:
         return render(request, 'tweetapp/group_locked.html', {'group': group})
@@ -468,7 +452,7 @@ def group_detail(request, pk):
 
 @login_required(login_url='/login/')
 def group_send_message(request, pk):
-    group = models.Group.objects.get(pk=pk)
+    group = get_object_or_404(models.Group, pk=pk)
     if not group.memberships.filter(user=request.user).exists():
         return redirect('tweetapp:group_list')
     if request.method == "POST":
@@ -481,7 +465,7 @@ def group_send_message(request, pk):
 
 @login_required(login_url='/login/')
 def group_join(request, pk):
-    group = models.Group.objects.get(pk=pk)
+    group = get_object_or_404(models.Group, pk=pk)
     if group.is_private:
         return redirect('tweetapp:group_list')
     if not group.memberships.filter(user=request.user).exists():
@@ -491,7 +475,7 @@ def group_join(request, pk):
 
 @login_required(login_url='/login/')
 def group_leave(request, pk):
-    group = models.Group.objects.get(pk=pk)
+    group = get_object_or_404(models.Group, pk=pk)
     membership = group.memberships.filter(user=request.user).first()
     if membership and membership.role != 'admin':
         membership.delete()
@@ -500,7 +484,7 @@ def group_leave(request, pk):
 
 @login_required(login_url='/login/')
 def group_invite(request, pk):
-    group = models.Group.objects.get(pk=pk)
+    group = get_object_or_404(models.Group, pk=pk)
     if not group.memberships.filter(user=request.user, role='admin').exists():
         return redirect('tweetapp:group_detail', pk=pk)
     if request.method == "POST":
@@ -511,7 +495,6 @@ def group_invite(request, pk):
                 models.GroupInvite.objects.get_or_create(
                     group=group, invited_user=invited_user, invited_by=request.user
                 )
-                # Create group invite notification
                 models.Notification.objects.create(
                     recipient=invited_user, actor=request.user,
                     notification_type='group_invite', group=group
@@ -523,22 +506,23 @@ def group_invite(request, pk):
 
 @login_required(login_url='/login/')
 def group_accept_invite(request, pk):
-    invite = models.GroupInvite.objects.get(pk=pk, invited_user=request.user)
+    invite = get_object_or_404(models.GroupInvite, pk=pk, invited_user=request.user)
+    group_pk = invite.group.pk
     models.GroupMembership.objects.create(group=invite.group, user=request.user, role='member')
     invite.delete()
-    return redirect('tweetapp:group_detail', pk=invite.group.pk)
+    return redirect('tweetapp:group_detail', pk=group_pk)
 
 
 @login_required(login_url='/login/')
 def group_decline_invite(request, pk):
-    invite = models.GroupInvite.objects.get(pk=pk, invited_user=request.user)
+    invite = get_object_or_404(models.GroupInvite, pk=pk, invited_user=request.user)
     invite.delete()
     return redirect('tweetapp:group_list')
 
 
 @login_required(login_url='/login/')
 def group_kick(request, pk, user_id):
-    group = models.Group.objects.get(pk=pk)
+    group = get_object_or_404(models.Group, pk=pk)
     if not group.memberships.filter(user=request.user, role='admin').exists():
         return redirect('tweetapp:group_detail', pk=pk)
     membership = group.memberships.filter(user_id=user_id, role='member').first()
@@ -549,7 +533,9 @@ def group_kick(request, pk, user_id):
 
 @login_required(login_url='/login/')
 def group_delete(request, pk):
-    group = models.Group.objects.get(pk=pk)
+    if request.method != "POST":
+        return redirect('tweetapp:group_list')
+    group = get_object_or_404(models.Group, pk=pk)
     if group.creator == request.user or request.user.is_staff:
         group.delete()
     return redirect('tweetapp:group_list')
@@ -557,7 +543,7 @@ def group_delete(request, pk):
 
 @login_required(login_url='/login/')
 def group_request_join(request, pk):
-    group = models.Group.objects.get(pk=pk)
+    group = get_object_or_404(models.Group, pk=pk)
     if not group.memberships.filter(user=request.user).exists():
         models.GroupJoinRequest.objects.get_or_create(group=group, user=request.user)
     return redirect('tweetapp:group_list')
@@ -565,7 +551,7 @@ def group_request_join(request, pk):
 
 @login_required(login_url='/login/')
 def group_accept_request(request, pk):
-    join_request = models.GroupJoinRequest.objects.get(pk=pk)
+    join_request = get_object_or_404(models.GroupJoinRequest, pk=pk)
     group = join_request.group
     if group.memberships.filter(user=request.user, role='admin').exists():
         models.GroupMembership.objects.create(group=group, user=join_request.user, role='member')
@@ -575,7 +561,7 @@ def group_accept_request(request, pk):
 
 @login_required(login_url='/login/')
 def group_decline_request(request, pk):
-    join_request = models.GroupJoinRequest.objects.get(pk=pk)
+    join_request = get_object_or_404(models.GroupJoinRequest, pk=pk)
     group = join_request.group
     if group.memberships.filter(user=request.user, role='admin').exists():
         join_request.delete()
@@ -584,13 +570,12 @@ def group_decline_request(request, pk):
 
 @login_required(login_url='/login/')
 def follow_user(request, username):
-    target = User.objects.get(username=username)
+    target = get_object_or_404(User, username=username)
     if target != request.user:
         follow, created = models.Follow.objects.get_or_create(follower=request.user, following=target)
         if not created:
             follow.delete()
         else:
-            # Create follow notification
             models.Notification.objects.create(
                 recipient=target, actor=request.user,
                 notification_type='follow'
@@ -600,21 +585,13 @@ def follow_user(request, username):
 
 @login_required(login_url='/login/')
 def followers_following(request, username):
-    """Display followers and following for a user. Only user and staff can view."""
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return redirect('tweetapp:listtweet')
+    user = get_object_or_404(User, username=username)
     
-    # Permission check - only user themselves or staff can view
     if request.user != user and not request.user.is_staff:
         messages.error(request, "You don't have permission to view this page.")
         return redirect('tweetapp:profile', username=username)
     
-    # Get followers (users who follow this user)
     followers = models.Follow.objects.filter(following=user).select_related('follower', 'follower__profile')
-    
-    # Get following (users this user follows)
     following = models.Follow.objects.filter(follower=user).select_related('following', 'following__profile')
     
     context = {
@@ -630,7 +607,9 @@ def followers_following(request, username):
 
 @login_required(login_url='/login/')
 def toggle_visibility(request, pk):
-    tweet = models.Tweet.objects.get(pk=pk)
+    if request.method != "POST":
+        return redirect(reverse('tweetapp:listtweet'))
+    tweet = get_object_or_404(models.Tweet, pk=pk)
     if request.user == tweet.user:
         if tweet.visibility == 'public':
             tweet.visibility = 'followers'
@@ -645,42 +624,39 @@ def notifications_view(request):
     notifs = models.Notification.objects.filter(recipient=request.user).select_related('actor', 'tweet').order_by('-created_at')
     notifs.filter(is_read=False).update(is_read=True)
     
-    if request.user.is_authenticated:
-        liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
-        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
-        suggested_users = User.objects.exclude(pk__in=following_ids + [request.user.pk]).order_by('?')[:5]
-        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        online_users = User.objects.filter(profile__last_active__gte=five_minutes_ago)[:10]
-    else:
-        liked_ids = []
-        suggested_users = User.objects.order_by('?')[:5]
-        online_users = User.objects.none()
+    liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
     
-    return render(request, 'tweetapp/notifications.html', {
+    context = {
         'notifications': notifs,
         'liked_ids': liked_ids,
-        'suggested_users': suggested_users,
-        'online_users': online_users,
-    })
+    }
+    context.update(get_sidebar_context(request))
+    return render(request, 'tweetapp/notifications.html', context)
 
 
 def tweet_detail(request, pk):
-    tweet = models.Tweet.objects.select_related('user', 'user__profile').prefetch_related('images', 'comments', 'comments__user').get(pk=pk)
+    from django.http import Http404
+    
+    tweet = get_object_or_404(
+        models.Tweet.objects.select_related('user', 'user__profile').prefetch_related('images', 'comments', 'comments__user'),
+        pk=pk
+    )
+    
+    # Security: Prevent viewing followers-only tweets by direct link if not authorized
+    if tweet.visibility == 'followers' and request.user != tweet.user and not request.user.is_staff:
+        if not request.user.is_authenticated:
+            raise Http404()
+        if not models.Follow.objects.filter(follower=request.user, following=tweet.user).exists():
+            raise Http404()
     
     if request.user.is_authenticated:
         liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
-        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
-        suggested_users = User.objects.exclude(pk__in=following_ids + [request.user.pk]).order_by('?')[:5]
-        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        online_users = User.objects.filter(profile__last_active__gte=five_minutes_ago)[:10]
     else:
         liked_ids = []
-        suggested_users = User.objects.order_by('?')[:5]
-        online_users = User.objects.none()
     
-    return render(request, 'tweetapp/tweet_detail.html', {
+    context = {
         'tweet': tweet,
         'liked_ids': liked_ids,
-        'suggested_users': suggested_users,
-        'online_users': online_users,
-    })
+    }
+    context.update(get_sidebar_context(request))
+    return render(request, 'tweetapp/tweet_detail.html', context)
