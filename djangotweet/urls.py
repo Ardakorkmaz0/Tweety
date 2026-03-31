@@ -19,7 +19,14 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
+from django.shortcuts import render
 
+
+def custom_404(request, exception):
+    return render(request, '404.html', status=404)
+
+
+handler404 = custom_404
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,3 +39,4 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += [path('test-404/', lambda r: custom_404(r, None))]

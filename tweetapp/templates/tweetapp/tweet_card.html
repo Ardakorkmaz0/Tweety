@@ -1,4 +1,4 @@
-<div class="glass-card p-5 cursor-pointer transition-all duration-300 hover:border-[var(--border-glow)] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(16,242,140,0.1)] relative" onclick="document.getElementById('modal-{{ tweet.pk }}').classList.remove('hidden')">
+<div class="glass-card p-5 cursor-pointer transition-all duration-300 hover:border-[var(--border-glow)] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(16,242,140,0.1)] relative" onclick="saveScrollPosition(); window.location.href='{% url 'tweetapp:tweet_detail' pk=tweet.pk %}'">
     
     <!-- Card Header: User Info -->
     <div class="flex items-start gap-3 mb-3">
@@ -51,10 +51,10 @@
 
     <!-- Action Bar -->
     <div class="flex items-center justify-between pt-2">
-        <button class="flex items-center gap-2 group transition-all" onclick="event.stopPropagation(); document.getElementById('modal-{{ tweet.pk }}').classList.remove('hidden')">
+        <a href="{% url 'tweetapp:tweet_detail' pk=tweet.pk %}" class="flex items-center gap-2 group transition-all decoration-transparent" onclick="event.stopPropagation()">
             <i data-lucide="message-circle" class="w-[18px] h-[18px] group-hover:stroke-[#3b82f6] transition-colors" style="color: var(--text-muted)"></i>
             <span class="group-hover:text-[#3b82f6] transition-colors" style="color: var(--text-muted); font-size: 13px;">{{ tweet.comments.count }}</span>
-        </button>
+        </a>
 
         <button class="flex items-center gap-2 group transition-all" onclick="event.stopPropagation(); toggleLike(this, {{ tweet.pk }})">
             <span class="like-icon group-hover:scale-110 transition-transform">
@@ -67,7 +67,7 @@
             <span class="like-count group-hover:text-[var(--danger)] transition-colors" style="color: var(--text-muted); font-size: 13px;">{{ tweet.likes.count }}</span>
         </button>
         
-        <form style="display: none;">{% csrf_token %}</form> <!-- Needed for toggleLike JS if not globally provided -->
+        <form style="display: none;">{% csrf_token %}</form>
 
         {% if user == tweet.user or user.is_staff %}
         <form action="{% url 'tweetapp:delete_tweet' pk=tweet.pk %}" method="POST" class="m-0" onclick="event.stopPropagation()">
@@ -81,131 +81,5 @@
         <button class="flex items-center gap-2 group transition-all" onclick="event.stopPropagation(); shareTweet(window.location.origin + '/tweetapp/tweet/{{ tweet.pk }}/', '{{ tweet.nickname }}')" title="Share">
             <i data-lucide="share-2" class="w-[18px] h-[18px] group-hover:stroke-[var(--neon-purple)] transition-colors" style="color: var(--text-muted)"></i>
         </button>
-    </div>
-</div>
-
-<!-- Modal for Tweet Details (Replaces Bootstrap Modal) -->
-<div id="modal-{{ tweet.pk }}" class="fixed inset-0 z-50 hidden flex justify-center items-center bg-black/60 backdrop-blur-sm p-4" onclick="document.getElementById('modal-{{ tweet.pk }}').classList.add('hidden')">
-    <div class="glass-card w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col relative" onclick="event.stopPropagation()" style="background: var(--deep-bg);">
-        
-        <!-- Modal Header -->
-        <div class="sticky top-0 z-10 glass-elevated px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid var(--border-subtle);">
-            <div class="flex items-center gap-3">
-                {% if tweet.user and tweet.user.profile.profile_image %}
-                    <img src="{{ tweet.user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover">
-                {% else %}
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-secondary text-white">{{tweet.nickname|first|upper}}</div>
-                {% endif %}
-                <h5 class="font-semibold" style="color: var(--neon-green)">{{tweet.nickname}}</h5>
-                {% if tweet.visibility == 'followers' %}
-                <i data-lucide="lock" class="w-3 h-3 text-warning"></i>
-                {% endif %}
-            </div>
-            <button onclick="document.getElementById('modal-{{ tweet.pk }}').classList.add('hidden')" class="p-2 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors">
-                <i data-lucide="x" class="w-5 h-5 text-white"></i>
-            </button>
-        </div>
-
-        <!-- Modal Body -->
-        <div class="p-6">
-            {% if tweet.images.all %}
-            <div class="flex overflow-x-auto gap-4 snap-x mb-6 pb-2 scrollbar-hide">
-                {% for img in tweet.images.all %}
-                    <img src="{{ img.image.url }}" class="snap-center max-h-[400px] object-contain rounded-xl" style="background: rgba(0,0,0,0.5);">
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <p class="mb-6 whitespace-pre-wrap break-words text-lg" style="color: var(--text-primary); line-height: 1.6;">{{tweet.message|safe}}</p>
-
-            <div class="flex flex-wrap gap-2 mb-6">
-                <!-- Controls for owner -->
-                {% if user == tweet.user and tweet.can_edit %}
-                <button class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-[rgba(251,191,36,0.1)]" style="border: 1px solid var(--warning); color: var(--warning);" onclick="document.getElementById('edit-form-{{tweet.pk}}').classList.toggle('hidden')">
-                    Edit Tweet
-                </button>
-                {% endif %}
-                
-                {% if user == tweet.user or user.is_staff %}
-                <form action="{% url 'tweetapp:delete_tweet' pk=tweet.pk %}" method="POST" class="m-0">
-                    {% csrf_token %}
-                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-[rgba(255,107,107,0.1)]" style="border: 1px solid var(--danger); color: var(--danger);" onclick="return confirm('Delete this tweet?')">
-                        Delete
-                    </button>
-                </form>
-                {% endif %}
-                
-                {% if user == tweet.user %}
-                <form action="{% url 'tweetapp:toggle_visibility' pk=tweet.pk %}" method="POST" class="m-0">
-                    {% csrf_token %}
-                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-white/5" style="border: 1px solid var(--text-muted); color: var(--text-primary);">
-                        {% if tweet.visibility == 'followers' %}Make Public{% else %}Restrict to Followers{% endif %}
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-
-            {% if user == tweet.user and tweet.can_edit %}
-            <form id="edit-form-{{tweet.pk}}" action="{% url 'tweetapp:edit_tweet' pk=tweet.pk %}" method="POST" class="hidden mb-6">
-                {% csrf_token %}
-                <textarea name="message" class="w-full p-4 rounded-xl mb-3 focus:outline-none focus:glow-green focus:border-[var(--neon-green)] transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" rows="3" maxlength="280">{{ tweet.message }}</textarea>
-                <button type="submit" class="btn-gradient px-6 py-2 rounded-xl font-bold">Save Changes</button>
-            </form>
-            {% endif %}
-
-            <!-- Modal Like and Action bar -->
-            <div class="flex items-center gap-6 mb-6 pb-6" style="border-bottom: 1px solid var(--border-subtle);">
-                <button class="flex items-center gap-2 group transition-all" onclick="toggleLike(this, {{ tweet.pk }})">
-                    <span class="like-icon group-hover:scale-110 transition-transform">
-                        {% if tweet.pk in liked_ids %}
-                            <i data-lucide="heart" fill="currentColor" class="w-6 h-6 text-[var(--danger)]"></i>
-                        {% else %}
-                            <i data-lucide="heart" class="w-6 h-6"></i>
-                        {% endif %}
-                    </span>
-                    <span class="like-count text-lg font-bold group-hover:text-[var(--danger)] transition-colors" style="color: var(--text-primary);">{{ tweet.likes.count }}</span>
-                </button>
-                <div class="text-sm" style="color: var(--text-muted)">
-                    {{ tweet.created_at|date:"M d, Y, g:i a" }}
-                </div>
-            </div>
-
-            <!-- Comments Section -->
-            <div class="mt-8">
-                <h4 class="font-bold mb-4" style="color: var(--text-secondary);">Comments ({{tweet.comments.count}})</h4>
-                <div class="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                    {% for comment in tweet.comments.all %}
-                    <div class="p-4 rounded-xl relative group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle);">
-                        <div class="flex justify-between items-start mb-2">
-                            <a href="{% url 'tweetapp:profile' username=comment.user.username %}" class="font-semibold text-sm hover:underline" style="color: var(--neon-green);">@{{ comment.user.username }}</a>
-                            <span class="text-xs" style="color: var(--text-muted);">{{ comment.created_at|date:"M d, H:i" }}</span>
-                        </div>
-                        <p class="text-sm" style="color: var(--text-primary);">{{ comment.message }}</p>
-                        
-                        {% if user == comment.user or user.is_staff %}
-                        <form action="{% url 'tweetapp:delete_comment' pk=comment.pk %}" method="POST" class="absolute top-4 right-4 m-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {% csrf_token %}
-                            <button type="submit" class="p-1 hover:bg-[rgba(255,107,107,0.1)] rounded" title="Delete Comment" onclick="return confirm('Delete comment?')">
-                                <i data-lucide="trash-2" class="w-4 h-4" style="color: var(--danger);"></i>
-                            </button>
-                        </form>
-                        {% endif %}
-                    </div>
-                    {% empty %}
-                    <p class="text-sm italic" style="color: var(--text-muted);">No comments yet.</p>
-                    {% endfor %}
-                </div>
-
-                {% if user.is_authenticated %}
-                <form action="{% url 'tweetapp:add_comment' pk=tweet.pk %}" method="POST" class="mt-6 flex gap-3">
-                    {% csrf_token %}
-                    <input type="text" name="comment_message" class="flex-1 px-4 py-3 rounded-xl focus:outline-none focus:border-[var(--neon-green)] transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Write a reply..." maxlength="280" required>
-                    <button type="submit" class="btn-gradient px-6 py-3 rounded-xl font-bold flex items-center gap-2">
-                        <i data-lucide="send" class="w-4 h-4"></i> Send
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-        </div>
     </div>
 </div>

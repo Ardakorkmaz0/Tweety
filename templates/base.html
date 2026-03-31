@@ -4,8 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Tweety</title>
+    <title>{% block page_title %}Tweety{% endblock %}</title>
     <link rel="icon" href="{% static 'tweetapp/favicon.png' %}" type="image/png">
+
+    {% block og_meta %}
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Tweety">
+    <meta property="og:description" content="Share your thoughts with the world on Tweety!">
+    <meta property="og:site_name" content="Tweety">
+    <meta name="twitter:card" content="summary">
+    {% endblock %}
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="{% static 'css/theme.css' %}">
@@ -182,6 +190,31 @@
         
         lucide.createIcons();
 
+        // Scroll position management
+        function saveScrollPosition() {
+            sessionStorage.setItem('tweety_scroll_y', window.scrollY);
+            sessionStorage.setItem('tweety_scroll_page', window.location.pathname + window.location.search);
+        }
+
+        function restoreScrollPosition() {
+            const savedPage = sessionStorage.getItem('tweety_scroll_page');
+            const currentPage = window.location.pathname + window.location.search;
+            if (savedPage === currentPage) {
+                const scrollY = parseInt(sessionStorage.getItem('tweety_scroll_y') || '0');
+                if (scrollY > 0) {
+                    window.scrollTo(0, scrollY);
+                }
+            }
+            sessionStorage.removeItem('tweety_scroll_y');
+            sessionStorage.removeItem('tweety_scroll_page');
+        }
+
+        // Restore scroll on feed pages
+        if (window.location.pathname.includes('/tweetapp/') && !window.location.pathname.includes('/tweet/')) {
+            window.addEventListener('load', restoreScrollPosition);
+        }
+
+
         const themeToggle = document.getElementById('themeToggle');
         const themeIconContainer = document.getElementById('themeIconContainer');
 
@@ -201,18 +234,6 @@
             });
         }
 
-        function openTweetyModal(pk) {
-            const modal = document.getElementById('modal-' + pk);
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // Sayfa arkada kaymasın
-            lucide.createIcons({ root: modal });
-        }
-
-        function closeTweetyModal(pk) {
-            const modal = document.getElementById('modal-' + pk);
-            modal.classList.add('hidden');
-            document.body.style.overflow = 'auto'; // Kaydırmayı geri aç
-        }
         function getCookie(name) {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
