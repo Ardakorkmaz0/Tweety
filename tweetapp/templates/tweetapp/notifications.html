@@ -13,7 +13,9 @@
                         <i data-lucide="heart" class="w-5 h-5 text-[var(--danger)]" fill="currentColor"></i>
                     {% elif notif.notification_type == 'comment' or notif.notification_type == 'thread' %}
                         <i data-lucide="message-circle" class="w-5 h-5" style="color: var(--neon-green)"></i>
-                    {% elif notif.notification_type == 'follow' %}
+                    {% elif notif.notification_type == 'follow' or notif.notification_type == 'follow_accept' %}
+                        <i data-lucide="user-check" class="w-5 h-5" style="color: var(--neon-green)"></i>
+                    {% elif notif.notification_type == 'follow_request' %}
                         <i data-lucide="user-plus" class="w-5 h-5" style="color: var(--text-active)"></i>
                     {% elif notif.notification_type == 'group_invite' %}
                         <i data-lucide="users" class="w-5 h-5" style="color: var(--neon-purple)"></i>
@@ -26,6 +28,8 @@
                         {% elif notif.notification_type == 'comment' %} commented on your tweet.
                         {% elif notif.notification_type == 'thread' %} replied to a thread you commented on.
                         {% elif notif.notification_type == 'follow' %} started following you.
+                        {% elif notif.notification_type == 'follow_request' %} requested to follow you.
+                        {% elif notif.notification_type == 'follow_accept' %} accepted your follow request.
                         {% elif notif.notification_type == 'group_invite' %} invited you to join the group <strong>{{ notif.group.name }}</strong>.
                         {% endif %}
                     </p>
@@ -34,6 +38,20 @@
                     "{{ notif.tweet.message }}"
                     </p>
                     {% endif %}
+                    
+                    {% if notif.notification_type == 'follow_request' and notif.follow_request %}
+                    <div class="mt-3 flex gap-2">
+                        <form action="{% url 'tweetapp:accept_follow_request' pk=notif.follow_request.pk %}" method="POST" class="m-0">
+                            {% csrf_token %}
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-[var(--neon-green)] text-[#07070f] hover:brightness-110">Accept</button>
+                        </form>
+                        <form action="{% url 'tweetapp:decline_follow_request' pk=notif.follow_request.pk %}" method="POST" class="m-0">
+                            {% csrf_token %}
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all" style="background: rgba(255,107,107,0.1); color: var(--danger); border: 1px solid var(--danger);">Decline</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    
                     <span class="text-xs mt-2 block" style="color: var(--text-muted);">{{ notif.created_at|timesince }} ago</span>
                 </div>
             </div>

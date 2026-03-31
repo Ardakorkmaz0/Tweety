@@ -33,7 +33,10 @@ urlpatterns = [
     path('request/accept/<int:pk>/', views.group_accept_request, name='group_accept_request'),
     path('request/decline/<int:pk>/', views.group_decline_request, name='group_decline_request'),
     path('follow/<str:username>/', views.follow_user, name='follow_user'),
+    path('follow-request/<int:pk>/accept/', views.accept_follow_request, name='accept_follow_request'),
+    path('follow-request/<int:pk>/decline/', views.decline_follow_request, name='decline_follow_request'),
     path('visibility/<int:pk>/', views.toggle_visibility, name='toggle_visibility'),
     path('notifications/', views.notifications_view, name='notifications'),
     path('tweet/<int:pk>/', views.tweet_detail, name='tweet_detail'),
+    path('tweet/<int:pk>/likes/', views.tweet_likers, name='tweet_likers'),
 ]

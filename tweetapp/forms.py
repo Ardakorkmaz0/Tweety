@@ -17,6 +17,7 @@ class ProfileForm(forms.Form):
     bio = forms.CharField(label="Bio", max_length=160, required=False,
                           widget=forms.Textarea(attrs={"class": "tweetmessage", "rows": 3}))
     profile_image = forms.ImageField(label="Profile Photo", required=False)
+    require_follow_requests = forms.BooleanField(label="Require Follow Requests", required=False)
 
 class RegisterForm(UserCreationForm):
     first_name = forms.CharField(label="First Name", max_length=50, required=False)

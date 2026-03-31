@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'tweetapp:tweet_detail' pk=tweet.pk %}" class="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:bg-[rgba(255,255,255,0.05)]" style="border: 1px solid var(--border-subtle); color: var(--text-primary)">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </a>
+            <h2 class="text-2xl font-bold" style="color: var(--text-primary)">Tweet Likers</h2>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="glass-card p-4 relative overflow-hidden group">
+        <!-- Glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-[var(--neon-purple)] to-[var(--neon-green)] opacity-0 group-focus-within:opacity-10 transition-opacity duration-500 rounded-xl" style="z-index: 0; filter: blur(10px);"></div>
+        <form action="" method="GET" class="relative z-10 bg-transparent rounded-xl flex items-center ring-1 ring-[#ffffff10] focus-within:ring-[var(--neon-green)] transition-all overflow-hidden" style="background: var(--input)">
+            <div class="pl-4 text-[var(--text-muted)] group-focus-within:text-[var(--neon-green)] transition-all">
+                <i data-lucide="search" class="w-5 h-5"></i>
+            </div>
+            <input type="text" name="q" placeholder="Search by name or username..." value="{{ search_query }}" 
+                   class="w-full bg-transparent border-none outline-none pl-3 pr-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] font-medium text-[15px] focus:ring-0">
+        </form>
+    </div>
+
+    <div class="space-y-4">
+        {% if likers %}
+            <div class="glass-card mb-6 p-1.5 flex items-center gap-2">
+                <button class="tab-btn flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 relative cursor-default" style="background-color: rgba(16, 242, 140, 0.08); color: var(--text-active);">
+                    <i data-lucide="heart" class="w-4 h-4 text-[var(--danger)]" fill="currentColor"></i>
+                    <span style="font-weight: 600; font-size: 14px;">Liked by {{ likers.count }} users</span>
+                    <div class="absolute bottom-0 left-4 right-4 h-0.5 rounded-full glow-green" style="background-color: var(--neon-green);"></div>
+                </button>
+            </div>
+
+            {% for like in likers %}
+            <div class="glass-card p-4 flex justify-between items-center transition-all hover:border-[var(--border-glow)] hover:-translate-y-0.5">
+                <a href="{% url 'tweetapp:profile' username=like.user.username %}" class="flex items-center gap-4 flex-1 decoration-transparent group">
+                    {% if like.user.profile.profile_image %}
+                        <img src="{{ like.user.profile.profile_image.url }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: rgba(255,255,255,0.1)">
+                    {% else %}
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg" style="background: var(--surface-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-primary);">
+                            {{ like.user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    <div>
+                        <div class="font-bold text-lg group-hover:underline transition-all" style="color: var(--neon-green)">
+                            @{{ like.user.username }}
+                        </div>
+                        {% if like.user.profile.first_name or like.user.profile.last_name %}
+                        <div class="text-sm" style="color: var(--text-primary)">{{ like.user.profile.first_name }} {{ like.user.profile.last_name }}</div>
+                        {% endif %}
+                        {% if like.user.profile.bio %}
+                        <div class="text-sm mt-1" style="color: var(--text-muted)">{{ like.user.profile.bio|truncatewords:10 }}</div>
+                        {% endif %}
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        {% else %}
+            {% if search_query %}
+            <div class="glass-card p-6 text-center" style="color: var(--text-muted)">No likers found matching your search.</div>
+            {% else %}
+            <div class="glass-card p-6 text-center" style="color: var(--text-muted)">No one has liked this tweet yet.</div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -186,6 +186,7 @@ def profile(request, username):
 
     user_comments = []
     is_following = False
+    has_pending_request = False
     follower_count = 0
     following_count = 0
     if user:
@@ -194,6 +195,8 @@ def profile(request, username):
         following_count = models.Follow.objects.filter(follower=user).count()
         if request.user.is_authenticated and request.user != user:
             is_following = models.Follow.objects.filter(follower=request.user, following=user).exists()
+            if not is_following:
+                has_pending_request = models.FollowRequest.objects.filter(sender=request.user, receiver=user).exists()
             
     context = {
         'profile_user': user,
@@ -204,6 +207,7 @@ def profile(request, username):
         'liked_ids': liked_ids,
         'user_comments': user_comments,
         'is_following': is_following,
+        'has_pending_request': has_pending_request,
         'follower_count': follower_count,
         'following_count': following_count,
     }
@@ -226,6 +230,7 @@ def edit_profile(request):
             profile.last_name = form.cleaned_data['last_name']
             profile.age = form.cleaned_data['age']
             profile.bio = form.cleaned_data['bio']
+            profile.require_follow_requests = form.cleaned_data['require_follow_requests']
             if form.cleaned_data['profile_image']:
                 profile.profile_image = form.cleaned_data['profile_image']
             profile.save()
@@ -239,6 +244,7 @@ def edit_profile(request):
             'last_name': profile.last_name,
             'age': profile.age,
             'bio': profile.bio,
+            'require_follow_requests': profile.require_follow_requests,
         })
         return render(request, 'tweetapp/edit_profile.html', context={"form": form})
 
@@ -571,16 +577,67 @@ def group_decline_request(request, pk):
 @login_required(login_url='/login/')
 def follow_user(request, username):
     target = get_object_or_404(User, username=username)
-    if target != request.user:
-        follow, created = models.Follow.objects.get_or_create(follower=request.user, following=target)
-        if not created:
-            follow.delete()
+    if target == request.user:
+        return redirect('tweetapp:profile', username=username)
+        
+    # Check if already following
+    is_following = models.Follow.objects.filter(follower=request.user, following=target).exists()
+    
+    if is_following:
+        # Unfollow
+        models.Follow.objects.filter(follower=request.user, following=target).delete()
+    else:
+        # Not following. Check for profile setting
+        if hasattr(target, 'profile') and target.profile.require_follow_requests:
+            # Check if request already sent
+            request_exists = models.FollowRequest.objects.filter(sender=request.user, receiver=target).exists()
+            if request_exists:
+                # Cancel request
+                models.FollowRequest.objects.filter(sender=request.user, receiver=target).delete()
+            else:
+                # Send request
+                req = models.FollowRequest.objects.create(sender=request.user, receiver=target)
+                models.Notification.objects.create(
+                    recipient=target, actor=request.user,
+                    notification_type='follow_request',
+                    follow_request=req
+                )
+                messages.success(request, f"Follow request sent to {target.username}")
         else:
+            # Direct follow
+            models.Follow.objects.create(follower=request.user, following=target)
             models.Notification.objects.create(
                 recipient=target, actor=request.user,
                 notification_type='follow'
             )
+            
     return redirect('tweetapp:profile', username=username)
+
+
+@login_required(login_url='/login/')
+def accept_follow_request(request, pk):
+    if request.method != "POST":
+        return redirect('tweetapp:notifications')
+    follow_req = get_object_or_404(models.FollowRequest, pk=pk, receiver=request.user)
+    
+    models.Follow.objects.create(follower=follow_req.sender, following=request.user)
+    
+    models.Notification.objects.create(
+        recipient=follow_req.sender, actor=request.user,
+        notification_type='follow_accept'
+    )
+    
+    follow_req.delete()
+    return redirect('tweetapp:notifications')
+
+
+@login_required(login_url='/login/')
+def decline_follow_request(request, pk):
+    if request.method != "POST":
+        return redirect('tweetapp:notifications')
+    follow_req = get_object_or_404(models.FollowRequest, pk=pk, receiver=request.user)
+    follow_req.delete()
+    return redirect('tweetapp:notifications')
 
 
 @login_required(login_url='/login/')
@@ -660,3 +717,33 @@ def tweet_detail(request, pk):
     }
     context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/tweet_detail.html', context)
+
+
+@login_required(login_url='/login/')
+def tweet_likers(request, pk):
+    from django.http import Http404
+    
+    tweet = get_object_or_404(models.Tweet, pk=pk)
+    
+    # Check visibility before allowing them to see who liked it
+    if tweet.visibility == 'followers' and request.user != tweet.user and not request.user.is_staff:
+        if not models.Follow.objects.filter(follower=request.user, following=tweet.user).exists():
+            raise Http404()
+            
+    likes_qs = models.Like.objects.filter(tweet=tweet).select_related('user', 'user__profile').order_by('-created_at')
+    
+    query = request.GET.get('q', '')
+    if query:
+        likes_qs = likes_qs.filter(
+            Q(user__username__icontains=query) |
+            Q(user__first_name__icontains=query) |
+            Q(user__last_name__icontains=query)
+        )
+        
+    context = {
+        'tweet': tweet,
+        'likers': likes_qs,
+        'search_query': query,
+    }
+    context.update(get_sidebar_context(request))
+    return render(request, 'tweetapp/tweet_likers.html', context)

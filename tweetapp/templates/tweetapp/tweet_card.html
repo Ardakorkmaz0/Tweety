@@ -56,16 +56,18 @@
             <span class="group-hover:text-[#3b82f6] transition-colors" style="color: var(--text-muted); font-size: 13px;">{{ tweet.comments.count }}</span>
         </a>
 
-        <button class="flex items-center gap-2 group transition-all" onclick="event.stopPropagation(); toggleLike(this, {{ tweet.pk }})">
-            <span class="like-icon group-hover:scale-110 transition-transform">
-                {% if tweet.pk in liked_ids %}
-                    <i data-lucide="heart" fill="currentColor" class="w-5 h-5 text-[var(--danger)]"></i>
-                {% else %}
-                    <i data-lucide="heart" class="w-5 h-5"></i>
-                {% endif %}
-            </span>
-            <span class="like-count group-hover:text-[var(--danger)] transition-colors" style="color: var(--text-muted); font-size: 13px;">{{ tweet.likes.count }}</span>
-        </button>
+        <div class="flex items-center gap-2 group transition-all">
+            <button class="flex items-center gap-1 group transition-all" onclick="event.stopPropagation(); toggleLike(this.parentElement, {{ tweet.pk }})" title="Like">
+                <span class="like-icon group-hover:scale-110 transition-transform">
+                    {% if tweet.pk in liked_ids %}
+                        <i data-lucide="heart" fill="currentColor" class="w-5 h-5 text-[var(--danger)]"></i>
+                    {% else %}
+                        <i data-lucide="heart" class="w-5 h-5"></i>
+                    {% endif %}
+                </span>
+            </button>
+            <a href="{% url 'tweetapp:tweet_likers' pk=tweet.pk %}" onclick="event.stopPropagation();" class="like-count group-hover:text-[var(--danger)] transition-colors" style="color: var(--text-muted); font-size: 13px; text-decoration: none;" title="View Likers">{{ tweet.likes.count }}</a>
+        </div>
         
         <form style="display: none;">{% csrf_token %}</form>
 

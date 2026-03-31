@@ -31,6 +31,7 @@ class Profile(models.Model):
     first_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=True)
     age = models.PositiveIntegerField(null=True, blank=True)
+    require_follow_requests = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
@@ -123,12 +124,22 @@ class Follow(models.Model):
     class Meta:
         unique_together = ('follower', 'following')
 
+class FollowRequest(models.Model):
+    sender = models.ForeignKey(User, related_name='sent_follow_requests', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='received_follow_requests', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('sender', 'receiver')
+
 class Notification(models.Model):
     NOTIFICATION_TYPES = (
         ('like', 'Like'),
         ('comment', 'Comment'),
         ('thread', 'Thread Comment'),
         ('follow', 'Follow'),
+        ('follow_request', 'Follow Request'),
+        ('follow_accept', 'Follow Request Accepted'),
         ('group_invite', 'Group Invite'),
     )
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
@@ -136,6 +147,7 @@ class Notification(models.Model):
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
     tweet = models.ForeignKey('Tweet', on_delete=models.CASCADE, null=True, blank=True)
     group = models.ForeignKey('Group', on_delete=models.CASCADE, null=True, blank=True)
+    follow_request = models.ForeignKey('FollowRequest', on_delete=models.CASCADE, null=True, blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

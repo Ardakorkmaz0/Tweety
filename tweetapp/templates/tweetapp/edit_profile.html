@@ -9,10 +9,22 @@
             {% csrf_token %}
             
             {% for field in form %}
+            {% if field.name == 'require_follow_requests' %}
+            <div class="flex items-center gap-3 mt-4 mb-2 p-4 rounded-xl" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle);">
+                {{ field }}
+                <div class="flex flex-col">
+                    <label class="font-bold cursor-pointer m-0" for="{{ field.id_for_label }}" style="color: var(--text-primary)">
+                        {{ field.label }}
+                    </label>
+                    <span class="text-xs mt-1" style="color: var(--text-muted)">If enabled, users must send a request to follow you. Your existing followers aren't affected.</span>
+                </div>
+            </div>
+            {% else %}
             <div>
                 <label class="block mb-2 font-medium" style="color: var(--text-secondary)">{{ field.label }}</label>
                 {{ field }}
             </div>
+            {% endif %}
             {% endfor %}
 
             <div class="pt-4">

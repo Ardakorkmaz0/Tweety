@@ -76,8 +76,12 @@
                         {% csrf_token %}
                         {% if is_following %}
                             <button class="px-6 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(255,107,107,0.1)]" style="border: 1px solid var(--danger); color: var(--danger);">Unfollow</button>
+                        {% elif has_pending_request %}
+                            <button class="px-6 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(255,255,255,0.05)]" style="border: 1px solid var(--border-subtle); color: var(--text-muted);">Cancel Request</button>
                         {% else %}
-                            <button class="btn-gradient px-6 py-2 rounded-xl font-bold text-sm">Follow</button>
+                            <button class="btn-gradient px-6 py-2 rounded-xl font-bold text-sm">
+                                {% if profile_user.profile.require_follow_requests %}<i data-lucide="lock" class="w-4 h-4 inline-block mr-1 -mt-0.5"></i>{% endif %}Follow
+                            </button>
                         {% endif %}
                     </form>
                 {% endif %}

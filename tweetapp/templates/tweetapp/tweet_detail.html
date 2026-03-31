@@ -95,16 +95,18 @@
 
             <!-- Action Bar -->
             <div class="flex items-center gap-6 mb-6 pb-6" style="border-bottom: 1px solid var(--border-subtle);">
-                <button class="flex items-center gap-2 group transition-all" onclick="toggleLike(this, {{ tweet.pk }})">
-                    <span class="like-icon group-hover:scale-110 transition-transform">
-                        {% if tweet.pk in liked_ids %}
-                            <i data-lucide="heart" fill="currentColor" class="w-6 h-6 text-[var(--danger)]"></i>
-                        {% else %}
-                            <i data-lucide="heart" class="w-6 h-6"></i>
-                        {% endif %}
-                    </span>
-                    <span class="like-count text-lg font-bold group-hover:text-[var(--danger)] transition-colors" style="color: var(--text-primary);">{{ tweet.likes.count }}</span>
-                </button>
+                <div class="flex items-center gap-2 group transition-all">
+                    <button class="flex items-center gap-1 group transition-all" onclick="toggleLike(this.parentElement, {{ tweet.pk }})" title="Like">
+                        <span class="like-icon group-hover:scale-110 transition-transform">
+                            {% if tweet.pk in liked_ids %}
+                                <i data-lucide="heart" fill="currentColor" class="w-6 h-6 text-[var(--danger)]"></i>
+                            {% else %}
+                                <i data-lucide="heart" class="w-6 h-6"></i>
+                            {% endif %}
+                        </span>
+                    </button>
+                    <a href="{% url 'tweetapp:tweet_likers' pk=tweet.pk %}" class="like-count text-lg font-bold group-hover:text-[var(--danger)] transition-colors" style="color: var(--text-primary); text-decoration: none;" title="View Likers">{{ tweet.likes.count }}</a>
+                </div>
 
                 <button onclick="shareTweet('{{ request.build_absolute_uri }}', '{{ tweet.nickname }}')" class="flex items-center gap-2 hover:text-[var(--neon-purple)] transition-colors">
                     <i data-lucide="share-2" class="w-6 h-6"></i>
