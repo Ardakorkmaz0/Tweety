@@ -1,0 +1,620 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block right_sidebar %}
+<!-- Online Users Panel (placed in base.html's right sidebar slot) -->
+<div class="glass-card p-0 overflow-hidden" style="border: 1px solid var(--border-subtle);">
+  <div style="padding:16px 18px 12px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; gap:8px;">
+    <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; flex:1;">Online Now</span>
+    <span style="background:rgba(16,242,140,0.15); color:var(--neon-green); font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; border:1px solid rgba(16,242,140,0.25);">{{ online_users|length }}</span>
+  </div>
+  <div style="max-height:400px; overflow-y:auto;">
+    {% for ou in online_users %}
+      {% if ou.pk != request.user.pk %}
+      <a href="{% url 'tweetapp:start_chat' username=ou.username %}" style="display:flex; align-items:center; gap:10px; padding:10px 16px; text-decoration:none; transition:background 0.2s;" onmouseover="this.style.background='var(--input)'" onmouseout="this.style.background='transparent'">
+        <div style="position:relative; flex-shrink:0;">
+          {% if ou.profile.profile_image %}
+            <img src="{{ ou.profile.profile_image.url }}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
+          {% else %}
+            <div style="width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--input), var(--border-subtle)); border:1px solid var(--border-subtle); color:var(--text-primary); box-shadow:inset 0 2px 4px rgba(255,255,255,0.05);"><i data-lucide="user" style="width: 18px; height: 18px;"></i></div>
+          {% endif %}
+          <span style="position:absolute; bottom:0; right:0; width:10px; height:10px; border-radius:50%; background:#10F28C; border:2px solid var(--deep-bg); box-shadow:0 0 6px #10F28C;"></span>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; font-weight:700; color:#10F28C; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@{{ ou.username }}</div>
+          <div style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+            <span style="width:5px; height:5px; border-radius:50%; background:#10F28C; display:inline-block;"></span> Active now
+          </div>
+        </div>
+      </a>
+      {% endif %}
+    {% empty %}
+      <div style="padding:20px 16px; text-align:center; color:var(--text-muted); font-size:12px; line-height:1.7;">
+        No one is online.<br>Check back later!
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- This script instantly removes the 600px cap on this content area -->
+<script>
+  var _p = document.currentScript.parentElement;
+  _p.style.setProperty('max-width', '100%', 'important');
+  _p.style.setProperty('padding-left', '0', 'important');
+  _p.style.setProperty('padding-right', '0', 'important');
+</script>
+
+<style>
+  /* ===== INBOX CONTAINER ===== */
+  .dm-container {
+    display: flex;
+    height: calc(100vh - 110px);
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    background: var(--card-bg);
+    box-shadow: 0 4px 60px rgba(0,0,0,0.15);
+  }
+
+  /* ===== LEFT: CHAT LIST ===== */
+  .dm-list {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-subtle);
+    background: var(--surface-bg);
+  }
+
+  .dm-list-head {
+    padding: 18px 16px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .dm-list-head h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 10px;
+  }
+
+  .dm-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 7px 10px;
+  }
+
+  .dm-search input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .dm-search input::placeholder { color: var(--text-muted); }
+
+  .dm-list-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .dm-list-scroll::-webkit-scrollbar { display: none; }
+
+  /* Chat list item */
+  .dm-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 16px;
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  .dm-item:hover { background: var(--input); }
+  .dm-item.active {
+    background: rgba(16,242,140,0.07);
+    border-left: 3px solid var(--neon-green);
+    padding-left: 13px;
+  }
+
+  .dm-item-av { position: relative; flex-shrink: 0; }
+  .dm-item-av img, .dm-item-av .av-ph {
+    width: 42px; height: 42px; border-radius: 50%; object-fit: cover;
+  }
+  .dm-item-av .av-ph {
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px;
+    background: linear-gradient(135deg, var(--input), var(--border-subtle)); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); box-shadow: inset 0 2px 4px rgba(255,255,255,0.05);
+  }
+  .dm-item-av .on-dot {
+    position: absolute; bottom: 1px; right: 1px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #10F28C; border: 2px solid var(--deep-bg);
+    box-shadow: 0 0 5px #10F28C;
+  }
+
+  .dm-item-body { flex: 1; min-width: 0; }
+  .dm-item-top {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;
+  }
+  .dm-item-name { font-weight: 700; font-size: 13px; color: var(--text-primary); }
+  .dm-item-time { font-size: 10px; color: var(--text-muted); flex-shrink: 0; margin-left: 6px; }
+  .dm-item-pre {
+    font-size: 12px; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .dm-item-pre.unread { color: var(--text-primary); font-weight: 600; }
+  .dm-unread-badge {
+    min-width: 17px; height: 17px; border-radius: 9px;
+    background: var(--neon-green); color: #000;
+    font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px; flex-shrink: 0; margin-left: 6px;
+  }
+
+  /* ===== RIGHT: CHAT WINDOW ===== */
+  .dm-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 0;
+    background: var(--deep-bg);
+  }
+
+  .dm-chat-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-bg); backdrop-filter: blur(20px);
+    z-index: 10; position: relative;
+  }
+
+  .dm-chat-head-user {
+    display: flex; align-items: center; gap: 10px; text-decoration: none;
+  }
+  .dm-chat-head-user img, .dm-chat-head-user .av-ph {
+    width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  }
+  .dm-chat-head-user .av-ph {
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px; background: linear-gradient(135deg, var(--input), var(--border-subtle)); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); box-shadow: inset 0 2px 4px rgba(255,255,255,0.05);
+  }
+  .dm-chat-head-name { font-weight: 700; font-size: 14px; color: var(--text-primary); }
+  .dm-chat-head-status { font-size: 11px; color: #10F28C; display: flex; align-items: center; gap: 4px; margin-top: 1px; }
+  .dm-chat-head-status .dot { width: 6px; height: 6px; border-radius: 50%; background: #10F28C; box-shadow: 0 0 4px #10F28C; }
+
+  .dm-theme-btn {
+    width: 34px; height: 34px; border-radius: 10px;
+    border: 1px solid var(--border-subtle); background: transparent;
+    color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .dm-theme-btn:hover { background: var(--input); color: var(--text-primary); }
+
+  /* Background overlay */
+  .dm-chat-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background-size: cover; background-position: center;
+    opacity: 0.5; pointer-events: none;
+  }
+
+  /* Messages area */
+  .dm-msgs {
+    flex: 1; overflow-y: auto; padding: 16px 20px 90px;
+    z-index: 1; position: relative;
+    display: flex; flex-direction: column; gap: 4px;
+    scrollbar-width: none;
+  }
+  .dm-msgs::-webkit-scrollbar { display: none; }
+
+  /* Bubble */
+  .dm-row { display: flex; align-items: flex-end; gap: 8px; animation: dmFadeIn 0.2s ease-out; }
+  .dm-row.mine { flex-direction: row-reverse; }
+
+  .dm-row .bav { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+  .dm-row .bav-ph {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 11px;
+    background: linear-gradient(135deg, var(--input), var(--border-subtle)); color: var(--text-primary); flex-shrink: 0;
+    border: 1px solid var(--border-subtle); box-shadow: inset 0 2px 4px rgba(255,255,255,0.05);
+  }
+
+  .dm-bwrap { display: flex; flex-direction: column; max-width: min(72%, 400px); }
+  .dm-row.mine .dm-bwrap { align-items: flex-end; }
+  .dm-row.theirs .dm-bwrap { align-items: flex-start; }
+
+  .dm-bubble {
+    padding: 9px 14px; border-radius: 18px;
+    font-size: 14px; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .dm-row.mine .dm-bubble { border-bottom-right-radius: 4px; color: #000; font-weight: 500; }
+  .dm-row.theirs .dm-bubble {
+    background: var(--input); border: 1px solid var(--border-subtle);
+    color: var(--text-primary); border-bottom-left-radius: 4px;
+  }
+  .dm-bubble img { border-radius: 10px; max-width: 100%; max-height: 220px; object-fit: cover; display: block; margin-bottom: 4px; }
+  .dm-btime { font-size: 10px; color: var(--text-muted); margin-top: 3px; padding: 0 2px; }
+
+  /* Input bar */
+  .dm-input-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 20;
+    padding: 10px 16px;
+    background: var(--surface-bg); backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .dm-input-inner {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px; padding: 6px 6px 6px 12px;
+    transition: border-color 0.2s;
+  }
+  .dm-input-inner:focus-within { border-color: rgba(16,242,140,0.3); box-shadow: 0 0 0 2px rgba(16,242,140,0.05); }
+  .dm-input-inner input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text-primary); font-size: 14px;
+  }
+  .dm-input-inner input::placeholder { color: var(--text-muted); }
+
+  .dm-attach { background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 5px; border-radius: 8px; transition: all 0.15s; flex-shrink: 0; }
+  .dm-attach:hover { background: var(--input); color: var(--text-primary); }
+
+  .dm-send {
+    width: 34px; height: 34px; border-radius: 10px; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: #000; font-weight: 700; flex-shrink: 0; transition: all 0.15s;
+  }
+  .dm-send:hover { filter: brightness(1.15); transform: scale(1.05); }
+  .dm-send:disabled { opacity: 0.4; transform: none; }
+
+  .dm-img-preview {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0 8px;
+  }
+  .dm-img-preview img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-subtle); }
+  .dm-img-preview .rm { width: 18px; height: 18px; border-radius: 50%; background: #F87171; border: none; color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+  /* Theme modal */
+  .dm-theme-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .dm-theme-overlay.show { display: flex; }
+
+  .dm-theme-box {
+    background: var(--card-bg); border: 1px solid var(--border-subtle);
+    border-radius: 18px; width: 100%; max-width: 380px; padding: 24px;
+    position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    backdrop-filter: blur(20px);
+  }
+  .dm-theme-box h3 { font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0 0 20px; }
+  .dm-theme-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; }
+  .dm-theme-presets { display: flex; gap: 8px; margin-bottom: 10px; }
+  .dm-theme-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 3px solid transparent; cursor: pointer; transition: all 0.15s;
+  }
+  .dm-theme-dot:hover { transform: scale(1.15); border-color: var(--text-muted); }
+  .dm-theme-picker { width: 100%; height: 40px; border-radius: 10px; border: 1px solid var(--border-subtle); cursor: pointer; background: transparent; padding: 2px; outline: none; margin-bottom: 16px; }
+  .dm-theme-apply { width: 100%; padding: 12px; border-radius: 12px; border: none; background: var(--neon-green); color: #000; font-weight: 800; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+  .dm-theme-apply:hover { filter: brightness(1.1); }
+
+  /* Empty state */
+  .dm-empty {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 40px;
+  }
+  .dm-empty-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(16,242,140,0.08); border: 1px solid rgba(16,242,140,0.2);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px; color: var(--neon-green);
+  }
+  .dm-empty h3 { font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 6px; }
+  .dm-empty p { font-size: 13px; color: var(--text-muted); line-height: 1.6; max-width: 240px; margin: 0; }
+
+  @keyframes dmFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Responsive: hide list on mobile when chat is open */
+  @media (max-width: 768px) {
+    .dm-list { width: 100%; }
+    .dm-chat-active .dm-list { display: none; }
+    .dm-chat-active .dm-chat { display: flex; }
+    .dm-container:not(.dm-chat-active) .dm-chat { display: none; }
+  }
+</style>
+
+<div class="dm-container {% if active_thread %}dm-chat-active{% endif %}">
+
+  <!-- ===== CHAT LIST ===== -->
+  <div class="dm-list">
+    <div class="dm-list-head">
+      <h2>Messages</h2>
+      <div class="dm-search">
+        <i data-lucide="search" style="width:14px;height:14px;color:var(--text-muted);flex-shrink:0;"></i>
+        <input type="text" placeholder="Search conversations..." oninput="filterChats(this.value)">
+      </div>
+    </div>
+    <div class="dm-list-scroll">
+      {% for chat in chat_list %}
+      <a href="{% url 'tweetapp:chat_detail' thread_id=chat.thread.pk %}"
+         class="dm-item {% if active_thread_id == chat.thread.pk %}active{% endif %}"
+         data-username="{{ chat.other_user.username|lower }}">
+        <div class="dm-item-av">
+          {% if chat.other_user.profile.profile_image %}
+            <img src="{{ chat.other_user.profile.profile_image.url }}">
+          {% else %}
+            <div class="av-ph"><i data-lucide="user" style="width:20px;height:20px;"></i></div>
+          {% endif %}
+          {% for ou in online_users %}{% if ou.pk == chat.other_user.pk %}<span class="on-dot"></span>{% endif %}{% endfor %}
+        </div>
+        <div class="dm-item-body">
+          <div class="dm-item-top">
+            <span class="dm-item-name">@{{ chat.other_user.username }}</span>
+            {% if chat.last_message %}<span class="dm-item-time">{{ chat.last_message.created_at|time:"H:i" }}</span>{% endif %}
+          </div>
+          <div class="dm-item-pre {% if chat.unread_count > 0 %}unread{% endif %}">
+            <span style="overflow:hidden; text-overflow:ellipsis; min-width:0;">
+              {% if chat.last_message %}
+                {% if chat.last_message.sender == request.user %}You: {% endif %}
+                {% if chat.last_message.image %}📷 Image{% else %}{{ chat.last_message.content|truncatechars:28 }}{% endif %}
+              {% else %}
+                Start the conversation
+              {% endif %}
+            </span>
+            {% if chat.unread_count > 0 %}<span class="dm-unread-badge">{{ chat.unread_count }}</span>{% endif %}
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div style="padding:28px 16px; text-align:center; color:rgba(255,255,255,0.2); font-size:13px; line-height:1.7;">
+        No conversations yet.<br>Visit a profile to start one!
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ===== CHAT WINDOW ===== -->
+  <div class="dm-chat">
+    {% if active_thread %}
+      {% if active_thread.background_image %}
+      <div class="dm-chat-bg" style="background-image:url('{{ active_thread.background_image.url }}');"></div>
+      {% endif %}
+
+      <div class="dm-chat-head">
+        <a href="{% url 'tweetapp:inbox' %}" style="display:none;text-decoration:none;color:var(--text-primary);padding:4px;" class="dm-back-btn">
+          <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>
+        </a>
+        <a href="{% url 'tweetapp:profile' username=other_user.username %}" class="dm-chat-head-user">
+          <div style="position:relative;">
+            {% if other_user.profile.profile_image %}
+              <img src="{{ other_user.profile.profile_image.url }}">
+            {% else %}
+              <div class="av-ph"><i data-lucide="user" style="width: 18px; height: 18px;"></i></div>
+            {% endif %}
+          </div>
+          <div>
+            <div class="dm-chat-head-name">@{{ other_user.username }}</div>
+            {% for ou in online_users %}{% if ou.pk == other_user.pk %}
+            <div class="dm-chat-head-status"><span class="dot"></span> Online</div>
+            {% endif %}{% endfor %}
+          </div>
+        </a>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <form action="{% url 'tweetapp:delete_chat' thread_id=active_thread.pk %}" method="POST" class="m-0" onsubmit="return confirm('Bu sohbeti tamamen silmek istediğinize emin misiniz?');">
+            {% csrf_token %}
+            <button type="submit" class="dm-theme-btn" style="color:var(--danger);" title="Delete Chat">
+              <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+            </button>
+          </form>
+          <button class="dm-theme-btn" onclick="document.getElementById('themeModal').classList.add('show')" title="Customize">
+            <i data-lucide="palette" style="width:16px;height:16px;"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="dm-msgs" id="dm-msgs-container">
+        <div id="dm-msgs-wrap">
+          {% for msg in chat_messages %}
+          <div class="dm-row {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}" data-msg-id="{{ msg.pk }}">
+            {% if msg.sender != request.user %}
+              {% if msg.sender.profile.profile_image %}
+                <img class="bav" src="{{ msg.sender.profile.profile_image.url }}">
+              {% else %}
+                <div class="bav-ph"><i data-lucide="user" style="width:12px;height:12px;"></i></div>
+              {% endif %}
+            {% endif %}
+            <div class="dm-bwrap">
+              <div class="dm-bubble" style="{% if msg.sender == request.user %}background:{{ active_thread.theme_color }};{% endif %}">
+                {% if msg.image %}<img src="{{ msg.image.url }}">{% endif %}
+                {% if msg.content %}{{ msg.content }}{% endif %}
+              </div>
+              <div class="dm-btime">{{ msg.created_at|time:"H:i" }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="dm-input-bar">
+        <form id="dm-form" class="m-0">
+          {% csrf_token %}
+          <div id="dm-img-prev" class="dm-img-preview" style="display:none;">
+            <img id="dm-prev-img" src="#">
+            <button type="button" class="rm" onclick="clearImg()">×</button>
+          </div>
+          <div class="dm-input-inner">
+            <label class="dm-attach" title="Attach image">
+              <i data-lucide="image" style="width:18px;height:18px;"></i>
+              <input type="file" name="image" id="dm-file" accept="image/*" style="display:none;">
+            </label>
+            <input type="text" name="content" id="dm-text" autocomplete="off" placeholder="Send a message...">
+            <button type="submit" id="dm-send" class="dm-send" style="background:{{ active_thread.theme_color }};" title="Send">
+              <i data-lucide="send" style="width:15px;height:15px;margin-left:1px;"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Theme Modal -->
+      <div id="themeModal" class="dm-theme-overlay">
+        <div class="dm-theme-box">
+          <button onclick="document.getElementById('themeModal').classList.remove('show')" style="position:absolute;top:14px;right:14px;background:transparent;border:none;color:rgba(255,255,255,0.35);cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all 0.15s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.35)'">
+            <i data-lucide="x" style="width:15px;height:15px;"></i>
+          </button>
+          <h3>Customize Chat</h3>
+          <form action="{% url 'tweetapp:update_chat_theme' thread_id=active_thread.pk %}" method="POST" enctype="multipart/form-data" class="m-0">
+            {% csrf_token %}
+            <div style="margin-bottom:16px;">
+              <div class="dm-theme-label">Bubble Color</div>
+              <div class="dm-theme-presets">
+                <button type="button" class="dm-theme-dot" style="background:#10F28C;box-shadow:0 0 8px #10F28C;" onclick="document.getElementById('tc').value='#10F28C'"></button>
+                <button type="button" class="dm-theme-dot" style="background:#A78BFA;box-shadow:0 0 8px #A78BFA;" onclick="document.getElementById('tc').value='#A78BFA'"></button>
+                <button type="button" class="dm-theme-dot" style="background:#F87171;box-shadow:0 0 8px #F87171;" onclick="document.getElementById('tc').value='#F87171'"></button>
+                <button type="button" class="dm-theme-dot" style="background:#60A5FA;box-shadow:0 0 8px #60A5FA;" onclick="document.getElementById('tc').value='#60A5FA'"></button>
+                <button type="button" class="dm-theme-dot" style="background:#FBBF24;box-shadow:0 0 8px #FBBF24;" onclick="document.getElementById('tc').value='#FBBF24'"></button>
+                <button type="button" class="dm-theme-dot" style="background:#F472B6;box-shadow:0 0 8px #F472B6;" onclick="document.getElementById('tc').value='#F472B6'"></button>
+              </div>
+              <input type="color" name="theme_color" id="tc" value="{{ active_thread.theme_color }}" class="dm-theme-picker">
+            </div>
+            <div style="margin-bottom:16px;">
+              <div class="dm-theme-label">Chat Wallpaper</div>
+              <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.12);border-radius:10px;padding:10px 12px;cursor:pointer;">
+                <i data-lucide="upload-cloud" style="width:18px;height:18px;color:rgba(255,255,255,0.3);"></i>
+                <span style="font-size:12px;color:rgba(255,255,255,0.35);">Choose image...</span>
+                <input type="file" name="background_image" accept="image/*" style="display:none;">
+              </label>
+              {% if active_thread.background_image %}
+              <label style="margin-top:8px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#F87171;">
+                <input type="checkbox" name="clear_background" value="true" style="accent-color:#F87171;"> Remove wallpaper
+              </label>
+              {% endif %}
+            </div>
+            <button type="submit" class="dm-theme-apply">Apply Changes</button>
+          </form>
+        </div>
+      </div>
+
+    {% else %}
+      <!-- Empty state -->
+      <div class="dm-empty">
+        <div class="dm-empty-icon">
+          <i data-lucide="message-square" style="width:32px;height:32px;"></i>
+        </div>
+        <h3>Your Messages</h3>
+        <p>Select a conversation or visit a profile to start chatting.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+{% if active_thread %}
+<script>
+(function(){
+  const container = document.getElementById('dm-msgs-container');
+  const form = document.getElementById('dm-form');
+  const textIn = document.getElementById('dm-text');
+  const fileIn = document.getElementById('dm-file');
+  const prevBar = document.getElementById('dm-img-prev');
+  const prevImg = document.getElementById('dm-prev-img');
+  const wrap = document.getElementById('dm-msgs-wrap');
+  const sendBtn = document.getElementById('dm-send');
+  const THEME = '{{ active_thread.theme_color|default:"#10F28C" }}';
+  const MY = {{ request.user.pk }};
+
+  function scrollEnd(){ container.scrollTop = container.scrollHeight; }
+  scrollEnd();
+
+  fileIn.addEventListener('change', function(){
+    if(this.files&&this.files[0]){
+      const r=new FileReader();
+      r.onload=e=>{prevImg.src=e.target.result;prevBar.style.display='flex';};
+      r.readAsDataURL(this.files[0]);
+    }
+  });
+
+  window.clearImg=function(){ fileIn.value='';prevImg.src='#';prevBar.style.display='none'; };
+
+  let lastId=0;
+  document.querySelectorAll('[data-msg-id]').forEach(el=>{
+    const id=parseInt(el.dataset.msgId||0);
+    if(id>lastId)lastId=id;
+  });
+
+  function addBubble(m){
+    const mine=m.sender_id==MY;
+    let avH='';
+    if(!mine){
+      avH=m.sender_image
+        ? `<img class="bav" src="${m.sender_image}">`
+        : `<div class="bav-ph"><i data-lucide="user" style="width:12px;height:12px;"></i></div>`;
+    }
+    let cH='';
+    if(m.image_url) cH+=`<img src="${m.image_url}">`;
+    if(m.content) cH+=(m.content+'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    const bStyle=mine
+      ? `background:${THEME}; color:#000; font-weight:500; border-bottom-right-radius:4px;`
+      : `background:rgba(255,255,255,0.09); border:1px solid rgba(255,255,255,0.07); color:var(--text-primary); border-bottom-left-radius:4px; backdrop-filter:blur(8px);`;
+
+    const d=document.createElement('div');
+    d.className=`dm-row ${mine?'mine':'theirs'}`;
+    d.dataset.msgId=m.id;
+    d.innerHTML=`${avH}<div class="dm-bwrap"><div class="dm-bubble" style="${bStyle}">${cH}</div><div class="dm-btime">${m.created_at}</div></div>`;
+    wrap.appendChild(d);
+    if(m.id>lastId)lastId=m.id;
+    scrollEnd();
+  }
+
+  function poll(){
+    fetch(`{% url 'tweetapp:api_poll_messages' thread_id=active_thread.pk %}?last_id=${lastId}`)
+      .then(r=>r.json())
+      .then(d=>{ if(d.messages) d.messages.forEach(addBubble); });
+  }
+  setInterval(poll,3000);
+
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    if(!textIn.value.trim()&&!fileIn.files[0])return;
+    sendBtn.disabled=true;
+    const fd=new FormData(this);
+    fetch(`{% url 'tweetapp:api_send_message' thread_id=active_thread.pk %}`,{
+      method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}
+    })
+    .then(r=>r.json())
+    .then(d=>{ if(d.success){textIn.value='';clearImg();addBubble(d);} })
+    .finally(()=>{ sendBtn.disabled=false; lucide.createIcons(); textIn.focus(); });
+  });
+})();
+</script>
+{% endif %}
+
+<script>
+function filterChats(q){
+  document.querySelectorAll('.dm-item').forEach(i=>{
+    i.style.display=(i.dataset.username||'').includes(q.toLowerCase())?'':'none';
+  });
+}
+</script>
+{% endblock %}

@@ -72,6 +72,9 @@
                 {% endif %}
                 
                 {% if user != profile_user and user.is_authenticated and profile_exists %}
+                    <a href="{% url 'tweetapp:start_chat' username=profile_user.username %}" class="px-6 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 hover:bg-[rgba(16,242,140,0.1)]" style="border: 1px solid var(--neon-green); color: var(--neon-green);">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i> Message
+                    </a>
                     <form action="{% url 'tweetapp:follow_user' username=profile_user.username %}" method="POST" class="m-0">
                         {% csrf_token %}
                         {% if is_following %}

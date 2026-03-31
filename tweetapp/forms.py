@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import ModelForm
-from tweetapp.models import Tweet
+from tweetapp.models import Tweet, ChatThread, Message
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
@@ -26,3 +26,13 @@ class RegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'password1', 'password2', 'first_name', 'last_name']
+
+class ChatThemeForm(forms.ModelForm):
+    class Meta:
+        model = ChatThread
+        fields = ['theme_color', 'background_image']
+
+class MessageForm(forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ['content', 'image']

@@ -141,6 +141,7 @@ class Notification(models.Model):
         ('follow_request', 'Follow Request'),
         ('follow_accept', 'Follow Request Accepted'),
         ('group_invite', 'Group Invite'),
+        ('message', 'Direct Message'),
     )
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     actor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='actions')
@@ -148,6 +149,7 @@ class Notification(models.Model):
     tweet = models.ForeignKey('Tweet', on_delete=models.CASCADE, null=True, blank=True)
     group = models.ForeignKey('Group', on_delete=models.CASCADE, null=True, blank=True)
     follow_request = models.ForeignKey('FollowRequest', on_delete=models.CASCADE, null=True, blank=True)
+    chat_thread = models.ForeignKey('ChatThread', on_delete=models.CASCADE, null=True, blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -156,3 +158,29 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.actor.username} -> {self.recipient.username}: {self.notification_type}"
+
+class ChatThread(models.Model):
+    participants = models.ManyToManyField(User, related_name='chat_threads')
+    updated_at = models.DateTimeField(auto_now=True)
+    theme_color = models.CharField(max_length=50, default='#10F28C') # Default to neon green
+    background_image = models.ImageField(upload_to='chat_backgrounds/', null=True, blank=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Chat {self.pk}"
+
+class Message(models.Model):
+    thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    content = models.TextField()
+    image = models.ImageField(upload_to='message_images/', null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Msg {self.pk} in Thread {self.thread.pk} by {self.sender.username}"

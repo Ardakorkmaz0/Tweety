@@ -747,3 +747,225 @@ def tweet_likers(request, pk):
     }
     context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/tweet_likers.html', context)
+
+# --- DIRECT MESSAGING ---
+
+@login_required
+def inbox(request):
+    """List all chat threads for the logged in user."""
+    threads = request.user.chat_threads.prefetch_related('participants', 'messages').order_by('-updated_at')
+    
+    chat_list = []
+    chat_user_ids = []
+    for t in threads:
+        other_user = t.participants.exclude(pk=request.user.pk).first()
+        if other_user:
+            chat_user_ids.append(other_user.pk)
+        last_message = t.messages.last()
+        unread_count = t.messages.exclude(sender=request.user).filter(is_read=False).count()
+        chat_list.append({
+            'thread': t,
+            'other_user': other_user,
+            'last_message': last_message,
+            'unread_count': unread_count,
+        })
+    
+    context = get_sidebar_context(request)
+    # Filter online_users to only people I follow or have chatted with
+    following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+    relevant_ids = set(following_ids + chat_user_ids)
+    if relevant_ids:
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        context['online_users'] = User.objects.filter(
+            pk__in=relevant_ids,
+            profile__last_active__gte=five_minutes_ago
+        ).exclude(pk=request.user.pk).select_related('profile')[:15]
+    else:
+        context['online_users'] = User.objects.none()
+    context.update({
+        'chat_list': chat_list,
+        'active_thread_id': None
+    })
+    return render(request, 'tweetapp/inbox.html', context)
+
+@login_required
+def start_chat(request, username):
+    """Start or open a chat with a specific user."""
+    if request.user.username == username:
+        messages.warning(request, "You cannot message yourself.")
+        return redirect('tweetapp:profile', username=username)
+        
+    target_user = get_object_or_404(User, username=username)
+    
+    # Check if a 1:1 thread exists
+    thread = models.ChatThread.objects.filter(participants=request.user).filter(participants=target_user).first()
+    
+    if not thread:
+        thread = models.ChatThread.objects.create()
+        thread.participants.add(request.user, target_user)
+        
+    return redirect('tweetapp:chat_detail', thread_id=thread.pk)
+
+@login_required
+def chat_detail(request, thread_id):
+    """View a single chat thread."""
+    thread = get_object_or_404(models.ChatThread, pk=thread_id)
+    if request.user not in thread.participants.all():
+        return redirect('tweetapp:inbox')
+        
+    thread.messages.exclude(sender=request.user).filter(is_read=False).update(is_read=True)
+    
+    threads = request.user.chat_threads.prefetch_related('participants', 'messages').order_by('-updated_at')
+    chat_list = []
+    chat_user_ids = []
+    other_user = None
+    for t in threads:
+        ou = t.participants.exclude(pk=request.user.pk).first()
+        if t.pk == thread.pk:
+            other_user = ou
+        if ou:
+            chat_user_ids.append(ou.pk)
+        last_message = t.messages.last()
+        unread_count = t.messages.exclude(sender=request.user).filter(is_read=False).count()
+        chat_list.append({
+            'thread': t,
+            'other_user': ou,
+            'last_message': last_message,
+            'unread_count': unread_count,
+        })
+        
+    msgs = thread.messages.select_related('sender').order_by('created_at')
+    
+    context = get_sidebar_context(request)
+    following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+    relevant_ids = set(following_ids + chat_user_ids)
+    if relevant_ids:
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        context['online_users'] = User.objects.filter(
+            pk__in=relevant_ids,
+            profile__last_active__gte=five_minutes_ago
+        ).exclude(pk=request.user.pk).select_related('profile')[:15]
+    else:
+        context['online_users'] = User.objects.none()
+    context.update({
+        'chat_list': chat_list,
+        'active_thread': thread,
+        'active_thread_id': thread.pk,
+        'other_user': other_user,
+        'chat_messages': msgs,
+    })
+    return render(request, 'tweetapp/inbox.html', context)
+
+@login_required
+def delete_chat(request, thread_id):
+    """Delete a chat thread."""
+    if request.method != 'POST':
+        return redirect('tweetapp:inbox')
+    thread = get_object_or_404(models.ChatThread, pk=thread_id)
+    if request.user not in thread.participants.all():
+        return redirect('tweetapp:inbox')
+    thread.messages.all().delete()
+    thread.delete()
+    return redirect('tweetapp:inbox')
+
+@login_required
+def api_send_message(request, thread_id):
+    """Send a message via AJAX."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+        
+    thread = get_object_or_404(models.ChatThread, pk=thread_id)
+    if request.user not in thread.participants.all():
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+    content = request.POST.get('content', '').strip()
+    image = request.FILES.get('image')
+    
+    if not content and not image:
+        return JsonResponse({'error': 'Empty message'}, status=400)
+        
+    msg = models.Message.objects.create(
+        thread=thread,
+        sender=request.user,
+        content=content,
+        image=image
+    )
+    
+    thread.updated_at = timezone.now()
+    thread.save()
+    
+    other_user = thread.participants.exclude(pk=request.user.pk).first()
+    if other_user:
+        # Check if they already have an unread message notification from us recently? Maybe unnecessary complexity.
+        # Just create one.
+        models.Notification.objects.create(
+            recipient=other_user,
+            actor=request.user,
+            notification_type='message',
+            chat_thread=thread
+        )
+        
+    return JsonResponse({
+        'success': True,
+        'id': msg.pk,
+        'content': msg.content,
+        'image_url': msg.image.url if msg.image else None,
+        'created_at': msg.created_at.strftime("%I:%M %p"),
+        'sender_id': msg.sender.pk
+    })
+
+@login_required
+def api_poll_messages(request, thread_id):
+    """Poll for new messages."""
+    thread = get_object_or_404(models.ChatThread, pk=thread_id)
+    if request.user not in thread.participants.all():
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+    last_id = request.GET.get('last_id', 0)
+    try:
+        last_id = int(last_id)
+    except ValueError:
+        last_id = 0
+        
+    new_messages = thread.messages.filter(id__gt=last_id).order_by('created_at')
+    new_messages.exclude(sender=request.user).filter(is_read=False).update(is_read=True)
+    
+    results = []
+    for m in new_messages:
+        results.append({
+            'id': m.pk,
+            'content': m.content,
+            'image_url': m.image.url if m.image else None,
+            'created_at': m.created_at.strftime("%I:%M %p"),
+            'sender_id': m.sender.pk,
+            'sender_username': m.sender.username,
+            'sender_image': m.sender.profile.profile_image.url if m.sender.profile.profile_image else None
+        })
+        
+    return JsonResponse({'messages': results})
+
+@login_required
+def update_chat_theme(request, thread_id):
+    """Update background or theme color."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+        
+    thread = get_object_or_404(models.ChatThread, pk=thread_id)
+    if request.user not in thread.participants.all():
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+    theme_color = request.POST.get('theme_color')
+    if theme_color:
+        thread.theme_color = theme_color
+        
+    bg_image = request.FILES.get('background_image')
+    if bg_image:
+        thread.background_image = bg_image
+        
+    if request.POST.get('clear_background') == 'true':
+        thread.background_image = None
+        
+    thread.save()
+    
+    # redirect back to chat
+    return redirect('tweetapp:chat_detail', thread_id=thread.pk)

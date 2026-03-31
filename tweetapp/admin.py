@@ -1,7 +1,7 @@
 from django.contrib import admin
 from tweetapp.models import Tweet, TweetImage
 from django.utils.html import format_html
-from tweetapp.models import PatchNote
+from tweetapp.models import PatchNote, ChatThread, Message
 
 
 class TweetImageInline(admin.TabularInline):
@@ -28,3 +28,11 @@ admin.site.register(Tweet, TweetAdmin)
 @admin.register(PatchNote)
 class PatchNoteAdmin(admin.ModelAdmin):
     list_display = ['version', 'title', 'created_at']
+
+@admin.register(ChatThread)
+class ChatThreadAdmin(admin.ModelAdmin):
+    list_display = ['id', 'updated_at', 'theme_color']
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'thread', 'sender', 'content', 'created_at']

@@ -109,6 +109,16 @@
                     </a>
                     {% endif %}
 
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'tweetapp:inbox' %}" class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" 
+                       style="{% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                        <div class="flex items-center gap-3">
+                            {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                            <i data-lucide="message-square" class="w-5 h-5"></i><span>Messages</span>
+                        </div>
+                    </a>
+                    {% endif %}
+
                     <a href="{% url 'tweetapp:group_list' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(0,210,255,0.05)]" 
                        style="{% if 'group' in request.resolver_match.url_name %}background: rgba(0, 210, 255, 0.1); color: #00d2ff;{% else %}color: var(--text-inactive);{% endif %}">
                         {% if 'group' in request.resolver_match.url_name %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: #00d2ff; color: #00d2ff;"></div>{% endif %}

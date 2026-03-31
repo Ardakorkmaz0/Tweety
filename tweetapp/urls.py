@@ -39,4 +39,11 @@ urlpatterns = [
     path('notifications/', views.notifications_view, name='notifications'),
     path('tweet/<int:pk>/', views.tweet_detail, name='tweet_detail'),
     path('tweet/<int:pk>/likes/', views.tweet_likers, name='tweet_likers'),
+    path('chat/', views.inbox, name='inbox'),
+    path('chat/start/<str:username>/', views.start_chat, name='start_chat'),
+    path('chat/<int:thread_id>/', views.chat_detail, name='chat_detail'),
+    path('chat/<int:thread_id>/send/', views.api_send_message, name='api_send_message'),
+    path('chat/<int:thread_id>/poll/', views.api_poll_messages, name='api_poll_messages'),
+    path('chat/<int:thread_id>/theme/', views.update_chat_theme, name='update_chat_theme'),
+    path('chat/<int:thread_id>/delete/', views.delete_chat, name='delete_chat'),
 ]
