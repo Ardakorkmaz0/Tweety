@@ -158,23 +158,23 @@
     </main>
 
     <div class="lg:hidden fixed bottom-0 left-0 right-0 z-50 transition-all duration-300" style="background: rgba(15, 15, 20, 0.96); backdrop-filter: blur(20px); border-top: 1px solid var(--border-subtle); height: 70px;">
-        <div class="flex justify-between items-center h-full px-3">
-            <a href="{% url 'tweetapp:listtweet' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'listtweet' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="home" class="w-6 h-6"></i></a>
+        <div class="flex justify-between items-center h-full px-2">
+            <a href="{% url 'tweetapp:listtweet' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'listtweet' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="home" class="w-6 h-6"></i></a>
             
             {% if user.is_authenticated %}
-                <a href="{% url 'tweetapp:group_list' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if 'group' in request.resolver_match.url_name %}#00d2ff{% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="users" class="w-6 h-6"></i></a>
+                <a href="{% url 'tweetapp:inbox' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="message-square" class="w-6 h-6" style="margin-right: -4px;"></i></a>
+
+                <a href="{% url 'tweetapp:group_list' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if 'group' in request.resolver_match.url_name %}#00d2ff{% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="users" class="w-6 h-6" style="margin-right: -6px;"></i></a>
                 
-                <a href="{% url 'tweetapp:addtweetbyform' %}" class="flex items-center justify-center w-12 h-12 rounded-full bg-[var(--neon-green)] text-black relative -top-4 shadow-lg border-4 border-[var(--deep-bg)]"><i data-lucide="plus" class="w-5 h-5" style="stroke-width: 3px;"></i></a>
+                <a href="{% url 'tweetapp:addtweetbyform' %}" class="flex items-center justify-center w-11 h-11 mx-1 rounded-full bg-[var(--neon-green)] text-black relative -top-3 shadow-lg border-4 border-[var(--deep-bg)] flex-shrink-0" style="margin-left:8px; margin-right:8px;"><i data-lucide="plus" class="w-5 h-5" style="stroke-width: 3px;"></i></a>
                 
-                <a href="{% url 'tweetapp:notifications' %}" class="p-2 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'notifications' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="bell" class="w-6 h-6"></i>{% if unread_notif_count > 0 %}<span class="absolute top-0 right-0 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14]">{{ unread_notif_count }}</span>{% endif %}</a>
+                <a href="{% url 'tweetapp:notifications' %}" class="p-1 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'notifications' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="bell" class="w-6 h-6" style="margin-left: -6px;"></i>{% if unread_notif_count > 0 %}<span class="absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14]">{{ unread_notif_count }}</span>{% endif %}</a>
                 
+                <a href="{% url 'tweetapp:userlist' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'userlist' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="user-search" class="w-6 h-6" style="margin-left: -4px;"></i></a>
+
                 <div class="flex-1 flex justify-center relative">
-                    <button class="p-2 w-full flex justify-center menu-toggle transition-colors" style="color: rgba(255, 255, 255, 0.5);" id="moreBtn"><i data-lucide="more-horizontal" class="w-6 h-6"></i></button>
+                    <button class="p-1 w-full flex justify-center menu-toggle transition-colors" style="color: rgba(255, 255, 255, 0.5);" id="moreBtn"><i data-lucide="more-horizontal" class="w-6 h-6"></i></button>
                     <div class="absolute bottom-full right-0 mb-2 bg-[var(--card-bg)] rounded-lg border border-[var(--border-subtle)] shadow-xl menu-dropdown hidden transition-all duration-200 z-50" style="width: 140px; min-width: max-content;">
-                        <a href="{% url 'tweetapp:userlist' %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] rounded-t-lg transition-colors text-sm" style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
-                            <i data-lucide="user-search" class="w-4 h-4"></i>
-                            <span>Users</span>
-                        </a>
                         <a href="{% url 'tweetapp:profile' username=user.username %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] transition-colors text-sm" style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
                             <i data-lucide="user" class="w-4 h-4"></i>
                             <span>Profile</span>
