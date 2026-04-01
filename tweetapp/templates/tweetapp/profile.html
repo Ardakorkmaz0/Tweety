@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load mention_tags %}
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-6">
     <!-- Profile Card -->
@@ -134,7 +134,7 @@
                 <div class="mb-4 pl-3 border-l-2" style="border-color: var(--border-subtle)">
                     <p class="text-sm italic" style="color: var(--text-muted)">"{{ comment.tweet.message|truncatechars:80 }}"</p>
                 </div>
-                <p class="text-base" style="color: var(--text-primary)">{{ comment.message }}</p>
+                <p class="text-base" style="color: var(--text-primary)">{{ comment.message|linkify_mentions }}</p>
             </div>
         {% empty %}
             <div class="glass-card p-6 text-center" style="color: var(--text-muted)">No comments yet.</div>

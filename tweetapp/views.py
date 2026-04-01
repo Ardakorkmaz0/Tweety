@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 import datetime
 import json
 import logging
+from tweetapp.utils import should_notify, process_mentions
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,7 @@ def addtweetbyform(request):
             )
             for file in request.FILES.getlist('images'):
                 models.TweetImage.objects.create(tweet=tweet, image=file)
+            process_mentions(tweet.message, request.user, tweet=tweet)
             return redirect(reverse('tweetapp:listtweet'))
         else:
             return render(request, 'tweetapp/addtwetbyform.html', context={"form": form})
@@ -268,6 +270,7 @@ class RegisterView(CreateView):
             last_name=form.cleaned_data.get('last_name', ''),
             age=form.cleaned_data.get('age'),
         )
+        models.NotificationPreference.objects.create(user=self.object)
         return response
 
 
@@ -299,7 +302,7 @@ def like_tweet(request, pk):
             notification_type='like', tweet=tweet
         ).delete()
     else:
-        if request.user != tweet.user:
+        if request.user != tweet.user and should_notify(tweet.user, 'like'):
             models.Notification.objects.create(
                 recipient=tweet.user, actor=request.user,
                 notification_type='like', tweet=tweet
@@ -330,9 +333,9 @@ def add_comment(request, pk):
             if not models.Follow.objects.filter(follower=request.user, following=tweet.user).exists():
                 raise Http404()
                 
-        models.Comment.objects.create(user=request.user, tweet=tweet, message=message)
-        
-        if request.user != tweet.user:
+        comment_obj = models.Comment.objects.create(user=request.user, tweet=tweet, message=message)
+
+        if request.user != tweet.user and should_notify(tweet.user, 'comment'):
             models.Notification.objects.create(
                 recipient=tweet.user, actor=request.user,
                 notification_type='comment', tweet=tweet
@@ -349,16 +352,19 @@ def add_comment(request, pk):
         ).exclude(id=request.user.id).exclude(id=tweet.user.id).distinct()
 
         for commenter in other_commenters:
-            models.Notification.objects.create(
-                recipient=commenter, actor=request.user,
-                notification_type='thread', tweet=tweet
-            )
-            send_push_notification(
-                user=commenter,
-                title='Tweety',
-                body=f'@{request.user.username} also commented on a tweet you commented on',
-                url=f'/tweetapp/tweet/{tweet.pk}/'
-            )
+            if should_notify(commenter, 'thread'):
+                models.Notification.objects.create(
+                    recipient=commenter, actor=request.user,
+                    notification_type='thread', tweet=tweet
+                )
+                send_push_notification(
+                    user=commenter,
+                    title='Tweety',
+                    body=f'@{request.user.username} also commented on a tweet you commented on',
+                    url=f'/tweetapp/tweet/{tweet.pk}/'
+                )
+
+        process_mentions(message, request.user, tweet=tweet, comment_obj=comment_obj)
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
 
 
@@ -621,31 +627,33 @@ def follow_user(request, username):
             else:
                 # Send request
                 req = models.FollowRequest.objects.create(sender=request.user, receiver=target)
-                models.Notification.objects.create(
-                    recipient=target, actor=request.user,
-                    notification_type='follow_request',
-                    follow_request=req
-                )
-                send_push_notification(
-                    user=target,
-                    title='Tweety',
-                    body=f'@{request.user.username} sent you a follow request',
-                    url='/tweetapp/notifications/'
-                )
+                if should_notify(target, 'follow_request'):
+                    models.Notification.objects.create(
+                        recipient=target, actor=request.user,
+                        notification_type='follow_request',
+                        follow_request=req
+                    )
+                    send_push_notification(
+                        user=target,
+                        title='Tweety',
+                        body=f'@{request.user.username} sent you a follow request',
+                        url='/tweetapp/notifications/'
+                    )
                 messages.success(request, f"Follow request sent to {target.username}")
         else:
             # Direct follow
             models.Follow.objects.create(follower=request.user, following=target)
-            models.Notification.objects.create(
-                recipient=target, actor=request.user,
-                notification_type='follow'
-            )
-            send_push_notification(
-                user=target,
-                title='Tweety',
-                body=f'@{request.user.username} started following you',
-                url=f'/tweetapp/profile/{request.user.username}/'
-            )
+            if should_notify(target, 'follow'):
+                models.Notification.objects.create(
+                    recipient=target, actor=request.user,
+                    notification_type='follow'
+                )
+                send_push_notification(
+                    user=target,
+                    title='Tweety',
+                    body=f'@{request.user.username} started following you',
+                    url=f'/tweetapp/profile/{request.user.username}/'
+                )
             
     return redirect('tweetapp:profile', username=username)
 
@@ -658,16 +666,17 @@ def accept_follow_request(request, pk):
     
     models.Follow.objects.create(follower=follow_req.sender, following=request.user)
     
-    models.Notification.objects.create(
-        recipient=follow_req.sender, actor=request.user,
-        notification_type='follow_accept'
-    )
-    send_push_notification(
-        user=follow_req.sender,
-        title='Tweety',
-        body=f'@{request.user.username} accepted your follow request',
-        url=f'/tweetapp/profile/{request.user.username}/'
-    )
+    if should_notify(follow_req.sender, 'follow_accept'):
+        models.Notification.objects.create(
+            recipient=follow_req.sender, actor=request.user,
+            notification_type='follow_accept'
+        )
+        send_push_notification(
+            user=follow_req.sender,
+            title='Tweety',
+            body=f'@{request.user.username} accepted your follow request',
+            url=f'/tweetapp/profile/{request.user.username}/'
+        )
 
     follow_req.delete()
     return redirect('tweetapp:notifications')
@@ -731,6 +740,43 @@ def notifications_view(request):
     }
     context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/notifications.html', context)
+
+
+@login_required(login_url='/login/')
+def notification_settings(request):
+    prefs, _ = models.NotificationPreference.objects.get_or_create(user=request.user)
+    PREF_FIELDS = [
+        ('like', 'Likes', 'heart', 'When someone likes your tweet'),
+        ('comment', 'Comments', 'message-circle', 'When someone comments on your tweet'),
+        ('thread', 'Thread Replies', 'messages-square', 'When someone replies to a thread you commented on'),
+        ('follow', 'New Followers', 'user-check', 'When someone follows you'),
+        ('follow_request', 'Follow Requests', 'user-plus', 'When someone requests to follow you'),
+        ('follow_accept', 'Follow Accepted', 'user-check', 'When your follow request is accepted'),
+        ('group_invite', 'Group Invites', 'users', 'When you are invited to a group'),
+        ('message', 'Direct Messages', 'mail', 'When you receive a direct message'),
+        ('mention', 'Mentions', 'at-sign', 'When someone mentions you with @username'),
+    ]
+    if request.method == 'POST':
+        for field, _, _, _ in PREF_FIELDS:
+            setattr(prefs, field, field in request.POST)
+        prefs.save()
+        messages.success(request, 'Notification preferences saved.')
+        return redirect('tweetapp:notification_settings')
+    context = {
+        'prefs': prefs,
+        'pref_fields': [(f, label, icon, desc, getattr(prefs, f)) for f, label, icon, desc in PREF_FIELDS],
+    }
+    context.update(get_sidebar_context(request))
+    return render(request, 'tweetapp/notification_settings.html', context)
+
+
+@login_required(login_url='/login/')
+def api_unread_counts(request):
+    notif_count = models.Notification.objects.filter(recipient=request.user, is_read=False).count()
+    msg_count = models.Message.objects.filter(
+        thread__participants=request.user, is_read=False
+    ).exclude(sender=request.user).count()
+    return JsonResponse({'notif_count': notif_count, 'msg_count': msg_count})
 
 
 def tweet_detail(request, pk):
@@ -922,23 +968,31 @@ def api_send_message(request, thread_id):
         
     content = request.POST.get('content', '').strip()
     image = request.FILES.get('image')
-    
+    reply_to_id = request.POST.get('reply_to')
+
     if not content and not image:
         return JsonResponse({'error': 'Empty message'}, status=400)
-        
+
+    reply_to = None
+    if reply_to_id:
+        try:
+            reply_to = models.Message.objects.get(pk=int(reply_to_id), thread=thread)
+        except (models.Message.DoesNotExist, ValueError):
+            pass
+
     msg = models.Message.objects.create(
         thread=thread,
         sender=request.user,
         content=content,
-        image=image
+        image=image,
+        reply_to=reply_to
     )
     
     thread.updated_at = timezone.now()
     thread.save()
     
     other_user = thread.participants.exclude(pk=request.user.pk).first()
-    if other_user:
-        # Send browser push notification
+    if other_user and should_notify(other_user, 'message'):
         push_body = content[:100] if content else 'Sent you an image'
         send_push_notification(
             user=other_user,
@@ -947,13 +1001,24 @@ def api_send_message(request, thread_id):
             url=f'/tweetapp/chat/{thread.pk}/'
         )
         
+    reply_data = None
+    if msg.reply_to and not msg.reply_to.is_deleted:
+        reply_data = {
+            'id': msg.reply_to.pk,
+            'content': msg.reply_to.content[:80] if msg.reply_to.content else '',
+            'sender_username': msg.reply_to.sender.username,
+        }
+
     return JsonResponse({
         'success': True,
         'id': msg.pk,
         'content': msg.content,
         'image_url': msg.image.url if msg.image else None,
         'created_at': msg.created_at.strftime("%I:%M %p"),
-        'sender_id': msg.sender.pk
+        'sender_id': msg.sender.pk,
+        'is_read': False,
+        'is_deleted': False,
+        'reply_to': reply_data,
     })
 
 @login_required
@@ -974,17 +1039,54 @@ def api_poll_messages(request, thread_id):
     
     results = []
     for m in new_messages:
+        reply_data = None
+        if m.reply_to and not m.reply_to.is_deleted:
+            reply_data = {
+                'id': m.reply_to.pk,
+                'content': m.reply_to.content[:80] if m.reply_to.content else '',
+                'sender_username': m.reply_to.sender.username,
+            }
         results.append({
             'id': m.pk,
-            'content': m.content,
-            'image_url': m.image.url if m.image else None,
+            'content': m.content if not m.is_deleted else '',
+            'image_url': m.image.url if m.image and not m.is_deleted else None,
             'created_at': m.created_at.strftime("%I:%M %p"),
             'sender_id': m.sender.pk,
             'sender_username': m.sender.username,
-            'sender_image': m.sender.profile.profile_image.url if m.sender.profile.profile_image else None
+            'sender_image': m.sender.profile.profile_image.url if m.sender.profile.profile_image else None,
+            'is_read': m.is_read,
+            'is_deleted': m.is_deleted,
+            'reply_to': reply_data,
         })
         
-    return JsonResponse({'messages': results})
+    # Return read status of my messages that were read by other user
+    read_ids = list(
+        thread.messages.filter(sender=request.user, is_read=True)
+            .values_list('pk', flat=True)
+    )
+
+    return JsonResponse({'messages': results, 'read_ids': read_ids})
+
+
+@login_required
+def api_delete_message(request, thread_id, msg_id):
+    """Soft-delete a message."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    thread = get_object_or_404(models.ChatThread, pk=thread_id)
+    if request.user not in thread.participants.all():
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    msg = get_object_or_404(models.Message, pk=msg_id, thread=thread)
+    if msg.sender != request.user:
+        return JsonResponse({'error': 'Not your message'}, status=403)
+    msg.is_deleted = True
+    msg.content = ''
+    if msg.image:
+        msg.image.delete(save=False)
+        msg.image = None
+    msg.save()
+    return JsonResponse({'success': True, 'id': msg.pk})
+
 
 @login_required
 def update_chat_theme(request, thread_id):

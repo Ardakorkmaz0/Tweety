@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load mention_tags %}
 {% block og_meta %}
 <meta property="og:type" content="article">
 <meta property="og:title" content="@{{ tweet.nickname }} on Tweety">
@@ -56,7 +56,7 @@
             </div>
             {% endif %}
 
-            <p class="mb-6 whitespace-pre-wrap break-words" style="color: var(--text-primary); font-size: 15px; line-height: 1.6;">{{ tweet.message|safe }}</p>
+            <p class="mb-6 whitespace-pre-wrap break-words" style="color: var(--text-primary); font-size: 15px; line-height: 1.6;">{{ tweet.message|linkify_mentions }}</p>
 
             <!-- Controls -->
             <div class="flex flex-wrap gap-2 mb-6">
@@ -128,7 +128,7 @@
                             <a href="{% url 'tweetapp:profile' username=comment.user.username %}" class="font-semibold text-sm hover:underline decoration-transparent" style="color: var(--neon-green);">@{{ comment.user.username }}</a>
                             <span class="text-xs" style="color: var(--text-muted);">{{ comment.created_at|date:"M d, H:i" }}</span>
                         </div>
-                        <p class="text-sm" style="color: var(--text-primary);">{{ comment.message }}</p>
+                        <p class="text-sm" style="color: var(--text-primary);">{{ comment.message|linkify_mentions }}</p>
 
                         {% if user == comment.user or user.is_staff %}
                         <form action="{% url 'tweetapp:delete_comment' pk=comment.pk %}" method="POST" class="absolute top-4 right-4 m-0 opacity-0 group-hover:opacity-100 transition-opacity">

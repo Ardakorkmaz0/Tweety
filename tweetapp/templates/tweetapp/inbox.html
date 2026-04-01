@@ -234,7 +234,6 @@
     border: 1px solid var(--border-subtle); box-shadow: inset 0 2px 4px rgba(255,255,255,0.05);
   }
 
-  .dm-bwrap { display: flex; flex-direction: column; max-width: min(72%, 400px); }
   .dm-row.mine .dm-bwrap { align-items: flex-end; }
   .dm-row.theirs .dm-bwrap { align-items: flex-start; }
 
@@ -249,7 +248,50 @@
     color: var(--text-primary); border-bottom-left-radius: 4px;
   }
   .dm-bubble img { border-radius: 10px; max-width: 100%; max-height: 220px; object-fit: cover; display: block; margin-bottom: 4px; }
-  .dm-btime { font-size: 10px; color: var(--text-muted); margin-top: 3px; padding: 0 2px; }
+  .dm-btime { font-size: 10px; color: var(--text-muted); margin-top: 3px; padding: 0 2px; display: flex; align-items: center; gap: 4px; }
+  .dm-btime .dm-read-tick { color: #60A5FA; }
+  .dm-btime .dm-unread-tick { color: rgba(255,255,255,0.25); }
+
+  /* Reply preview inside bubble */
+  .dm-reply-preview {
+    padding: 5px 10px; margin-bottom: 4px; border-radius: 10px;
+    background: rgba(0,0,0,0.15); border-left: 2px solid rgba(255,255,255,0.3);
+    font-size: 11px; line-height: 1.4; cursor: pointer;
+  }
+  .dm-reply-preview .dm-reply-user { font-weight: 700; font-size: 10px; margin-bottom: 1px; }
+  .dm-row.theirs .dm-reply-preview { background: rgba(255,255,255,0.06); }
+
+  /* Message actions (reply, delete) */
+  .dm-actions {
+    display: none; position: absolute; top: -8px;
+    gap: 2px; z-index: 5;
+  }
+  .dm-row.mine .dm-actions { left: -56px; }
+  .dm-row.theirs .dm-actions { right: -56px; }
+  .dm-row:hover .dm-actions { display: flex; }
+  .dm-action-btn {
+    width: 24px; height: 24px; border-radius: 6px; border: none;
+    background: var(--surface-bg); color: var(--text-muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; border: 1px solid var(--border-subtle);
+  }
+  .dm-action-btn:hover { background: var(--input); color: var(--text-primary); }
+
+  /* Reply bar above input */
+  .dm-reply-bar {
+    display: none; align-items: center; gap: 8px;
+    padding: 8px 12px; margin-bottom: 6px;
+    background: rgba(255,255,255,0.04); border-radius: 10px;
+    border-left: 3px solid var(--neon-green); font-size: 12px;
+  }
+  .dm-reply-bar.show { display: flex; }
+  .dm-reply-bar .dm-reply-bar-text { flex: 1; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dm-reply-bar .dm-reply-bar-user { font-weight: 700; color: var(--text-primary); margin-right: 4px; }
+  .dm-reply-bar .dm-reply-close { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px; }
+
+  .dm-deleted { font-style: italic; opacity: 0.5; }
+
+  .dm-bwrap { display: flex; flex-direction: column; max-width: min(72%, 400px); position: relative; }
 
   /* Input bar */
   .dm-input-bar {
@@ -436,7 +478,7 @@
       <div class="dm-msgs" id="dm-msgs-container">
         <div id="dm-msgs-wrap">
           {% for msg in chat_messages %}
-          <div class="dm-row {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}" data-msg-id="{{ msg.pk }}">
+          <div class="dm-row {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}" data-msg-id="{{ msg.pk }}" {% if msg.is_deleted %}data-deleted="1"{% endif %}>
             {% if msg.sender != request.user %}
               {% if msg.sender.profile.profile_image %}
                 <img class="bav" src="{{ msg.sender.profile.profile_image.url }}">
@@ -445,11 +487,38 @@
               {% endif %}
             {% endif %}
             <div class="dm-bwrap">
-              <div class="dm-bubble" style="{% if msg.sender == request.user %}background:{{ active_thread.theme_color }};{% endif %}">
-                {% if msg.image %}<img src="{{ msg.image.url }}">{% endif %}
-                {% if msg.content %}{{ msg.content }}{% endif %}
+              {% if not msg.is_deleted %}
+              <div class="dm-actions">
+                <button class="dm-action-btn" onclick="setReply({{ msg.pk }},'{{ msg.sender.username }}','{{ msg.content|truncatechars:60|escapejs }}')" title="Reply"><i data-lucide="reply" style="width:13px;height:13px;"></i></button>
+                {% if msg.sender == request.user %}
+                <button class="dm-action-btn" onclick="deleteMsg({{ msg.pk }})" title="Delete"><i data-lucide="trash-2" style="width:13px;height:13px;"></i></button>
+                {% endif %}
               </div>
-              <div class="dm-btime">{{ msg.created_at|time:"H:i" }}</div>
+              {% endif %}
+              <div class="dm-bubble {% if msg.is_deleted %}dm-deleted{% endif %}" style="{% if msg.sender == request.user and not msg.is_deleted %}background:{{ active_thread.theme_color }};{% endif %}">
+                {% if msg.is_deleted %}
+                  <i data-lucide="ban" style="width:12px;height:12px;display:inline;vertical-align:middle;margin-right:4px;"></i>This message was deleted
+                {% else %}
+                  {% if msg.reply_to %}
+                  <div class="dm-reply-preview" onclick="scrollToMsg({{ msg.reply_to.pk }})">
+                    <div class="dm-reply-user">@{{ msg.reply_to.sender.username }}</div>
+                    {% if msg.reply_to.is_deleted %}This message was deleted{% else %}{{ msg.reply_to.content|truncatechars:60 }}{% endif %}
+                  </div>
+                  {% endif %}
+                  {% if msg.image %}<img src="{{ msg.image.url }}">{% endif %}
+                  {% if msg.content %}{{ msg.content }}{% endif %}
+                {% endif %}
+              </div>
+              <div class="dm-btime">
+                {{ msg.created_at|time:"H:i" }}
+                {% if msg.sender == request.user and not msg.is_deleted %}
+                  {% if msg.is_read %}
+                    <span class="dm-read-tick" data-tick="{{ msg.pk }}"><i data-lucide="check-check" style="width:13px;height:13px;"></i></span>
+                  {% else %}
+                    <span class="dm-unread-tick" data-tick="{{ msg.pk }}"><i data-lucide="check-check" style="width:13px;height:13px;"></i></span>
+                  {% endif %}
+                {% endif %}
+              </div>
             </div>
           </div>
           {% endfor %}
@@ -459,6 +528,11 @@
       <div class="dm-input-bar">
         <form id="dm-form" class="m-0">
           {% csrf_token %}
+          <input type="hidden" name="reply_to" id="dm-reply-id" value="">
+          <div id="dm-reply-bar" class="dm-reply-bar">
+            <div class="dm-reply-bar-text"><span id="dm-reply-bar-user" class="dm-reply-bar-user"></span><span id="dm-reply-bar-content"></span></div>
+            <button type="button" class="dm-reply-close" onclick="clearReply()"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+          </div>
           <div id="dm-img-prev" class="dm-img-preview" style="display:none;">
             <img id="dm-prev-img" src="#">
             <button type="button" class="rm" onclick="clearImg()">×</button>
@@ -562,38 +636,140 @@
     if(id>lastId)lastId=id;
   });
 
+  var replyIdInput=document.getElementById('dm-reply-id');
+  var replyBar=document.getElementById('dm-reply-bar');
+  var replyBarUser=document.getElementById('dm-reply-bar-user');
+  var replyBarContent=document.getElementById('dm-reply-bar-content');
+  var THREAD_ID={{ active_thread.pk }};
+  var CSRF=document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  window.setReply=function(id,user,text){
+    replyIdInput.value=id;
+    replyBarUser.textContent='@'+user+': ';
+    replyBarContent.textContent=text||'Image';
+    replyBar.classList.add('show');
+    textIn.focus();
+  };
+  window.clearReply=function(){
+    replyIdInput.value='';
+    replyBar.classList.remove('show');
+  };
+  window.scrollToMsg=function(id){
+    var el=wrap.querySelector('[data-msg-id="'+id+'"]');
+    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='1px solid var(--neon-green)';setTimeout(function(){el.style.outline='';},1500);}
+  };
+  window.deleteMsg=function(id){
+    if(!confirm('Delete this message?'))return;
+    fetch('/tweetapp/chat/'+THREAD_ID+'/msg/'+id+'/delete/',{
+      method:'POST',headers:{'X-CSRFToken':CSRF,'X-Requested-With':'XMLHttpRequest'}
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.success){
+        var el=wrap.querySelector('[data-msg-id="'+id+'"]');
+        if(el){
+          el.dataset.deleted='1';
+          var bub=el.querySelector('.dm-bubble');
+          if(bub){bub.className='dm-bubble dm-deleted';bub.style.background='';bub.innerHTML='<i data-lucide="ban" style="width:12px;height:12px;display:inline;vertical-align:middle;margin-right:4px;"></i>This message was deleted';}
+          var acts=el.querySelector('.dm-actions');if(acts)acts.remove();
+          var tick=el.querySelector('[data-tick]');if(tick)tick.remove();
+          lucide.createIcons();
+        }
+      }
+    });
+  };
+
+  function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
   function addBubble(m){
-    if(m.id && wrap.querySelector('[data-msg-id="'+m.id+'"]')) return;
-    const mine=m.sender_id==MY;
-    let avH='';
+    if(m.id && wrap.querySelector('[data-msg-id="'+m.id+'"]')){
+      // Update existing (e.g. deleted status)
+      if(m.is_deleted){
+        var ex=wrap.querySelector('[data-msg-id="'+m.id+'"]');
+        if(ex && !ex.dataset.deleted){
+          ex.dataset.deleted='1';
+          var bub=ex.querySelector('.dm-bubble');
+          if(bub){bub.className='dm-bubble dm-deleted';bub.style.background='';bub.innerHTML='<i data-lucide="ban" style="width:12px;height:12px;display:inline;vertical-align:middle;margin-right:4px;"></i>This message was deleted';}
+          var acts=ex.querySelector('.dm-actions');if(acts)acts.remove();
+          lucide.createIcons();
+        }
+      }
+      return;
+    }
+    var mine=m.sender_id==MY;
+    var avH='';
     if(!mine){
       avH=m.sender_image
         ? '<img class="bav" src="'+m.sender_image+'">'
         : '<div class="bav-ph"><i data-lucide="user" style="width:12px;height:12px;"></i></div>';
     }
-    let cH='';
-    if(m.image_url) cH+='<img src="'+m.image_url+'">';
-    if(m.content) cH+=(m.content+'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-    const bStyle=mine
-      ? 'background:'+THEME+'; color:#000; font-weight:500; border-bottom-right-radius:4px;'
-      : 'background:rgba(255,255,255,0.09); border:1px solid rgba(255,255,255,0.07); color:var(--text-primary); border-bottom-left-radius:4px; backdrop-filter:blur(8px);';
+    var cH='';
+    if(m.is_deleted){
+      cH='<i data-lucide="ban" style="width:12px;height:12px;display:inline;vertical-align:middle;margin-right:4px;"></i>This message was deleted';
+    } else {
+      if(m.reply_to){
+        cH+='<div class="dm-reply-preview" onclick="scrollToMsg('+m.reply_to.id+')">';
+        cH+='<div class="dm-reply-user">@'+esc(m.reply_to.sender_username)+'</div>';
+        cH+=esc(m.reply_to.content)||'Image';
+        cH+='</div>';
+      }
+      if(m.image_url) cH+='<img src="'+m.image_url+'">';
+      if(m.content) cH+=esc(m.content);
+    }
 
-    const d=document.createElement('div');
+    var bClass='dm-bubble'+(m.is_deleted?' dm-deleted':'');
+    var bStyle='';
+    if(!m.is_deleted){
+      bStyle=mine
+        ? 'background:'+THEME+'; color:#000; font-weight:500; border-bottom-right-radius:4px;'
+        : 'background:rgba(255,255,255,0.09); border:1px solid rgba(255,255,255,0.07); color:var(--text-primary); border-bottom-left-radius:4px; backdrop-filter:blur(8px);';
+    }
+
+    var actH='';
+    if(!m.is_deleted){
+      actH='<div class="dm-actions">';
+      actH+='<button class="dm-action-btn" onclick="setReply('+m.id+',\''+esc(m.sender_username||'')+'\',\''+esc((m.content||'').substring(0,60))+'\')" title="Reply"><i data-lucide="reply" style="width:13px;height:13px;"></i></button>';
+      if(mine) actH+='<button class="dm-action-btn" onclick="deleteMsg('+m.id+')" title="Delete"><i data-lucide="trash-2" style="width:13px;height:13px;"></i></button>';
+      actH+='</div>';
+    }
+
+    var tickH='';
+    if(mine && !m.is_deleted){
+      tickH=m.is_read
+        ? '<span class="dm-read-tick" data-tick="'+m.id+'"><i data-lucide="check-check" style="width:13px;height:13px;"></i></span>'
+        : '<span class="dm-unread-tick" data-tick="'+m.id+'"><i data-lucide="check-check" style="width:13px;height:13px;"></i></span>';
+    }
+
+    var d=document.createElement('div');
     d.className='dm-row '+(mine?'mine':'theirs');
     d.dataset.msgId=m.id;
-    d.innerHTML=(avH)+'<div class="dm-bwrap"><div class="dm-bubble" style="'+bStyle+'">'+cH+'</div><div class="dm-btime">'+m.created_at+'</div></div>';
+    if(m.is_deleted) d.dataset.deleted='1';
+    d.innerHTML=avH+'<div class="dm-bwrap">'+actH+'<div class="'+bClass+'" style="'+bStyle+'">'+cH+'</div><div class="dm-btime">'+m.created_at+' '+tickH+'</div></div>';
     wrap.appendChild(d);
     if(m.id>lastId)lastId=m.id;
     scrollEnd();
+    lucide.createIcons();
   }
 
-  let sending=false;
+  function updateReadTicks(readIds){
+    if(!readIds||!readIds.length)return;
+    readIds.forEach(function(id){
+      var tick=wrap.querySelector('[data-tick="'+id+'"]');
+      if(tick && tick.classList.contains('dm-unread-tick')){
+        tick.classList.remove('dm-unread-tick');
+        tick.classList.add('dm-read-tick');
+      }
+    });
+  }
+
+  var sending=false;
   function poll(){
     if(sending) return;
     fetch('{% url "tweetapp:api_poll_messages" thread_id=active_thread.pk %}?last_id='+lastId)
       .then(function(r){return r.json();})
-      .then(function(d){ if(d.messages) d.messages.forEach(addBubble); });
+      .then(function(d){
+        if(d.messages) d.messages.forEach(addBubble);
+        if(d.read_ids) updateReadTicks(d.read_ids);
+      });
   }
   setInterval(poll,3000);
 
@@ -603,8 +779,9 @@
     if(!textIn.value.trim()&&!fileIn.files[0])return;
     sending=true;
     sendBtn.disabled=true;
-    const fd=new FormData(this);
+    var fd=new FormData(this);
     textIn.value='';
+    clearReply();
     fetch('{% url "tweetapp:api_send_message" thread_id=active_thread.pk %}',{
       method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}
     })

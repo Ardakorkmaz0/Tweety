@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="glass-card p-6 min-h-[500px]">
-    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: var(--text-active);">
-        <i data-lucide="bell" class="w-6 h-6" style="color: var(--neon-green)"></i>
-        Notifications
-    </h2>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold flex items-center gap-2" style="color: var(--text-active);">
+            <i data-lucide="bell" class="w-6 h-6" style="color: var(--neon-green)"></i>
+            Notifications
+        </h2>
+        <a href="{% url 'tweetapp:notification_settings' %}" class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-[rgba(16,242,140,0.1)]" style="color: var(--text-muted); border: 1px solid var(--border-subtle);" title="Notification Settings">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+        </a>
+    </div>
     <div class="space-y-4">
         {% for notif in notifications %}
             <div class="p-4 rounded-xl flex items-start gap-4 transition-colors hover:bg-[rgba(255,255,255,0.02)]" style="border: 1px solid var(--border-subtle); {% if not notif.is_read %}background: rgba(16, 242, 140, 0.05); border-color: var(--neon-green);{% endif %}">
@@ -19,6 +24,8 @@
                         <i data-lucide="user-plus" class="w-5 h-5" style="color: var(--text-active)"></i>
                     {% elif notif.notification_type == 'group_invite' %}
                         <i data-lucide="users" class="w-5 h-5" style="color: var(--neon-purple)"></i>
+                    {% elif notif.notification_type == 'mention' %}
+                        <i data-lucide="at-sign" class="w-5 h-5" style="color: var(--neon-green)"></i>
                     {% endif %}
                 </div>
                 <div class="flex-1 pt-1">
@@ -31,6 +38,7 @@
                         {% elif notif.notification_type == 'follow_request' %} requested to follow you.
                         {% elif notif.notification_type == 'follow_accept' %} accepted your follow request.
                         {% elif notif.notification_type == 'group_invite' %} invited you to join the group <strong>{{ notif.group.name }}</strong>.
+                        {% elif notif.notification_type == 'mention' %} mentioned you in a tweet.
                         {% endif %}
                     </p>
                     {% if notif.tweet %}

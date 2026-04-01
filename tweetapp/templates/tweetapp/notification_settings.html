@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="glass-card p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold flex items-center gap-2" style="color: var(--text-active);">
+            <i data-lucide="settings" class="w-6 h-6" style="color: var(--neon-green)"></i>
+            Notification Preferences
+        </h2>
+        <a href="{% url 'tweetapp:notifications' %}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all" style="color: var(--text-muted); border: 1px solid var(--border-subtle);">
+            <i data-lucide="arrow-left" class="w-3 h-3 inline"></i> Back
+        </a>
+    </div>
+
+    <p class="text-sm mb-6" style="color: var(--text-muted);">Choose which notifications you want to receive. Disabled notifications won't appear in your feed or send push alerts.</p>
+
+    <form method="POST" class="space-y-3">
+        {% csrf_token %}
+        {% for field, label, icon, desc, checked in pref_fields %}
+        <label class="flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all hover:bg-[rgba(16,242,140,0.03)]" style="border: 1px solid var(--border-subtle);">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background: var(--surface-bg);">
+                    <i data-lucide="{{ icon }}" class="w-4 h-4" style="color: var(--neon-green);"></i>
+                </div>
+                <div>
+                    <div class="text-sm font-bold" style="color: var(--text-primary);">{{ label }}</div>
+                    <div class="text-xs" style="color: var(--text-muted);">{{ desc }}</div>
+                </div>
+            </div>
+            <div class="relative flex-shrink-0 ml-4">
+                <input type="checkbox" name="{{ field }}" {% if checked %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 rounded-full transition-colors duration-200 peer-checked:bg-[var(--neon-green)]" style="background: var(--border-subtle);"></div>
+                <div class="absolute left-[2px] top-[2px] w-5 h-5 rounded-full transition-transform duration-200 peer-checked:translate-x-5" style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+            </div>
+        </label>
+        {% endfor %}
+
+        <button type="submit" class="w-full mt-4 px-4 py-3 rounded-xl text-sm font-bold transition-all" style="background: var(--neon-green); color: #000;">
+            Save Preferences
+        </button>
+    </form>
+</div>
+{% endblock %}

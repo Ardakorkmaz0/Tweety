@@ -1,4 +1,4 @@
-{% load static %}
+{% load static %}{% load mention_tags %}
 {% for tweet in page_obj %}
 <div class="card shadow-sm mb-4 p-3 tweet-card">
     <div class="d-flex align-items-center mb-3">
@@ -9,7 +9,7 @@
         </div>
     </div>
 
-    <p class="mb-3 px-1" style="font-size: 1.1rem; color: #333;">{{ tweet.message }}</p>
+    <p class="mb-3 px-1" style="font-size: 1.1rem; color: #333;">{{ tweet.message|linkify_mentions }}</p>
 
     {% if tweet.images.all %}
     <div class="row g-2 mb-3 rounded-3 overflow-hidden border">

@@ -105,7 +105,7 @@
                             {% if request.resolver_match.url_name == 'notifications' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                             <i data-lucide="bell" class="w-5 h-5"></i><span>Notifications</span>
                         </div>
-                        {% if unread_notif_count > 0 %}<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)]">{{ unread_notif_count }}</span>{% endif %}
+                        <span class="notif-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_notif_count == 0 %}hidden{% endif %}">{{ unread_notif_count }}</span>
                     </a>
                     {% endif %}
 
@@ -116,7 +116,7 @@
                             {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                             <i data-lucide="message-square" class="w-5 h-5"></i><span>Messages</span>
                         </div>
-                        {% if unread_message_count > 0 %}<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)]">{{ unread_message_count }}</span>{% endif %}
+                        <span class="msg-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_message_count == 0 %}hidden{% endif %}">{{ unread_message_count }}</span>
                     </a>
                     {% endif %}
 
@@ -163,13 +163,13 @@
             <a href="{% url 'tweetapp:listtweet' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'listtweet' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="home" class="w-6 h-6"></i></a>
             
             {% if user.is_authenticated %}
-                <a href="{% url 'tweetapp:inbox' %}" class="p-1 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="message-square" class="w-6 h-6" style="margin-right: -4px;"></i>{% if unread_message_count > 0 %}<span class="absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14]">{{ unread_message_count }}</span>{% endif %}</a>
+                <a href="{% url 'tweetapp:inbox' %}" class="p-1 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="message-square" class="w-6 h-6" style="margin-right: -4px;"></i><span class="msg-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_message_count == 0 %}hidden{% endif %}">{{ unread_message_count }}</span></a>
 
                 <a href="{% url 'tweetapp:group_list' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if 'group' in request.resolver_match.url_name %}#00d2ff{% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="users" class="w-6 h-6" style="margin-right: -6px;"></i></a>
                 
                 <a href="{% url 'tweetapp:addtweetbyform' %}" class="flex items-center justify-center w-11 h-11 mx-1 rounded-full bg-[var(--neon-green)] text-black relative -top-3 shadow-lg border-4 border-[var(--deep-bg)] flex-shrink-0" style="margin-left:8px; margin-right:8px;"><i data-lucide="plus" class="w-5 h-5" style="stroke-width: 3px;"></i></a>
                 
-                <a href="{% url 'tweetapp:notifications' %}" class="p-1 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'notifications' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="bell" class="w-6 h-6" style="margin-left: -6px;"></i>{% if unread_notif_count > 0 %}<span class="absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14]">{{ unread_notif_count }}</span>{% endif %}</a>
+                <a href="{% url 'tweetapp:notifications' %}" class="p-1 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'notifications' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="bell" class="w-6 h-6" style="margin-left: -6px;"></i><span class="notif-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_notif_count == 0 %}hidden{% endif %}">{{ unread_notif_count }}</span></a>
                 
                 <a href="{% url 'tweetapp:userlist' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'userlist' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="user-search" class="w-6 h-6" style="margin-left: -4px;"></i></a>
 
@@ -410,6 +410,31 @@
             }
             return outputArray;
         }
+        // ─── Real-time badge polling ───
+        function pollUnreadCounts() {
+            fetch('/tweetapp/api/unread-counts/')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    document.querySelectorAll('.notif-badge').forEach(function(el) {
+                        if (data.notif_count > 0) {
+                            el.textContent = data.notif_count;
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    });
+                    document.querySelectorAll('.msg-badge').forEach(function(el) {
+                        if (data.msg_count > 0) {
+                            el.textContent = data.msg_count;
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    });
+                })
+                .catch(function() {});
+        }
+        setInterval(pollUnreadCounts, 15000);
         {% endif %}
     </script>
 </body>

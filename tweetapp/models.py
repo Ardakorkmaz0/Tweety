@@ -142,6 +142,7 @@ class Notification(models.Model):
         ('follow_accept', 'Follow Request Accepted'),
         ('group_invite', 'Group Invite'),
         ('message', 'Direct Message'),
+        ('mention', 'Mention'),
     )
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     actor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='actions')
@@ -177,6 +178,8 @@ class Message(models.Model):
     content = models.TextField()
     image = models.ImageField(upload_to='message_images/', null=True, blank=True)
     is_read = models.BooleanField(default=False)
+    reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')
+    is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -197,3 +200,19 @@ class PushSubscription(models.Model):
 
     def __str__(self):
         return f"Push sub for {self.user.username}"
+
+
+class NotificationPreference(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='notification_preferences')
+    like = models.BooleanField(default=True)
+    comment = models.BooleanField(default=True)
+    thread = models.BooleanField(default=True)
+    follow = models.BooleanField(default=True)
+    follow_request = models.BooleanField(default=True)
+    follow_accept = models.BooleanField(default=True)
+    group_invite = models.BooleanField(default=True)
+    message = models.BooleanField(default=True)
+    mention = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Notification prefs for {self.user.username}"
