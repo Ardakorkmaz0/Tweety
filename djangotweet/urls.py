@@ -23,9 +23,13 @@ from django.shortcuts import render
 from django.http import HttpResponse
 import os
 def service_worker(request):
-    sw_path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
-    with open(sw_path, 'r') as f:
-        return HttpResponse(f.read(), content_type='application/javascript')
+    from django.contrib.staticfiles import finders
+    sw_path = finders.find('sw.js')
+    if sw_path:
+        with open(sw_path, 'r') as f:
+            return HttpResponse(f.read(), content_type='application/javascript')
+    return HttpResponse('// sw not found', content_type='application/javascript', status=404)
+
 
 
 
