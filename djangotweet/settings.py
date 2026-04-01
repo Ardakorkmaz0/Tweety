@@ -105,6 +105,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'tweetapp:listtweet'
 
 # Web Push Notifications (VAPID)
-VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', 'BNAUjLZV3ZSHcU3fn4bbWJ3luxpO7JDKm1I3D1rsgKLFtFZtJ298Xe21wpjHh8zCiNum6JD1PZKoKRmEJT6JKcY')
-VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '6QGxKB25FvwOrpEOJMa0FgMutaMDiPAq3boDBPNMnCk')
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', 'BIjSVQULymkJphvbspxGsFSbntX9wcRQINXk9mTTx06Map9HEHbNml059r5-ce_-KzYb4JRd2iGEv0vbxHd1vSk')
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', 'h6J_7e9pS41hivTaGoAetv6Hox-maTPmh2Jyn1GTMGU')
+
 VAPID_ADMIN_EMAIL = os.environ.get('VAPID_ADMIN_EMAIL', 'mailto:admin@tweety.com')

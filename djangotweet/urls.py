@@ -20,6 +20,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
 from django.shortcuts import render
+from django.http import HttpResponse
+import os
+def service_worker(request):
+    sw_path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
+    with open(sw_path, 'r') as f:
+        return HttpResponse(f.read(), content_type='application/javascript')
+
 
 
 def custom_404(request, exception):
@@ -35,6 +42,8 @@ urlpatterns = [
     path('', include('django.contrib.auth.urls')),
     # Always serve media files (Django's static() silently fails when DEBUG=False)
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    path('sw.js', service_worker, name='service_worker'),
+
 ]
 
 if settings.DEBUG:
