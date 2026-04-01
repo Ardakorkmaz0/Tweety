@@ -563,48 +563,54 @@
   });
 
   function addBubble(m){
+    if(m.id && wrap.querySelector('[data-msg-id="'+m.id+'"]')) return;
     const mine=m.sender_id==MY;
     let avH='';
     if(!mine){
       avH=m.sender_image
-        ? `<img class="bav" src="${m.sender_image}">`
-        : `<div class="bav-ph"><i data-lucide="user" style="width:12px;height:12px;"></i></div>`;
+        ? '<img class="bav" src="'+m.sender_image+'">'
+        : '<div class="bav-ph"><i data-lucide="user" style="width:12px;height:12px;"></i></div>';
     }
     let cH='';
-    if(m.image_url) cH+=`<img src="${m.image_url}">`;
+    if(m.image_url) cH+='<img src="'+m.image_url+'">';
     if(m.content) cH+=(m.content+'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
     const bStyle=mine
-      ? `background:${THEME}; color:#000; font-weight:500; border-bottom-right-radius:4px;`
-      : `background:rgba(255,255,255,0.09); border:1px solid rgba(255,255,255,0.07); color:var(--text-primary); border-bottom-left-radius:4px; backdrop-filter:blur(8px);`;
+      ? 'background:'+THEME+'; color:#000; font-weight:500; border-bottom-right-radius:4px;'
+      : 'background:rgba(255,255,255,0.09); border:1px solid rgba(255,255,255,0.07); color:var(--text-primary); border-bottom-left-radius:4px; backdrop-filter:blur(8px);';
 
     const d=document.createElement('div');
-    d.className=`dm-row ${mine?'mine':'theirs'}`;
+    d.className='dm-row '+(mine?'mine':'theirs');
     d.dataset.msgId=m.id;
-    d.innerHTML=`${avH}<div class="dm-bwrap"><div class="dm-bubble" style="${bStyle}">${cH}</div><div class="dm-btime">${m.created_at}</div></div>`;
+    d.innerHTML=(avH)+'<div class="dm-bwrap"><div class="dm-bubble" style="'+bStyle+'">'+cH+'</div><div class="dm-btime">'+m.created_at+'</div></div>';
     wrap.appendChild(d);
     if(m.id>lastId)lastId=m.id;
     scrollEnd();
   }
 
+  let sending=false;
   function poll(){
-    fetch(`{% url 'tweetapp:api_poll_messages' thread_id=active_thread.pk %}?last_id=${lastId}`)
-      .then(r=>r.json())
-      .then(d=>{ if(d.messages) d.messages.forEach(addBubble); });
+    if(sending) return;
+    fetch('{% url "tweetapp:api_poll_messages" thread_id=active_thread.pk %}?last_id='+lastId)
+      .then(function(r){return r.json();})
+      .then(function(d){ if(d.messages) d.messages.forEach(addBubble); });
   }
   setInterval(poll,3000);
 
   form.addEventListener('submit',function(e){
     e.preventDefault();
+    if(sending)return;
     if(!textIn.value.trim()&&!fileIn.files[0])return;
+    sending=true;
     sendBtn.disabled=true;
     const fd=new FormData(this);
-    fetch(`{% url 'tweetapp:api_send_message' thread_id=active_thread.pk %}`,{
+    textIn.value='';
+    fetch('{% url "tweetapp:api_send_message" thread_id=active_thread.pk %}',{
       method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}
     })
-    .then(r=>r.json())
-    .then(d=>{ if(d.success){textIn.value='';clearImg();addBubble(d);} })
-    .finally(()=>{ sendBtn.disabled=false; lucide.createIcons(); textIn.focus(); });
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d.success){clearImg();addBubble(d);} })
+    .finally(function(){ sending=false; sendBtn.disabled=false; lucide.createIcons(); textIn.focus(); });
   });
 })();
 </script>

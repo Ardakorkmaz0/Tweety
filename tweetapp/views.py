@@ -304,6 +304,12 @@ def like_tweet(request, pk):
                 recipient=tweet.user, actor=request.user,
                 notification_type='like', tweet=tweet
             )
+            send_push_notification(
+                user=tweet.user,
+                title='Tweety',
+                body=f'@{request.user.username} liked your tweet',
+                url=f'/tweetapp/tweet/{tweet.pk}/'
+            )
     return JsonResponse({
         'liked': created,
         'count': tweet.likes.count()
@@ -331,15 +337,27 @@ def add_comment(request, pk):
                 recipient=tweet.user, actor=request.user,
                 notification_type='comment', tweet=tweet
             )
-        
+            send_push_notification(
+                user=tweet.user,
+                title='Tweety',
+                body=f'@{request.user.username} commented on your tweet',
+                url=f'/tweetapp/tweet/{tweet.pk}/'
+            )
+
         other_commenters = User.objects.filter(
             comment__tweet=tweet
         ).exclude(id=request.user.id).exclude(id=tweet.user.id).distinct()
-        
+
         for commenter in other_commenters:
             models.Notification.objects.create(
                 recipient=commenter, actor=request.user,
                 notification_type='thread', tweet=tweet
+            )
+            send_push_notification(
+                user=commenter,
+                title='Tweety',
+                body=f'@{request.user.username} also commented on a tweet you commented on',
+                url=f'/tweetapp/tweet/{tweet.pk}/'
             )
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
 
@@ -608,6 +626,12 @@ def follow_user(request, username):
                     notification_type='follow_request',
                     follow_request=req
                 )
+                send_push_notification(
+                    user=target,
+                    title='Tweety',
+                    body=f'@{request.user.username} sent you a follow request',
+                    url='/tweetapp/notifications/'
+                )
                 messages.success(request, f"Follow request sent to {target.username}")
         else:
             # Direct follow
@@ -615,6 +639,12 @@ def follow_user(request, username):
             models.Notification.objects.create(
                 recipient=target, actor=request.user,
                 notification_type='follow'
+            )
+            send_push_notification(
+                user=target,
+                title='Tweety',
+                body=f'@{request.user.username} started following you',
+                url=f'/tweetapp/profile/{request.user.username}/'
             )
             
     return redirect('tweetapp:profile', username=username)
@@ -632,7 +662,13 @@ def accept_follow_request(request, pk):
         recipient=follow_req.sender, actor=request.user,
         notification_type='follow_accept'
     )
-    
+    send_push_notification(
+        user=follow_req.sender,
+        title='Tweety',
+        body=f'@{request.user.username} accepted your follow request',
+        url=f'/tweetapp/profile/{request.user.username}/'
+    )
+
     follow_req.delete()
     return redirect('tweetapp:notifications')
 

@@ -27,7 +27,9 @@ def service_worker(request):
     sw_path = finders.find('sw.js')
     if sw_path:
         with open(sw_path, 'r') as f:
-            return HttpResponse(f.read(), content_type='application/javascript')
+            response = HttpResponse(f.read(), content_type='application/javascript')
+        response['Service-Worker-Allowed'] = '/'
+        return response
     return HttpResponse('// sw not found', content_type='application/javascript', status=404)
 
 

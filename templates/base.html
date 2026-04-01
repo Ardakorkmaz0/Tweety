@@ -346,37 +346,53 @@
         // ─── Web Push Notification Registration ───
         {% if user.is_authenticated %}
         if ('serviceWorker' in navigator && 'PushManager' in window) {
-            navigator.serviceWorker.register('/static/sw.js').then(function(reg) {
+            navigator.serviceWorker.register('/sw.js').then(function(reg) {
                 console.log('SW registered');
 
-                // Check if already subscribed
-                reg.pushManager.getSubscription().then(function(sub) {
-                    if (!sub) {
-                        // Ask for permission and subscribe
-                        fetch('/tweetapp/push/vapid-key/')
-                            .then(r => r.json())
-                            .then(data => {
-                                const applicationServerKey = urlBase64ToUint8Array(data.public_key);
-                                reg.pushManager.subscribe({
-                                    userVisibleOnly: true,
-                                    applicationServerKey: applicationServerKey
-                                }).then(function(subscription) {
-                                    const subJson = subscription.toJSON();
-                                    fetch('/tweetapp/push/subscribe/', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'X-CSRFToken': getCookie('csrftoken')
-                                        },
-                                        body: JSON.stringify({
-                                            endpoint: subJson.endpoint,
-                                            keys: subJson.keys
-                                        })
-                                    });
-                                }).catch(function(err) {
-                                    console.log('Push subscription failed:', err);
+                function subscribePush(r) {
+                    fetch('/tweetapp/push/vapid-key/')
+                        .then(function(resp) { return resp.json(); })
+                        .then(function(data) {
+                            var applicationServerKey = urlBase64ToUint8Array(data.public_key);
+                            r.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: applicationServerKey
+                            }).then(function(subscription) {
+                                var subJson = subscription.toJSON();
+                                fetch('/tweetapp/push/subscribe/', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': getCookie('csrftoken')
+                                    },
+                                    body: JSON.stringify({
+                                        endpoint: subJson.endpoint,
+                                        keys: subJson.keys
+                                    })
                                 });
+                            }).catch(function(err) {
+                                console.log('Push subscription failed:', err);
                             });
+                        });
+                }
+
+                reg.pushManager.getSubscription().then(function(sub) {
+                    if (sub) {
+                        // Always re-send existing subscription to backend to keep it fresh
+                        var subJson = sub.toJSON();
+                        fetch('/tweetapp/push/subscribe/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            body: JSON.stringify({
+                                endpoint: subJson.endpoint,
+                                keys: subJson.keys
+                            })
+                        });
+                    } else {
+                        subscribePush(reg);
                     }
                 });
             }).catch(function(err) {
