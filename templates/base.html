@@ -110,12 +110,13 @@
                     {% endif %}
 
                     {% if user.is_authenticated %}
-                    <a href="{% url 'tweetapp:inbox' %}" class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" 
+                    <a href="{% url 'tweetapp:inbox' %}" class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
                        style="{% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
                         <div class="flex items-center gap-3">
                             {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                             <i data-lucide="message-square" class="w-5 h-5"></i><span>Messages</span>
                         </div>
+                        {% if unread_message_count > 0 %}<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)]">{{ unread_message_count }}</span>{% endif %}
                     </a>
                     {% endif %}
 
@@ -162,7 +163,7 @@
             <a href="{% url 'tweetapp:listtweet' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'listtweet' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="home" class="w-6 h-6"></i></a>
             
             {% if user.is_authenticated %}
-                <a href="{% url 'tweetapp:inbox' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="message-square" class="w-6 h-6" style="margin-right: -4px;"></i></a>
+                <a href="{% url 'tweetapp:inbox' %}" class="p-1 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="message-square" class="w-6 h-6" style="margin-right: -4px;"></i>{% if unread_message_count > 0 %}<span class="absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14]">{{ unread_message_count }}</span>{% endif %}</a>
 
                 <a href="{% url 'tweetapp:group_list' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if 'group' in request.resolver_match.url_name %}#00d2ff{% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="users" class="w-6 h-6" style="margin-right: -6px;"></i></a>
                 
@@ -341,6 +342,59 @@
                 }
             });
         });
+
+        // ─── Web Push Notification Registration ───
+        {% if user.is_authenticated %}
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.register('/static/sw.js').then(function(reg) {
+                console.log('SW registered');
+
+                // Check if already subscribed
+                reg.pushManager.getSubscription().then(function(sub) {
+                    if (!sub) {
+                        // Ask for permission and subscribe
+                        fetch('/tweetapp/push/vapid-key/')
+                            .then(r => r.json())
+                            .then(data => {
+                                const applicationServerKey = urlBase64ToUint8Array(data.public_key);
+                                reg.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: applicationServerKey
+                                }).then(function(subscription) {
+                                    const subJson = subscription.toJSON();
+                                    fetch('/tweetapp/push/subscribe/', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRFToken': getCookie('csrftoken')
+                                        },
+                                        body: JSON.stringify({
+                                            endpoint: subJson.endpoint,
+                                            keys: subJson.keys
+                                        })
+                                    });
+                                }).catch(function(err) {
+                                    console.log('Push subscription failed:', err);
+                                });
+                            });
+                    }
+                });
+            }).catch(function(err) {
+                console.log('SW registration failed:', err);
+            });
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+        {% endif %}
     </script>
 </body>
 </html>

@@ -12,7 +12,13 @@ from django.http import JsonResponse
 from django.db.models import Count
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 import datetime
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_sidebar_context(request):
@@ -896,13 +902,13 @@ def api_send_message(request, thread_id):
     
     other_user = thread.participants.exclude(pk=request.user.pk).first()
     if other_user:
-        # Check if they already have an unread message notification from us recently? Maybe unnecessary complexity.
-        # Just create one.
-        models.Notification.objects.create(
-            recipient=other_user,
-            actor=request.user,
-            notification_type='message',
-            chat_thread=thread
+        # Send browser push notification
+        push_body = content[:100] if content else 'Sent you an image'
+        send_push_notification(
+            user=other_user,
+            title=f'@{request.user.username}',
+            body=push_body,
+            url=f'/tweetapp/chat/{thread.pk}/'
         )
         
     return JsonResponse({
@@ -969,3 +975,98 @@ def update_chat_theme(request, thread_id):
     
     # redirect back to chat
     return redirect('tweetapp:chat_detail', thread_id=thread.pk)
+
+
+# ─── Web Push Notifications ───────────────────────────────────────
+
+def send_push_notification(user, title, body, url='/tweetapp/chat/'):
+    """Send push notification to all subscriptions of a user."""
+    try:
+        from pywebpush import webpush, WebPushException
+    except ImportError:
+        logger.warning("pywebpush not installed, skipping push notification")
+        return
+
+    subscriptions = models.PushSubscription.objects.filter(user=user)
+    if not subscriptions.exists():
+        return
+
+    payload = json.dumps({
+        'title': title,
+        'body': body,
+        'url': url,
+    })
+
+    vapid_private_key = getattr(settings, 'VAPID_PRIVATE_KEY', '')
+    vapid_claims = {'sub': getattr(settings, 'VAPID_ADMIN_EMAIL', 'mailto:admin@tweety.com')}
+
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    'endpoint': sub.endpoint,
+                    'keys': {
+                        'p256dh': sub.p256dh,
+                        'auth': sub.auth,
+                    }
+                },
+                data=payload,
+                vapid_private_key=vapid_private_key,
+                vapid_claims=vapid_claims,
+            )
+        except Exception as e:
+            logger.warning(f"Push failed for {user.username}: {e}")
+            # If subscription is expired/invalid, remove it
+            if '410' in str(e) or '404' in str(e):
+                sub.delete()
+
+
+@login_required
+def push_subscribe(request):
+    """Save a push subscription for the current user."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    endpoint = data.get('endpoint')
+    keys = data.get('keys', {})
+    p256dh = keys.get('p256dh')
+    auth = keys.get('auth')
+
+    if not endpoint or not p256dh or not auth:
+        return JsonResponse({'error': 'Missing subscription data'}, status=400)
+
+    models.PushSubscription.objects.update_or_create(
+        user=request.user,
+        endpoint=endpoint,
+        defaults={'p256dh': p256dh, 'auth': auth}
+    )
+
+    return JsonResponse({'success': True})
+
+
+@login_required
+def push_unsubscribe(request):
+    """Remove a push subscription."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    endpoint = data.get('endpoint')
+    if endpoint:
+        models.PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+
+    return JsonResponse({'success': True})
+
+
+def vapid_public_key(request):
+    """Return the VAPID public key for the frontend."""
+    return JsonResponse({'public_key': getattr(settings, 'VAPID_PUBLIC_KEY', '')})

@@ -46,4 +46,7 @@ urlpatterns = [
     path('chat/<int:thread_id>/poll/', views.api_poll_messages, name='api_poll_messages'),
     path('chat/<int:thread_id>/theme/', views.update_chat_theme, name='update_chat_theme'),
     path('chat/<int:thread_id>/delete/', views.delete_chat, name='delete_chat'),
+    path('push/subscribe/', views.push_subscribe, name='push_subscribe'),
+    path('push/unsubscribe/', views.push_unsubscribe, name='push_unsubscribe'),
+    path('push/vapid-key/', views.vapid_public_key, name='vapid_public_key'),
 ]
