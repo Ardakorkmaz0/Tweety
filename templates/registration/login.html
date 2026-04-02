@@ -32,7 +32,10 @@
 
                     <button type="submit" class="btn btn-primary w-100 mt-2" style="padding: 12px;">Login</button>
                 </form>
-                <p class="text-center mt-3" style="color: #aaa;">
+                <p class="text-center mt-3 mb-1" style="color: #aaa;">
+                    <a href="{% url 'password_reset' %}" style="color: #aaa; font-size: 14px;">Forgot your password?</a>
+                </p>
+                <p class="text-center mt-1" style="color: #aaa;">
                     Don't have an account? <a href="{% url 'tweetapp:register' %}" style="color: #10f28c;">Register</a>
                 </p>
             {% endif %}

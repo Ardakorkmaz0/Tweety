@@ -83,6 +83,7 @@ class GroupMembership(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='memberships')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='group_memberships')
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='member')
+    is_muted = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -93,6 +94,8 @@ class GroupMessage(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField(max_length=500, blank=True)
     image = models.ImageField(upload_to='group_messages/', blank=True, null=True)
+    reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')
+    is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -141,6 +144,8 @@ class Notification(models.Model):
         ('follow_request', 'Follow Request'),
         ('follow_accept', 'Follow Request Accepted'),
         ('group_invite', 'Group Invite'),
+        ('group_join_request', 'Group Join Request'),
+        ('group_mention', 'Group Mention'),
         ('message', 'Direct Message'),
         ('mention', 'Mention'),
     )
@@ -211,6 +216,8 @@ class NotificationPreference(models.Model):
     follow_request = models.BooleanField(default=True)
     follow_accept = models.BooleanField(default=True)
     group_invite = models.BooleanField(default=True)
+    group_join_request = models.BooleanField(default=True)
+    group_mention = models.BooleanField(default=True)
     message = models.BooleanField(default=True)
     mention = models.BooleanField(default=True)
 

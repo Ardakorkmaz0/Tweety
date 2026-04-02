@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load mention_tags %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto space-y-6">
     <!-- Group Header -->
     <div class="glass-card p-6">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-4">
             <div class="flex items-center">
                 {% if group.image %}
                     <img src="{{ group.image.url }}" class="w-16 h-16 rounded-xl object-cover shadow-[0_4px_10px_rgba(0,0,0,0.2)]">
@@ -16,7 +17,10 @@
                 <div class="ml-4">
                     <h4 class="text-2xl font-bold m-0" style="color: var(--text-primary)">{{ group.name }}</h4>
                     <small class="text-sm font-medium" style="color: var(--text-muted)">
-                        {{ members.count }} members · 
+                        {{ members.count }} members &middot;
+                        {% if online_user_ids %}
+                            <span style="color: var(--neon-green);">{{ online_user_ids|length }} online</span> &middot;
+                        {% endif %}
                         {% if group.is_private %}
                             <span style="color: var(--warning)">Private</span>
                         {% else %}
@@ -28,67 +32,156 @@
                     {% endif %}
                 </div>
             </div>
-            
-            <div class="flex gap-2">
+
+            <div class="flex gap-2 flex-wrap">
+                <!-- Mute Toggle -->
+                <form action="{% url 'tweetapp:group_toggle_mute' pk=group.pk %}" method="POST" class="m-0">
+                    {% csrf_token %}
+                    <button class="px-3 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--text-muted); border: 1px solid var(--border-subtle);" title="{% if is_muted %}Unmute{% else %}Mute{% endif %}">
+                        <i data-lucide="{% if is_muted %}bell-off{% else %}bell{% endif %}" class="w-4 h-4"></i>
+                    </button>
+                </form>
+
                 {% if membership.role == 'admin' %}
+                    <!-- Edit Group -->
+                    <button onclick="document.getElementById('editModal').classList.toggle('hidden')" class="px-3 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(16,242,140,0.1)]" style="color: var(--neon-green); border: 1px solid var(--neon-green);" title="Edit Group">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                    <!-- Delete Group -->
                     <form action="{% url 'tweetapp:group_delete' pk=group.pk %}" method="POST" class="m-0">
                         {% csrf_token %}
-                        <button class="px-4 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(255,107,107,0.1)]" style="color: var(--danger); border: 1px solid var(--danger);" onclick="return confirm('Delete group?')">Delete Group</button>
+                        <button class="px-3 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(255,107,107,0.1)]" style="color: var(--danger); border: 1px solid var(--danger);" onclick="return confirm('Delete group?')" title="Delete Group">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
                     </form>
-                {% else %}
-                    <form action="{% url 'tweetapp:group_leave' pk=group.pk %}" method="POST" class="m-0">
-                        {% csrf_token %}
-                        <button class="px-4 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(251,191,36,0.1)]" style="color: var(--warning); border: 1px solid var(--warning);">Leave</button>
-                    </form>
+                {% endif %}
+
+                <!-- Leave Group -->
+                {% if membership.role != 'admin' or other_admins_exist %}
+                <form action="{% url 'tweetapp:group_leave' pk=group.pk %}" method="POST" class="m-0">
+                    {% csrf_token %}
+                    <button class="px-3 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(251,191,36,0.1)]" style="color: var(--warning); border: 1px solid var(--warning);" onclick="return confirm('Leave group?')" title="Leave Group">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </form>
                 {% endif %}
             </div>
         </div>
     </div>
 
+    <!-- Edit Group Modal -->
+    {% if membership.role == 'admin' %}
+    <div id="editModal" class="hidden glass-card p-6">
+        <h6 class="font-bold text-sm uppercase mb-4" style="color: var(--neon-green); letter-spacing: 0.1em;">Edit Group</h6>
+        <form action="{% url 'tweetapp:group_edit' pk=group.pk %}" method="POST" enctype="multipart/form-data" class="m-0 space-y-3">
+            {% csrf_token %}
+            <input type="text" name="name" value="{{ group.name }}" class="w-full p-3 rounded-xl text-sm focus:outline-none" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Group Name" maxlength="50">
+            <textarea name="description" rows="2" class="w-full p-3 rounded-xl text-sm focus:outline-none resize-none" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Description">{{ group.description }}</textarea>
+            <div class="flex items-center gap-3">
+                <label class="cursor-pointer px-4 py-2 rounded-xl text-sm font-bold transition-all hover:bg-[rgba(16,242,140,0.1)]" style="color: var(--neon-green); border: 1px solid var(--neon-green);">
+                    <i data-lucide="image" class="w-4 h-4 inline"></i> Change Image
+                    <input type="file" name="image" accept="image/*" class="hidden">
+                </label>
+                <button type="submit" class="px-6 py-2 rounded-xl text-sm font-bold" style="background: var(--neon-green); color: #000;">Save</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Messages -->
         <div class="lg:col-span-2">
             <div class="glass-card flex flex-col" style="height: 600px;">
-                <div class="flex-1 p-4 overflow-y-auto space-y-4" id="chatBox">
+                <div class="flex-1 p-4 overflow-y-auto" id="chatBox">
+                    <div id="gm-msgs-wrap" class="space-y-1">
                     {% for msg in messages_list %}
-                    <div class="flex flex-col mb-4">
-                        <div class="flex items-baseline gap-2 mb-1">
-                            <a href="{% url 'tweetapp:profile' username=msg.user.username %}" class="font-bold text-sm hover:underline decoration-transparent transition-all" style="color: var(--neon-green)">
-                                @{{ msg.user.username }}
-                            </a>
-                            <small class="text-xs" style="color: var(--text-muted)">{{ msg.created_at|date:"d M Y, H:i" }}</small>
-                        </div>
-                        
-                        <div class="w-full">
-                            {% if msg.message %}
-                                <p class="text-[15px] leading-relaxed break-words" style="color: var(--text-primary)">{{ msg.message }}</p>
-                            {% endif %}
-                            {% if msg.image %}
-                                <div class="mt-2 text-center sm:text-left">
-                                    <img src="{{ msg.image.url }}" class="rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity border" style="border-color: rgba(255,255,255,0.1); max-height: 250px; width: auto;" onclick="window.open('{{ msg.image.url }}')">
+                        <div class="gm-row {% if msg.user == request.user %}mine{% else %}theirs{% endif %}" data-msg-id="{{ msg.pk }}">
+                            {% if msg.is_deleted %}
+                                <div class="gm-bubble gm-deleted">
+                                    <i data-lucide="ban" class="w-3 h-3 inline-block" style="vertical-align: middle;"></i>
+                                    <span style="font-style: italic;">This message was deleted</span>
+                                </div>
+                            {% else %}
+                                {% if msg.user != request.user %}
+                                <div class="gm-avatar-col">
+                                    {% if msg.user.profile.profile_image %}
+                                        <img src="{{ msg.user.profile.profile_image.url }}" class="gm-avatar">
+                                    {% else %}
+                                        <div class="gm-avatar gm-avatar-placeholder">{{ msg.user.username|first|upper }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                <div class="gm-content-col">
+                                    {% if msg.user != request.user %}
+                                    <div class="gm-sender">
+                                        <a href="{% url 'tweetapp:profile' username=msg.user.username %}" style="color: var(--neon-green); text-decoration: none; font-weight: 600;">@{{ msg.user.username }}</a>
+                                    </div>
+                                    {% endif %}
+                                    {% if msg.reply_to %}
+                                    <div class="gm-reply-preview" onclick="scrollToMsg({{ msg.reply_to.pk }})">
+                                        <span class="gm-reply-user">@{{ msg.reply_to.user.username }}</span>
+                                        {% if msg.reply_to.is_deleted %}
+                                            <span style="font-style: italic; opacity: 0.6;">This message was deleted</span>
+                                        {% else %}
+                                            <span>{{ msg.reply_to.message|truncatechars:80 }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="gm-bubble">
+                                        {% if msg.image %}
+                                            <img src="{{ msg.image.url }}" class="gm-img" onclick="window.open('{{ msg.image.url }}')">
+                                        {% endif %}
+                                        {% if msg.message %}
+                                            <p class="gm-text">{{ msg.message|linkify_mentions }}</p>
+                                        {% endif %}
+                                        <span class="gm-time">{{ msg.created_at|date:"H:i" }}</span>
+                                    </div>
+                                    <div class="gm-actions">
+                                        <button onclick="setReply({{ msg.pk }}, '{{ msg.user.username }}', this.closest('.gm-row').querySelector('.gm-text')?.textContent?.substring(0,80) || 'Image')" title="Reply"><i data-lucide="reply" class="w-3.5 h-3.5"></i></button>
+                                        {% if msg.user == request.user %}
+                                        <button onclick="deleteMsg({{ msg.pk }})" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             {% endif %}
                         </div>
-                    </div>
                     {% empty %}
-                    <div class="h-full flex items-center justify-center">
-                        <p class="text-center" style="color: var(--text-muted)">No messages yet. Say hello!</p>
-                    </div>
+                        <div class="h-full flex items-center justify-center" id="gm-empty" style="min-height: 400px;">
+                            <p class="text-center" style="color: var(--text-muted)">No messages yet. Say hello!</p>
+                        </div>
                     {% endfor %}
+                    </div>
                 </div>
-                
+
+                <!-- Reply Bar -->
+                <div id="gm-reply-bar" class="gm-reply-bar" style="display:none;">
+                    <div class="gm-reply-bar-text">
+                        <span id="gm-reply-user" class="gm-reply-bar-user"></span>
+                        <span id="gm-reply-text"></span>
+                    </div>
+                    <button onclick="clearReply()" class="gm-reply-bar-close">&times;</button>
+                </div>
+
+                <!-- Image Preview -->
+                <div id="gm-img-prev" class="gm-img-preview" style="display:none;">
+                    <img id="gm-prev-img" src="#" class="gm-prev-thumb">
+                    <button onclick="clearImg()" class="gm-reply-bar-close">&times;</button>
+                </div>
+
+                <!-- Input Area -->
                 <div class="p-4" style="border-top: 1px solid var(--border-subtle)">
-                    <form action="{% url 'tweetapp:group_send_message' pk=group.pk %}" method="POST" enctype="multipart/form-data" class="m-0">
+                    <form id="gm-form" class="m-0" enctype="multipart/form-data">
                         {% csrf_token %}
+                        <input type="hidden" name="reply_to" id="gm-reply-id" value="">
                         <div class="flex items-center gap-3">
                             <label class="cursor-pointer p-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-colors flex items-center justify-center group" title="Upload Image">
                                 <i data-lucide="image" class="w-5 h-5 transition-colors group-hover:text-[var(--neon-green)]" style="color: var(--text-muted)"></i>
-                                <input type="file" name="image" accept="image/*" class="hidden" onchange="this.parentElement.style.color = 'var(--neon-green)';">
+                                <input type="file" name="image" accept="image/*" class="hidden" id="gm-file">
                             </label>
-                            
-                            <input type="text" name="message" class="flex-1 p-3 rounded-xl focus:outline-none transition-all placeholder:text-[var(--text-muted)]" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Type a message..." maxlength="500">
-                            
-                            <button type="submit" class="btn-gradient px-5 py-3 rounded-xl font-bold flex items-center justify-center group">
+
+                            <input type="text" name="message" id="gm-text" class="flex-1 p-3 rounded-xl focus:outline-none transition-all placeholder:text-[var(--text-muted)]" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Type a message..." maxlength="500" autocomplete="off">
+
+                            <button type="submit" id="gm-send" class="btn-gradient px-5 py-3 rounded-xl font-bold flex items-center justify-center group">
                                 <i data-lucide="send" class="w-5 h-5 text-black group-hover:translate-x-1 transition-transform"></i>
                             </button>
                         </div>
@@ -103,38 +196,62 @@
                 <h6 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.1em;">Members ({{ members.count }})</h6>
                 <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {% for m in members %}
-                    <div class="flex justify-between items-center p-2 rounded-lg hover:bg-[rgba(255,255,255,0.02)] transition-colors group">
+                    <div class="flex justify-between items-center p-2 rounded-lg hover:bg-[rgba(255,255,255,0.02)] transition-colors group/member">
                         <div class="flex items-center gap-3 min-w-0">
-                            {% if m.user.profile.profile_image %}
-                                <img src="{{ m.user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover shrink-0">
-                            {% else %}
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">
-                                    {{ m.user.username|first|upper }}
-                                </div>
-                            {% endif %}
-                            
+                            <div class="relative shrink-0">
+                                {% if m.user.profile.profile_image %}
+                                    <img src="{{ m.user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover">
+                                {% else %}
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--surface-bg); color: var(--text-primary);">
+                                        {{ m.user.username|first|upper }}
+                                    </div>
+                                {% endif %}
+                                {% if m.user.id in online_user_ids %}
+                                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style="background: var(--neon-green); border-color: var(--card-bg);"></span>
+                                {% else %}
+                                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style="background: var(--text-muted); border-color: var(--card-bg); opacity: 0.4;"></span>
+                                {% endif %}
+                            </div>
+
                             <a href="{% url 'tweetapp:profile' username=m.user.username %}" class="font-medium hover:underline decoration-transparent transition-all truncate" style="color: var(--text-primary)">
                                 {{ m.user.username }}
                             </a>
-                            
+
                             {% if m.role == 'admin' %}
                             <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0" style="background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid var(--warning)">Admin</span>
                             {% endif %}
                         </div>
-                        
-                        {% if membership.role == 'admin' and m.role != 'admin' %}
-                        <form action="{% url 'tweetapp:group_kick' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                            {% csrf_token %}
-                            <button class="p-1.5 rounded hover:bg-[rgba(255,107,107,0.1)] transition-colors" onclick="return confirm('Kick user?')">
-                                <i data-lucide="user-minus" class="w-4 h-4" style="color: var(--danger)"></i>
-                            </button>
-                        </form>
+
+                        {% if membership.role == 'admin' and m.user != request.user %}
+                        <div class="flex gap-1 opacity-0 group-hover/member:opacity-100 transition-opacity shrink-0">
+                            <!-- Promote/Demote -->
+                            <form action="{% url 'tweetapp:group_promote_member' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
+                                {% csrf_token %}
+                                <button class="p-1.5 rounded hover:bg-[rgba(251,191,36,0.1)] transition-colors" title="{% if m.role == 'member' %}Promote to Admin{% else %}Demote to Member{% endif %}">
+                                    {% if m.role == 'member' %}
+                                        <i data-lucide="shield" class="w-4 h-4" style="color: var(--warning)"></i>
+                                    {% else %}
+                                        <i data-lucide="shield-off" class="w-4 h-4" style="color: var(--text-muted)"></i>
+                                    {% endif %}
+                                </button>
+                            </form>
+                            <!-- Kick -->
+                            {% if m.role != 'admin' %}
+                            <form action="{% url 'tweetapp:group_kick' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
+                                {% csrf_token %}
+                                <button class="p-1.5 rounded hover:bg-[rgba(255,107,107,0.1)] transition-colors" onclick="return confirm('Kick user?')">
+                                    <i data-lucide="user-minus" class="w-4 h-4" style="color: var(--danger)"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
                         {% endif %}
                     </div>
                     {% endfor %}
                 </div>
 
                 {% if membership.role == 'admin' %}
+                <!-- Invite -->
                 <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-subtle)">
                     <h6 class="font-bold text-sm uppercase mb-3 whitespace-nowrap" style="color: var(--neon-green); letter-spacing: 0.1em;">Invite Member</h6>
                     <form action="{% url 'tweetapp:group_invite' pk=group.pk %}" method="POST" class="m-0">
@@ -145,6 +262,30 @@
                         </div>
                     </form>
                 </div>
+
+                <!-- Join Requests -->
+                {% if join_requests %}
+                <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-subtle)">
+                    <h6 class="font-bold text-sm uppercase mb-3" style="color: var(--warning); letter-spacing: 0.1em;">Join Requests</h6>
+                    <div class="space-y-2">
+                        {% for jr in join_requests %}
+                        <div class="flex items-center justify-between p-2 rounded-lg" style="border: 1px solid var(--border-subtle);">
+                            <a href="{% url 'tweetapp:profile' username=jr.user.username %}" class="text-sm font-medium" style="color: var(--text-primary); text-decoration: none;">@{{ jr.user.username }}</a>
+                            <div class="flex gap-1">
+                                <form action="{% url 'tweetapp:group_accept_request' pk=jr.pk %}" method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <button class="p-1 rounded hover:bg-[rgba(16,242,140,0.1)]"><i data-lucide="check" class="w-4 h-4" style="color: var(--neon-green)"></i></button>
+                                </form>
+                                <form action="{% url 'tweetapp:group_decline_request' pk=jr.pk %}" method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <button class="p-1 rounded hover:bg-[rgba(255,107,107,0.1)]"><i data-lucide="x" class="w-4 h-4" style="color: var(--danger)"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -152,28 +293,268 @@
 </div>
 
 <style>
-/* Custom scrollbar for chat box and members */
-.custom-scrollbar::-webkit-scrollbar,
-#chatBox::-webkit-scrollbar {
-    width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track,
-#chatBox::-webkit-scrollbar-track {
-    background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb,
-#chatBox::-webkit-scrollbar-thumb {
-    background: var(--border-subtle);
-    border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover,
-#chatBox::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar, #chatBox::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track, #chatBox::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb, #chatBox::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+
+/* Message Rows */
+.gm-row { display: flex; gap: 8px; padding: 4px 0; position: relative; }
+.gm-row.mine { flex-direction: row-reverse; }
+.gm-row.mine .gm-content-col { align-items: flex-end; }
+.gm-row.theirs .gm-content-col { align-items: flex-start; }
+
+.gm-avatar-col { flex-shrink: 0; padding-top: 18px; }
+.gm-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.gm-avatar-placeholder { display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: var(--surface-bg); color: var(--text-primary); }
+
+.gm-content-col { display: flex; flex-direction: column; max-width: 75%; min-width: 0; }
+
+.gm-sender { font-size: 11px; margin-bottom: 2px; padding: 0 4px; }
+
+/* Bubble */
+.gm-bubble { position: relative; padding: 8px 12px; border-radius: 16px; word-wrap: break-word; overflow-wrap: break-word; }
+.gm-row.mine .gm-bubble { background: var(--neon-green); color: #000; border-bottom-right-radius: 4px; }
+.gm-row.theirs .gm-bubble { background: rgba(255,255,255,0.08); color: var(--text-primary); border-bottom-left-radius: 4px; }
+
+.gm-text { margin: 0; font-size: 14px; line-height: 1.5; }
+.gm-text a { color: inherit !important; text-decoration: underline; }
+.gm-row.mine .gm-text a { color: #000 !important; font-weight: 700; }
+
+.gm-time { display: block; font-size: 10px; margin-top: 4px; text-align: right; }
+.gm-row.mine .gm-time { color: rgba(0,0,0,0.5); }
+.gm-row.theirs .gm-time { color: var(--text-muted); }
+
+.gm-img { max-height: 200px; max-width: 100%; border-radius: 8px; cursor: pointer; margin-bottom: 4px; }
+
+/* Deleted */
+.gm-deleted { padding: 8px 12px; border-radius: 16px; font-size: 13px; color: var(--text-muted); background: rgba(255,255,255,0.03); border: 1px dashed var(--border-subtle); }
+
+/* Reply preview in bubble */
+.gm-reply-preview { font-size: 11px; padding: 6px 10px; margin-bottom: 2px; border-radius: 8px; cursor: pointer; border-left: 3px solid var(--neon-green); max-width: 100%; overflow: hidden; }
+.gm-row.mine .gm-reply-preview { background: rgba(0,0,0,0.08); color: rgba(0,0,0,0.7); }
+.gm-row.theirs .gm-reply-preview { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+.gm-reply-user { font-weight: 700; display: block; color: var(--neon-green); margin-bottom: 1px; }
+.gm-row.mine .gm-reply-user { color: rgba(0,0,0,0.7); }
+
+/* Actions (hover) */
+.gm-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; padding: 2px 0; }
+.gm-row:hover .gm-actions { opacity: 1; }
+.gm-row.mine .gm-actions { flex-direction: row-reverse; }
+.gm-actions button { padding: 4px 6px; border-radius: 6px; border: none; background: transparent; cursor: pointer; color: var(--text-muted); transition: background 0.15s, color 0.15s; }
+.gm-actions button:hover { background: rgba(255,255,255,0.08); color: var(--neon-green); }
+
+/* Reply bar */
+.gm-reply-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-left: 3px solid var(--neon-green); margin: 0 16px; border-radius: 0 8px 8px 0; background: rgba(16,242,140,0.05); }
+.gm-reply-bar-text { font-size: 12px; color: var(--text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.gm-reply-bar-user { font-weight: 700; color: var(--neon-green); margin-right: 6px; }
+.gm-reply-bar-close { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 0 4px; }
+
+/* Image preview */
+.gm-img-preview { display: flex; align-items: center; gap: 8px; padding: 8px 16px; margin: 0 16px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+.gm-prev-thumb { max-height: 60px; border-radius: 6px; }
+
+/* Highlight on scroll-to */
+.gm-highlight { outline: 2px solid var(--neon-green); outline-offset: 2px; border-radius: 16px; transition: outline-color 1.5s; }
 </style>
 
 <script>
-    const chatBox = document.getElementById('chatBox');
-    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+(function(){
+    const GROUP_ID = {{ group.pk }};
+    const MY = {{ request.user.pk }};
+    const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const wrap = document.getElementById('gm-msgs-wrap');
+    const container = document.getElementById('chatBox');
+    const form = document.getElementById('gm-form');
+    const textIn = document.getElementById('gm-text');
+    const fileIn = document.getElementById('gm-file');
+    const sendBtn = document.getElementById('gm-send');
+    const replyBar = document.getElementById('gm-reply-bar');
+    const replyIdInput = document.getElementById('gm-reply-id');
+    const replyUserEl = document.getElementById('gm-reply-user');
+    const replyTextEl = document.getElementById('gm-reply-text');
+    const imgPrev = document.getElementById('gm-img-prev');
+    const prevImg = document.getElementById('gm-prev-img');
+    const emptyEl = document.getElementById('gm-empty');
+
+    function scrollEnd(){ container.scrollTop = container.scrollHeight; }
+    scrollEnd();
+
+    // Track lastId
+    let lastId = 0;
+    document.querySelectorAll('[data-msg-id]').forEach(el => {
+        const id = parseInt(el.dataset.msgId || 0);
+        if (id > lastId) lastId = id;
+    });
+
+    // Escape
+    function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // Image preview
+    fileIn.addEventListener('change', function(){
+        if (!this.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(e){ prevImg.src = e.target.result; imgPrev.style.display = 'flex'; };
+        reader.readAsDataURL(this.files[0]);
+    });
+    window.clearImg = function(){
+        fileIn.value = '';
+        imgPrev.style.display = 'none';
+        prevImg.src = '#';
+    };
+
+    // Reply
+    window.setReply = function(id, user, text){
+        replyIdInput.value = id;
+        replyUserEl.textContent = '@' + user;
+        replyTextEl.textContent = text || '';
+        replyBar.style.display = 'flex';
+        textIn.focus();
+    };
+    window.clearReply = function(){
+        replyIdInput.value = '';
+        replyBar.style.display = 'none';
+    };
+    window.scrollToMsg = function(id){
+        var el = wrap.querySelector('[data-msg-id="'+id+'"]');
+        if (!el) return;
+        el.scrollIntoView({behavior:'smooth', block:'center'});
+        el.classList.add('gm-highlight');
+        setTimeout(function(){ el.classList.remove('gm-highlight'); }, 1500);
+    };
+
+    // Delete
+    window.deleteMsg = function(id){
+        if (!confirm('Delete this message?')) return;
+        fetch('/tweetapp/groups/'+GROUP_ID+'/api/msg/'+id+'/delete/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF, 'X-Requested-With': 'XMLHttpRequest'}
+        }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.success) {
+                var row = wrap.querySelector('[data-msg-id="'+id+'"]');
+                if (row) {
+                    row.className = 'gm-row mine';
+                    row.innerHTML = '<div class="gm-bubble gm-deleted"><i data-lucide="ban" class="w-3 h-3 inline-block" style="vertical-align:middle;"></i> <span style="font-style:italic;">This message was deleted</span></div>';
+                    lucide.createIcons();
+                }
+            }
+        });
+    };
+
+    // Add bubble dynamically
+    function addBubble(m){
+        // Check if exists
+        var existing = wrap.querySelector('[data-msg-id="'+m.id+'"]');
+        if (existing) {
+            if (m.is_deleted && !existing.querySelector('.gm-deleted')) {
+                existing.className = 'gm-row ' + (m.sender_id == MY ? 'mine' : 'theirs');
+                existing.innerHTML = '<div class="gm-bubble gm-deleted"><i data-lucide="ban" class="w-3 h-3 inline-block" style="vertical-align:middle;"></i> <span style="font-style:italic;">This message was deleted</span></div>';
+                lucide.createIcons();
+            }
+            return;
+        }
+        // Remove empty placeholder
+        if (emptyEl) emptyEl.remove();
+
+        var mine = m.sender_id == MY;
+        var row = document.createElement('div');
+        row.className = 'gm-row ' + (mine ? 'mine' : 'theirs');
+        row.dataset.msgId = m.id;
+
+        if (m.is_deleted) {
+            row.innerHTML = '<div class="gm-bubble gm-deleted"><i data-lucide="ban" class="w-3 h-3 inline-block" style="vertical-align:middle;"></i> <span style="font-style:italic;">This message was deleted</span></div>';
+        } else {
+            var html = '';
+            // Avatar for others
+            if (!mine) {
+                if (m.sender_image) {
+                    html += '<div class="gm-avatar-col"><img src="'+m.sender_image+'" class="gm-avatar"></div>';
+                } else {
+                    html += '<div class="gm-avatar-col"><div class="gm-avatar gm-avatar-placeholder">'+esc(m.sender_username.charAt(0).toUpperCase())+'</div></div>';
+                }
+            }
+            html += '<div class="gm-content-col">';
+            // Sender name
+            if (!mine) {
+                html += '<div class="gm-sender"><a href="/tweetapp/profile/'+esc(m.sender_username)+'/" style="color:var(--neon-green);text-decoration:none;font-weight:600;">@'+esc(m.sender_username)+'</a></div>';
+            }
+            // Reply preview
+            if (m.reply_to) {
+                html += '<div class="gm-reply-preview" onclick="scrollToMsg('+m.reply_to.id+')">';
+                html += '<span class="gm-reply-user">@'+esc(m.reply_to.sender_username)+'</span>';
+                html += '<span>'+esc(m.reply_to.content)+'</span></div>';
+            }
+            // Bubble
+            html += '<div class="gm-bubble">';
+            if (m.image_url) {
+                html += '<img src="'+m.image_url+'" class="gm-img" onclick="window.open(\''+m.image_url+'\')">';
+            }
+            if (m.content_html || m.content) {
+                html += '<p class="gm-text">'+(m.content_html || esc(m.content))+'</p>';
+            }
+            html += '<span class="gm-time">'+esc(m.created_at)+'</span>';
+            html += '</div>';
+            // Actions
+            var replyText = m.content ? esc(m.content.substring(0,80)) : 'Image';
+            html += '<div class="gm-actions">';
+            html += '<button onclick="setReply('+m.id+',\''+esc(m.sender_username)+'\',\''+replyText.replace(/'/g,"\\'")+'\')" title="Reply"><i data-lucide="reply" class="w-3.5 h-3.5"></i></button>';
+            if (mine) {
+                html += '<button onclick="deleteMsg('+m.id+')" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>';
+            }
+            html += '</div>';
+            html += '</div>';
+            row.innerHTML = html;
+        }
+        wrap.appendChild(row);
+        if (m.id > lastId) lastId = m.id;
+        scrollEnd();
+        lucide.createIcons();
+    }
+
+    // Poll
+    var sending = false;
+    function poll(){
+        if (sending) return;
+        fetch('/tweetapp/groups/'+GROUP_ID+'/api/poll/?last_id='+lastId)
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (d.messages) d.messages.forEach(addBubble);
+                // Handle deleted messages
+                if (d.deleted_ids) {
+                    d.deleted_ids.forEach(function(did){
+                        var el = wrap.querySelector('[data-msg-id="'+did+'"]');
+                        if (el && !el.querySelector('.gm-deleted')) {
+                            var isMine = el.classList.contains('mine');
+                            el.className = 'gm-row ' + (isMine ? 'mine' : 'theirs');
+                            el.innerHTML = '<div class="gm-bubble gm-deleted"><i data-lucide="ban" class="w-3 h-3 inline-block" style="vertical-align:middle;"></i> <span style="font-style:italic;">This message was deleted</span></div>';
+                        }
+                    });
+                    if (d.deleted_ids.length > 0) lucide.createIcons();
+                }
+            });
+    }
+    setInterval(poll, 3000);
+
+    // Form submit
+    form.addEventListener('submit', function(e){
+        e.preventDefault();
+        if (sending) return;
+        if (!textIn.value.trim() && !fileIn.files[0]) return;
+        sending = true;
+        sendBtn.disabled = true;
+        var fd = new FormData(this);
+        textIn.value = '';
+        clearReply();
+        clearImg();
+        fetch('/tweetapp/groups/'+GROUP_ID+'/api/send/', {
+            method: 'POST',
+            body: fd,
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d.success) addBubble(d); })
+        .finally(function(){ sending = false; sendBtn.disabled = false; textIn.focus(); });
+    });
+})();
 </script>
 {% endblock %}

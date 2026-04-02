@@ -69,6 +69,9 @@
             <div class="mt-8 flex gap-3">
                 {% if user == profile_user %}
                     <a href="{% url 'tweetapp:edit_profile' %}" class="btn-gradient px-6 py-2 rounded-xl font-bold text-sm">Edit Profile</a>
+                    <a href="{% url 'tweetapp:account_settings' %}" class="px-6 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 hover:bg-[rgba(16,242,140,0.1)]" style="border: 1px solid var(--border-subtle); color: var(--text-muted);">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </a>
                 {% endif %}
                 
                 {% if user != profile_user and user.is_authenticated and profile_exists %}

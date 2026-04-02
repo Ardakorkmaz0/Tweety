@@ -13,11 +13,12 @@ from django.db.models import Count
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.conf import settings
+import re
 from django.views.decorators.csrf import csrf_exempt
 import datetime
 import json
 import logging
-from tweetapp.utils import should_notify, process_mentions
+from tweetapp.utils import should_notify, process_mentions, extract_mentions
 
 logger = logging.getLogger(__name__)
 
@@ -242,6 +243,8 @@ def edit_profile(request):
             if form.cleaned_data['profile_image']:
                 profile.profile_image = form.cleaned_data['profile_image']
             profile.save()
+            request.user.email = form.cleaned_data.get('email', '')
+            request.user.save(update_fields=['email'])
             return redirect('tweetapp:profile', username=request.user.username)
         else:
             return render(request, 'tweetapp/edit_profile.html', context={"form": form})
@@ -250,11 +253,61 @@ def edit_profile(request):
         form = ProfileForm(initial={
             'first_name': profile.first_name,
             'last_name': profile.last_name,
+            'email': request.user.email,
             'age': profile.age,
             'bio': profile.bio,
             'require_follow_requests': profile.require_follow_requests,
         })
         return render(request, 'tweetapp/edit_profile.html', context={"form": form})
+
+
+@login_required(login_url='/login/')
+def account_settings(request):
+    error = ''
+    success = ''
+    if request.method == 'POST' and 'new_username' in request.POST:
+        new_username = request.POST.get('new_username', '').strip()
+        if not new_username:
+            error = 'Username cannot be empty.'
+        elif new_username == request.user.username:
+            error = 'This is already your username.'
+        elif User.objects.filter(username=new_username).exists():
+            error = 'This username is already taken.'
+        elif len(new_username) > 150:
+            error = 'Username must be 150 characters or fewer.'
+        else:
+            old_username = request.user.username
+            # Update username
+            request.user.username = new_username
+            request.user.save(update_fields=['username'])
+            # Update tweet nicknames
+            models.Tweet.objects.filter(nickname__iexact=old_username).update(nickname=new_username)
+            # Update @mentions in tweets
+            for tweet in models.Tweet.objects.filter(message__iregex=r'@' + old_username + r'(?!\w)'):
+                tweet.message = re.sub(
+                    r'@' + re.escape(old_username) + r'(?!\w)',
+                    '@' + new_username,
+                    tweet.message,
+                    flags=re.IGNORECASE,
+                )
+                tweet.save(update_fields=['message'])
+            # Update @mentions in comments
+            for comment in models.Comment.objects.filter(message__iregex=r'@' + old_username + r'(?!\w)'):
+                comment.message = re.sub(
+                    r'@' + re.escape(old_username) + r'(?!\w)',
+                    '@' + new_username,
+                    comment.message,
+                    flags=re.IGNORECASE,
+                )
+                comment.save(update_fields=['message'])
+            success = 'Username changed successfully!'
+    context = {
+        'email': request.user.email,
+        'username_error': error,
+        'username_success': success,
+    }
+    context.update(get_sidebar_context(request))
+    return render(request, 'tweetapp/settings.html', context)
 
 
 class RegisterView(CreateView):
@@ -473,9 +526,17 @@ def group_detail(request, pk):
         return render(request, 'tweetapp/group_locked.html', {'group': group})
 
     membership = group.memberships.get(user=request.user)
-    members = group.memberships.select_related('user').all()
-    messages_list = group.messages.select_related('user').all()
+    members = group.memberships.select_related('user__profile').all()
+    messages_list = group.messages.select_related('user__profile', 'reply_to__user').all()
     join_requests = group.join_requests.select_related('user').all() if membership.role == 'admin' else []
+    other_admins_exist = group.memberships.filter(role='admin').exclude(user=request.user).exists()
+    five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+    online_user_ids = set(
+        User.objects.filter(
+            profile__last_active__gte=five_minutes_ago,
+            group_memberships__group=group
+        ).values_list('id', flat=True)
+    )
 
     return render(request, 'tweetapp/group_detail.html', {
         'group': group,
@@ -483,6 +544,9 @@ def group_detail(request, pk):
         'members': members,
         'messages_list': messages_list,
         'join_requests': join_requests,
+        'is_muted': membership.is_muted,
+        'other_admins_exist': other_admins_exist,
+        'online_user_ids': online_user_ids,
     })
 
 
@@ -513,7 +577,12 @@ def group_join(request, pk):
 def group_leave(request, pk):
     group = get_object_or_404(models.Group, pk=pk)
     membership = group.memberships.filter(user=request.user).first()
-    if membership and membership.role != 'admin':
+    if membership:
+        if membership.role == 'admin':
+            other_admins = group.memberships.filter(role='admin').exclude(user=request.user)
+            if not other_admins.exists():
+                messages.warning(request, "You must promote another member to admin before leaving.")
+                return redirect('tweetapp:group_detail', pk=pk)
         membership.delete()
     return redirect('tweetapp:group_list')
 
@@ -581,7 +650,23 @@ def group_delete(request, pk):
 def group_request_join(request, pk):
     group = get_object_or_404(models.Group, pk=pk)
     if not group.memberships.filter(user=request.user).exists():
-        models.GroupJoinRequest.objects.get_or_create(group=group, user=request.user)
+        created = models.GroupJoinRequest.objects.get_or_create(group=group, user=request.user)[1]
+        if created:
+            admins = group.memberships.filter(role='admin').select_related('user')
+            for admin_membership in admins:
+                if should_notify(admin_membership.user, 'group_join_request'):
+                    models.Notification.objects.create(
+                        recipient=admin_membership.user,
+                        actor=request.user,
+                        notification_type='group_join_request',
+                        group=group,
+                    )
+                    send_push_notification(
+                        user=admin_membership.user,
+                        title='Tweety',
+                        body=f'@{request.user.username} requested to join {group.name}',
+                        url=f'/tweetapp/groups/{group.pk}/',
+                    )
     return redirect('tweetapp:group_list')
 
 
@@ -602,6 +687,192 @@ def group_decline_request(request, pk):
     if group.memberships.filter(user=request.user, role='admin').exists():
         join_request.delete()
     return redirect('tweetapp:group_detail', pk=group.pk)
+
+
+def linkify_mentions_html(text):
+    """Server-side mention linkification for JSON API responses."""
+    if not text:
+        return text
+    from django.utils.html import escape as html_escape
+    escaped = html_escape(text)
+    usernames = set(re.findall(r'@(\w+)', escaped))
+    if not usernames:
+        return escaped
+    valid_users = set(User.objects.filter(username__in=usernames).values_list('username', flat=True))
+    def replace_mention(match):
+        username = match.group(1)
+        if username in valid_users:
+            return (
+                f'<a href="/tweetapp/profile/{username}/" '
+                f'style="color: var(--neon-green); font-weight: 600;" '
+                f'onclick="event.stopPropagation()">@{username}</a>'
+            )
+        return match.group(0)
+    return re.sub(r'@(\w+)', replace_mention, escaped)
+
+
+def notify_group_members(group, sender, content, msg):
+    """Push notification to all non-muted members except sender."""
+    members = group.memberships.filter(is_muted=False).exclude(user=sender).select_related('user')
+    push_body = content[:100] if content else 'Sent an image'
+    for m in members:
+        send_push_notification(
+            user=m.user,
+            title=f'{group.name}',
+            body=f'@{sender.username}: {push_body}',
+            url=f'/tweetapp/groups/{group.pk}/',
+        )
+
+
+def process_group_mentions(text, actor, group, msg):
+    """Handle @mentions in group messages."""
+    usernames = extract_mentions(text)
+    if not usernames:
+        return
+    mentioned_users = User.objects.filter(username__in=usernames)
+    for user in mentioned_users:
+        if user == actor:
+            continue
+        if not should_notify(user, 'group_mention'):
+            continue
+        models.Notification.objects.create(
+            recipient=user, actor=actor,
+            notification_type='group_mention', group=group,
+        )
+        send_push_notification(
+            user=user,
+            title=f'{group.name}',
+            body=f'@{actor.username} mentioned you',
+            url=f'/tweetapp/groups/{group.pk}/',
+        )
+
+
+def _group_msg_to_json(msg):
+    """Serialize a GroupMessage to JSON dict."""
+    reply_data = None
+    if msg.reply_to:
+        if msg.reply_to.is_deleted:
+            reply_data = {'id': msg.reply_to.pk, 'content': 'This message was deleted', 'sender_username': msg.reply_to.user.username}
+        else:
+            reply_data = {'id': msg.reply_to.pk, 'content': msg.reply_to.message[:80], 'sender_username': msg.reply_to.user.username}
+    sender_image = None
+    if hasattr(msg.user, 'profile') and msg.user.profile.profile_image:
+        sender_image = msg.user.profile.profile_image.url
+    return {
+        'id': msg.pk,
+        'content': msg.message if not msg.is_deleted else '',
+        'content_html': linkify_mentions_html(msg.message) if not msg.is_deleted else '',
+        'image_url': msg.image.url if msg.image and not msg.is_deleted else None,
+        'created_at': msg.created_at.strftime("%H:%M"),
+        'sender_id': msg.user.pk,
+        'sender_username': msg.user.username,
+        'sender_image': sender_image,
+        'is_deleted': msg.is_deleted,
+        'reply_to': reply_data,
+    }
+
+
+@login_required(login_url='/login/')
+def group_api_send_message(request, pk):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    group = get_object_or_404(models.Group, pk=pk)
+    if not group.memberships.filter(user=request.user).exists():
+        return JsonResponse({'error': 'Not a member'}, status=403)
+    message = request.POST.get('message', '').strip()
+    image = request.FILES.get('image')
+    reply_to_id = request.POST.get('reply_to')
+    if not message and not image:
+        return JsonResponse({'error': 'Empty message'}, status=400)
+    reply_to = None
+    if reply_to_id:
+        try:
+            reply_to = models.GroupMessage.objects.get(pk=int(reply_to_id), group=group)
+        except (models.GroupMessage.DoesNotExist, ValueError):
+            pass
+    msg = models.GroupMessage.objects.create(
+        group=group, user=request.user,
+        message=message, image=image, reply_to=reply_to
+    )
+    process_group_mentions(message, request.user, group, msg)
+    notify_group_members(group, request.user, message, msg)
+    data = _group_msg_to_json(msg)
+    data['success'] = True
+    return JsonResponse(data)
+
+
+@login_required(login_url='/login/')
+def group_api_poll_messages(request, pk):
+    group = get_object_or_404(models.Group, pk=pk)
+    if not group.memberships.filter(user=request.user).exists():
+        return JsonResponse({'error': 'Not a member'}, status=403)
+    last_id = int(request.GET.get('last_id', 0))
+    new_msgs = group.messages.filter(id__gt=last_id).select_related('user__profile', 'reply_to__user')
+    # Also return recently deleted messages the client might have
+    deleted_ids = list(group.messages.filter(id__lte=last_id, is_deleted=True).values_list('id', flat=True)[:50])
+    results = [_group_msg_to_json(m) for m in new_msgs]
+    return JsonResponse({'messages': results, 'deleted_ids': deleted_ids})
+
+
+@login_required(login_url='/login/')
+def group_api_delete_message(request, pk, msg_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    group = get_object_or_404(models.Group, pk=pk)
+    if not group.memberships.filter(user=request.user).exists():
+        return JsonResponse({'error': 'Not a member'}, status=403)
+    msg = get_object_or_404(models.GroupMessage, pk=msg_id, group=group)
+    if msg.user != request.user:
+        return JsonResponse({'error': 'Not your message'}, status=403)
+    msg.is_deleted = True
+    msg.message = ''
+    if msg.image:
+        msg.image.delete(save=False)
+        msg.image = None
+    msg.save()
+    return JsonResponse({'success': True, 'id': msg.pk})
+
+
+@login_required(login_url='/login/')
+def group_promote_member(request, pk, user_id):
+    if request.method != 'POST':
+        return redirect('tweetapp:group_detail', pk=pk)
+    group = get_object_or_404(models.Group, pk=pk)
+    if not group.memberships.filter(user=request.user, role='admin').exists():
+        return redirect('tweetapp:group_detail', pk=pk)
+    target = group.memberships.filter(user_id=user_id).first()
+    if not target or target.user == request.user:
+        return redirect('tweetapp:group_detail', pk=pk)
+    target.role = 'admin' if target.role == 'member' else 'member'
+    target.save()
+    return redirect('tweetapp:group_detail', pk=pk)
+
+
+@login_required(login_url='/login/')
+def group_edit(request, pk):
+    group = get_object_or_404(models.Group, pk=pk)
+    if not group.memberships.filter(user=request.user, role='admin').exists():
+        return redirect('tweetapp:group_detail', pk=pk)
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if name:
+            group.name = name
+        group.description = request.POST.get('description', '')
+        image = request.FILES.get('image')
+        if image:
+            group.image = image
+        group.save()
+    return redirect('tweetapp:group_detail', pk=pk)
+
+
+@login_required(login_url='/login/')
+def group_toggle_mute(request, pk):
+    group = get_object_or_404(models.Group, pk=pk)
+    membership = group.memberships.filter(user=request.user).first()
+    if membership:
+        membership.is_muted = not membership.is_muted
+        membership.save()
+    return redirect('tweetapp:group_detail', pk=pk)
 
 
 @login_required(login_url='/login/')
@@ -753,6 +1024,8 @@ def notification_settings(request):
         ('follow_request', 'Follow Requests', 'user-plus', 'When someone requests to follow you'),
         ('follow_accept', 'Follow Accepted', 'user-check', 'When your follow request is accepted'),
         ('group_invite', 'Group Invites', 'users', 'When you are invited to a group'),
+        ('group_join_request', 'Join Requests', 'user-plus', 'When someone requests to join your group'),
+        ('group_mention', 'Group Mentions', 'at-sign', 'When someone mentions you in a group message'),
         ('message', 'Direct Messages', 'mail', 'When you receive a direct message'),
         ('mention', 'Mentions', 'at-sign', 'When someone mentions you with @username'),
     ]
