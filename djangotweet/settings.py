@@ -18,7 +18,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-m*u#io8c09*ol#2z3tjy6
 # On PythonAnywhere, this should be False
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['ardakorkmaz0.pythonanywhere.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['tweetapptweety.ddns.net', '51.20.248.223', 'localhost', '127.0.0.1']
+
+
 
 # Application definition
 INSTALLED_APPS = [
@@ -122,3 +124,10 @@ if EMAIL_HOST_USER:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True

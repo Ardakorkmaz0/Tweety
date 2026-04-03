@@ -1,0 +1,316 @@
+[2026-04-03 15:17:15 +0000] [3415] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:17:15 +0000] [3415] [INFO] Listening at: http://0.0.0.0:8000 (3415)
+[2026-04-03 15:17:15 +0000] [3415] [INFO] Using worker: sync
+[2026-04-03 15:17:15 +0000] [3416] [INFO] Booting worker with pid: 3416
+[2026-04-03 15:17:15 +0000] [3415] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:22:31 +0000] [3415] [INFO] Handling signal: term
+[2026-04-03 18:22:31 +0300] [3416] [INFO] Worker exiting (pid: 3416)
+[2026-04-03 15:22:31 +0000] [3415] [INFO] Worker (pid:3416) was sent SIGTERM!
+[2026-04-03 15:22:31 +0000] [3415] [INFO] Shutting down: Master
+[2026-04-03 15:22:35 +0000] [3502] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:22:35 +0000] [3502] [INFO] Listening at: http://0.0.0.0:8000 (3502)
+[2026-04-03 15:22:35 +0000] [3502] [INFO] Using worker: sync
+[2026-04-03 15:22:35 +0000] [3503] [INFO] Booting worker with pid: 3503
+[2026-04-03 15:22:35 +0000] [3502] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:23:09 +0000] [3505] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:23:09 +0000] [3505] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:09 +0000] [3505] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:10 +0000] [3505] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:10 +0000] [3505] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:11 +0000] [3505] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:11 +0000] [3505] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:12 +0000] [3506] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:23:12 +0000] [3506] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:12 +0000] [3506] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:12 +0000] [3505] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:12 +0000] [3505] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:13 +0000] [3506] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:13 +0000] [3506] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:13 +0000] [3505] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:13 +0000] [3505] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:14 +0000] [3507] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:23:14 +0000] [3507] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:14 +0000] [3507] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:14 +0000] [3506] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:14 +0000] [3506] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:14 +0000] [3505] [ERROR] Can't connect to ('0.0.0.0', 8000)
+[2026-04-03 15:23:15 +0000] [3507] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:15 +0000] [3507] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:15 +0000] [3506] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:15 +0000] [3506] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:16 +0000] [3507] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:16 +0000] [3507] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:16 +0000] [3506] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:16 +0000] [3506] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:17 +0000] [3507] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:17 +0000] [3507] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:17 +0000] [3506] [ERROR] Can't connect to ('0.0.0.0', 8000)
+[2026-04-03 15:23:18 +0000] [3507] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:23:18 +0000] [3507] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:23:19 +0000] [3507] [ERROR] Can't connect to ('0.0.0.0', 8000)
+[2026-04-03 15:23:27 +0000] [3502] [CRITICAL] WORKER TIMEOUT (pid:3503)
+[2026-04-03 18:23:27 +0300] [3503] [ERROR] Error handling request (no URI read)
+Traceback (most recent call last):
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/sync.py", line 141, in handle
+    req = next(parser)
+          ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/parser.py", line 56, in __next__
+    self.mesg = self.mesg_class(self.cfg, self.unreader, self.source_addr, self.req_count)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 410, in __init__
+    super().__init__(cfg, unreader, peer_addr)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 184, in __init__
+    unused = self.parse(self.unreader)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 422, in parse
+    self.read_into(unreader, buf, stop=True)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 558, in read_into
+    data = unreader.read()
+           ^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 36, in read
+    d = self.chunk()
+        ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 65, in chunk
+    return self.sock.recv(self.mxchunk)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/base.py", line 198, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2026-04-03 18:23:27 +0300] [3503] [INFO] Worker exiting (pid: 3503)
+[2026-04-03 15:23:27 +0000] [3508] [INFO] Booting worker with pid: 3508
+[2026-04-03 15:23:27 +0000] [3502] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:24:55 +0000] [3502] [INFO] Handling signal: term
+[2026-04-03 18:24:55 +0300] [3508] [INFO] Worker exiting (pid: 3508)
+[2026-04-03 15:24:55 +0000] [3502] [INFO] Worker (pid:3508) was sent SIGTERM!
+[2026-04-03 15:24:55 +0000] [3502] [INFO] Shutting down: Master
+[2026-04-03 15:25:01 +0000] [3530] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:25:01 +0000] [3530] [INFO] Listening at: http://0.0.0.0:8000 (3530)
+[2026-04-03 15:25:01 +0000] [3530] [INFO] Using worker: sync
+[2026-04-03 15:25:01 +0000] [3531] [INFO] Booting worker with pid: 3531
+[2026-04-03 15:25:01 +0000] [3530] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:25:47 +0000] [3530] [CRITICAL] WORKER TIMEOUT (pid:3531)
+[2026-04-03 18:25:47 +0300] [3531] [ERROR] Error handling request (no URI read)
+Traceback (most recent call last):
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/sync.py", line 141, in handle
+    req = next(parser)
+          ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/parser.py", line 56, in __next__
+    self.mesg = self.mesg_class(self.cfg, self.unreader, self.source_addr, self.req_count)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 410, in __init__
+    super().__init__(cfg, unreader, peer_addr)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 184, in __init__
+    unused = self.parse(self.unreader)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 422, in parse
+    self.read_into(unreader, buf, stop=True)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 558, in read_into
+    data = unreader.read()
+           ^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 36, in read
+    d = self.chunk()
+        ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 65, in chunk
+    return self.sock.recv(self.mxchunk)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/base.py", line 198, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2026-04-03 18:25:47 +0300] [3531] [INFO] Worker exiting (pid: 3531)
+[2026-04-03 15:25:47 +0000] [3536] [INFO] Booting worker with pid: 3536
+[2026-04-03 15:25:47 +0000] [3530] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:28:45 +0000] [3559] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:28:45 +0000] [3559] [INFO] Listening at: http://0.0.0.0:8000 (3559)
+[2026-04-03 15:28:45 +0000] [3559] [INFO] Using worker: sync
+[2026-04-03 15:28:45 +0000] [3560] [INFO] Booting worker with pid: 3560
+[2026-04-03 15:28:45 +0000] [3559] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:34:02 +0000] [3559] [INFO] Handling signal: term
+[2026-04-03 18:34:02 +0300] [3560] [INFO] Worker exiting (pid: 3560)
+[2026-04-03 15:34:02 +0000] [3559] [INFO] Worker (pid:3560) was sent SIGTERM!
+[2026-04-03 15:34:02 +0000] [3559] [INFO] Shutting down: Master
+[2026-04-03 15:34:06 +0000] [3570] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:34:06 +0000] [3570] [INFO] Listening at: http://0.0.0.0:8000 (3570)
+[2026-04-03 15:34:06 +0000] [3570] [INFO] Using worker: sync
+[2026-04-03 15:34:06 +0000] [3571] [INFO] Booting worker with pid: 3571
+[2026-04-03 15:34:06 +0000] [3570] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:37:22 +0000] [3570] [CRITICAL] WORKER TIMEOUT (pid:3571)
+[2026-04-03 18:37:22 +0300] [3571] [ERROR] Error handling request (no URI read)
+Traceback (most recent call last):
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/sync.py", line 141, in handle
+    req = next(parser)
+          ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/parser.py", line 56, in __next__
+    self.mesg = self.mesg_class(self.cfg, self.unreader, self.source_addr, self.req_count)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 410, in __init__
+    super().__init__(cfg, unreader, peer_addr)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 184, in __init__
+    unused = self.parse(self.unreader)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 422, in parse
+    self.read_into(unreader, buf, stop=True)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 558, in read_into
+    data = unreader.read()
+           ^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 36, in read
+    d = self.chunk()
+        ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 65, in chunk
+    return self.sock.recv(self.mxchunk)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/base.py", line 198, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2026-04-03 18:37:22 +0300] [3571] [INFO] Worker exiting (pid: 3571)
+[2026-04-03 15:37:22 +0000] [3580] [INFO] Booting worker with pid: 3580
+[2026-04-03 15:37:22 +0000] [3570] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:39:28 +0000] [3586] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:39:28 +0000] [3586] [INFO] Listening at: http://0.0.0.0:8000 (3586)
+[2026-04-03 15:39:28 +0000] [3586] [INFO] Using worker: sync
+[2026-04-03 15:39:28 +0000] [3587] [INFO] Booting worker with pid: 3587
+[2026-04-03 15:39:28 +0000] [3586] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:45:23 +0000] [4263] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:45:23 +0000] [4263] [INFO] Listening at: http://0.0.0.0:8000 (4263)
+[2026-04-03 15:45:23 +0000] [4263] [INFO] Using worker: sync
+[2026-04-03 15:45:23 +0000] [4264] [INFO] Booting worker with pid: 4264
+[2026-04-03 15:45:23 +0000] [4263] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:46:12 +0000] [4267] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:46:12 +0000] [4267] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:12 +0000] [4267] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:13 +0000] [4267] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:13 +0000] [4267] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:14 +0000] [4267] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:14 +0000] [4267] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:15 +0000] [4267] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:15 +0000] [4267] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:16 +0000] [4267] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:16 +0000] [4267] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:17 +0000] [4267] [ERROR] Can't connect to ('0.0.0.0', 8000)
+[2026-04-03 15:46:29 +0000] [4268] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:46:29 +0000] [4268] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:29 +0000] [4268] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:30 +0000] [4268] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:30 +0000] [4268] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:31 +0000] [4268] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:31 +0000] [4268] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:32 +0000] [4268] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:32 +0000] [4268] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:33 +0000] [4268] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 15:46:33 +0000] [4268] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 15:46:34 +0000] [4268] [ERROR] Can't connect to ('0.0.0.0', 8000)
+[2026-04-03 15:46:51 +0000] [4263] [CRITICAL] WORKER TIMEOUT (pid:4264)
+[2026-04-03 18:46:51 +0300] [4264] [ERROR] Error handling request (no URI read)
+Traceback (most recent call last):
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/sync.py", line 141, in handle
+    req = next(parser)
+          ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/parser.py", line 56, in __next__
+    self.mesg = self.mesg_class(self.cfg, self.unreader, self.source_addr, self.req_count)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 410, in __init__
+    super().__init__(cfg, unreader, peer_addr)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 184, in __init__
+    unused = self.parse(self.unreader)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 422, in parse
+    self.read_into(unreader, buf, stop=True)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 558, in read_into
+    data = unreader.read()
+           ^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 36, in read
+    d = self.chunk()
+        ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 65, in chunk
+    return self.sock.recv(self.mxchunk)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/base.py", line 198, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2026-04-03 18:46:51 +0300] [4264] [INFO] Worker exiting (pid: 4264)
+[2026-04-03 15:46:51 +0000] [4270] [INFO] Booting worker with pid: 4270
+[2026-04-03 15:46:51 +0000] [4263] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:47:04 +0000] [4275] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:47:04 +0000] [4275] [INFO] Listening at: http://0.0.0.0:8000 (4275)
+[2026-04-03 15:47:04 +0000] [4275] [INFO] Using worker: sync
+[2026-04-03 15:47:04 +0000] [4276] [INFO] Booting worker with pid: 4276
+[2026-04-03 15:47:04 +0000] [4275] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:50:48 +0000] [4318] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:50:48 +0000] [4318] [INFO] Listening at: http://0.0.0.0:8000 (4318)
+[2026-04-03 15:50:48 +0000] [4318] [INFO] Using worker: sync
+[2026-04-03 15:50:48 +0000] [4319] [INFO] Booting worker with pid: 4319
+[2026-04-03 15:50:48 +0000] [4318] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:54:44 +0000] [4318] [CRITICAL] WORKER TIMEOUT (pid:4319)
+[2026-04-03 18:54:44 +0300] [4319] [ERROR] Error handling request (no URI read)
+Traceback (most recent call last):
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/sync.py", line 141, in handle
+    req = next(parser)
+          ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/parser.py", line 56, in __next__
+    self.mesg = self.mesg_class(self.cfg, self.unreader, self.source_addr, self.req_count)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 410, in __init__
+    super().__init__(cfg, unreader, peer_addr)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 184, in __init__
+    unused = self.parse(self.unreader)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 422, in parse
+    self.read_into(unreader, buf, stop=True)
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/message.py", line 558, in read_into
+    data = unreader.read()
+           ^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 36, in read
+    d = self.chunk()
+        ^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/http/unreader.py", line 65, in chunk
+    return self.sock.recv(self.mxchunk)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/tweety_app/Tweety/venv/lib/python3.12/site-packages/gunicorn/workers/base.py", line 198, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2026-04-03 18:54:44 +0300] [4319] [INFO] Worker exiting (pid: 4319)
+[2026-04-03 15:54:44 +0000] [4387] [INFO] Booting worker with pid: 4387
+[2026-04-03 15:54:44 +0000] [4318] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 15:58:52 +0000] [5201] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 15:58:52 +0000] [5201] [INFO] Listening at: http://0.0.0.0:8000 (5201)
+[2026-04-03 15:58:52 +0000] [5201] [INFO] Using worker: sync
+[2026-04-03 15:58:52 +0000] [5202] [INFO] Booting worker with pid: 5202
+[2026-04-03 15:58:52 +0000] [5201] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 16:00:47 +0000] [5240] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 16:00:47 +0000] [5240] [INFO] Listening at: http://0.0.0.0:8000 (5240)
+[2026-04-03 16:00:47 +0000] [5240] [INFO] Using worker: sync
+[2026-04-03 16:00:47 +0000] [5241] [INFO] Booting worker with pid: 5241
+[2026-04-03 16:00:48 +0000] [5240] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 16:01:59 +0000] [5245] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 16:01:59 +0000] [5245] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 16:01:59 +0000] [5245] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:02:00 +0000] [5245] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 16:02:00 +0000] [5245] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:02:01 +0000] [5245] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 16:02:01 +0000] [5245] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:02:02 +0000] [5245] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 16:02:02 +0000] [5245] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:02:03 +0000] [5245] [ERROR] Connection in use: ('0.0.0.0', 8000)
+[2026-04-03 16:02:03 +0000] [5245] [ERROR] connection to ('0.0.0.0', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:02:04 +0000] [5245] [ERROR] Can't connect to ('0.0.0.0', 8000)
+[2026-04-03 16:06:46 +0000] [5382] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 16:06:46 +0000] [5382] [INFO] Listening at: http://0.0.0.0:8000 (5382)
+[2026-04-03 16:06:46 +0000] [5382] [INFO] Using worker: sync
+[2026-04-03 16:06:46 +0000] [5383] [INFO] Booting worker with pid: 5383
+[2026-04-03 16:06:46 +0000] [5382] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 16:14:01 +0000] [5651] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 16:14:01 +0000] [5651] [INFO] Listening at: http://127.0.0.1:8000 (5651)
+[2026-04-03 16:14:01 +0000] [5651] [INFO] Using worker: sync
+[2026-04-03 16:14:01 +0000] [5652] [INFO] Booting worker with pid: 5652
+[2026-04-03 16:14:01 +0000] [5651] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-03 16:14:36 +0000] [5668] [INFO] Starting gunicorn 25.3.0
+[2026-04-03 16:14:36 +0000] [5668] [ERROR] Connection in use: ('127.0.0.1', 8000)
+[2026-04-03 16:14:36 +0000] [5668] [ERROR] connection to ('127.0.0.1', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:14:37 +0000] [5668] [ERROR] Connection in use: ('127.0.0.1', 8000)
+[2026-04-03 16:14:37 +0000] [5668] [ERROR] connection to ('127.0.0.1', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:14:38 +0000] [5668] [ERROR] Connection in use: ('127.0.0.1', 8000)
+[2026-04-03 16:14:38 +0000] [5668] [ERROR] connection to ('127.0.0.1', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:14:39 +0000] [5668] [ERROR] Connection in use: ('127.0.0.1', 8000)
+[2026-04-03 16:14:39 +0000] [5668] [ERROR] connection to ('127.0.0.1', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:14:40 +0000] [5668] [ERROR] Connection in use: ('127.0.0.1', 8000)
+[2026-04-03 16:14:40 +0000] [5668] [ERROR] connection to ('127.0.0.1', 8000) failed: [Errno 98] Address already in use
+[2026-04-03 16:14:41 +0000] [5668] [ERROR] Can't connect to ('127.0.0.1', 8000)
