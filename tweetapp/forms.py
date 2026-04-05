@@ -5,7 +5,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
 class AddTweetForm(forms.Form):
-    message_input = forms.CharField(label="Message", max_length=280, 
+    message_input = forms.CharField(label="Message", max_length=3000, 
                                     widget=forms.Textarea(attrs={"class":"tweetmessage"}))
     visibility = forms.ChoiceField(choices=[('public', 'Public'), ('followers', 'Followers Only')], 
                                    initial='public')

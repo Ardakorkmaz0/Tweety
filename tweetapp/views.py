@@ -21,6 +21,7 @@ import logging
 from tweetapp.utils import should_notify, process_mentions, extract_mentions
 
 logger = logging.getLogger(__name__)
+MAX_TWEET_IMAGES = 10
 
 
 def get_sidebar_context(request):
@@ -94,13 +95,18 @@ def addtweetbyform(request):
     if request.method == "POST":
         form = AddTweetForm(request.POST, request.FILES)
         if form.is_valid():
+            uploaded_images = request.FILES.getlist('images')
+            if len(uploaded_images) > MAX_TWEET_IMAGES:
+                messages.error(request, f"You can upload at most {MAX_TWEET_IMAGES} images per tweet.")
+                return render(request, 'tweetapp/addtwetbyform.html', context={"form": form})
+
             tweet = models.Tweet.objects.create(
                 user=request.user,
                 nickname=request.user.username,
                 message=form.cleaned_data["message_input"],
                 visibility=form.cleaned_data["visibility"]
             )
-            for file in request.FILES.getlist('images'):
+            for file in uploaded_images:
                 models.TweetImage.objects.create(tweet=tweet, image=file)
             process_mentions(tweet.message, request.user, tweet=tweet)
             return redirect(reverse('tweetapp:listtweet'))

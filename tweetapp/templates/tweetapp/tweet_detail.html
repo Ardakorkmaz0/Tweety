@@ -49,10 +49,38 @@
         <!-- Body -->
         <div class="p-6">
             {% if tweet.images.all %}
-            <div class="flex overflow-x-auto gap-4 snap-x mb-6 pb-2 scrollbar-hide">
-                {% for img in tweet.images.all %}
-                    <img src="{{ img.image.url }}" class="snap-center max-h-[400px] object-contain rounded-xl" style="background: rgba(0,0,0,0.5);">
-                {% endfor %}
+            <div class="mb-6">
+                {% if tweet.images.count == 1 %}
+                    <img src="{{ tweet.images.first.image.url }}" alt="Image" class="w-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity" onclick="openImageModal([{% for i in tweet.images.all %}'{{ i.image.url }}'{% if not forloop.last %},{% endif %}{% endfor %}], 0); event.stopPropagation();" style="max-height: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                {% elif tweet.images.count == 2 %}
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for img in tweet.images.all %}
+                        <img src="{{ img.image.url }}" alt="Image" class="w-full h-[250px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity" onclick="openImageModal([{% for i in tweet.images.all %}'{{ i.image.url }}'{% if not forloop.last %},{% endif %}{% endfor %}], {{ forloop.counter0 }}); event.stopPropagation();">
+                        {% endfor %}
+                    </div>
+                {% elif tweet.images.count == 3 %}
+                    <div class="grid grid-cols-2 gap-2 h-[250px]">
+                        <img src="{{ tweet.images.first.image.url }}" alt="Image" class="w-full h-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity" onclick="openImageModal([{% for i in tweet.images.all %}'{{ i.image.url }}'{% if not forloop.last %},{% endif %}{% endfor %}], 0); event.stopPropagation();">
+                        <div class="grid grid-rows-2 gap-2 h-full w-full overflow-hidden">
+                            {% for img in tweet.images.all|slice:"1:3" %}
+                            <img src="{{ img.image.url }}" alt="Image" class="w-full h-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity" onclick="openImageModal([{% for i in tweet.images.all %}'{{ i.image.url }}'{% if not forloop.last %},{% endif %}{% endfor %}], {{ forloop.counter }}); event.stopPropagation();">
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for img in tweet.images.all|slice:":4" %}
+                        <div class="relative w-full h-[180px] rounded-xl overflow-hidden group">
+                            <img src="{{ img.image.url }}" alt="Image" class="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105" onclick="openImageModal([{% for i in tweet.images.all %}'{{ i.image.url }}'{% if not forloop.last %},{% endif %}{% endfor %}], {{ forloop.counter0 }}); event.stopPropagation();">
+                            {% if forloop.counter == 4 and tweet.images.count > 4 %}
+                            <div class="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer text-white text-3xl font-bold transition-all hover:bg-black/50" style="backdrop-filter: blur(2px);" onclick="openImageModal([{% for i in tweet.images.all %}'{{ i.image.url }}'{% if not forloop.last %},{% endif %}{% endfor %}], 3); event.stopPropagation();">
+                                +{{ tweet.images.count|add:"-3" }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
             {% endif %}
 
@@ -88,7 +116,7 @@
             {% if user == tweet.user and tweet.can_edit %}
             <form id="edit-form-{{tweet.pk}}" action="{% url 'tweetapp:edit_tweet' pk=tweet.pk %}" method="POST" class="hidden mb-6">
                 {% csrf_token %}
-                <textarea name="message" class="w-full p-4 rounded-xl mb-3 focus:outline-none focus:border-[var(--neon-green)] transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" rows="3" maxlength="280">{{ tweet.message }}</textarea>
+                <textarea name="message" class="w-full p-4 rounded-xl mb-3 focus:outline-none focus:border-[var(--neon-green)] transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" rows="3" maxlength="3000">{{ tweet.message }}</textarea>
                 <button type="submit" class="btn-gradient px-6 py-2 rounded-xl font-bold">Save Changes</button>
             </form>
             {% endif %}
@@ -147,7 +175,7 @@
                 {% if user.is_authenticated %}
                 <form action="{% url 'tweetapp:add_comment' pk=tweet.pk %}" method="POST" class="mt-6 flex gap-3">
                     {% csrf_token %}
-                    <input type="text" name="comment_message" class="flex-1 px-4 py-3 rounded-xl focus:outline-none focus:border-[var(--neon-green)] transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Write a reply..." maxlength="280" required>
+                    <input type="text" name="comment_message" class="flex-1 px-4 py-3 rounded-xl focus:outline-none focus:border-[var(--neon-green)] transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Write a reply..." maxlength="3000" required>
                     <button type="submit" class="btn-gradient px-6 py-3 rounded-xl font-bold flex items-center gap-2">
                         <i data-lucide="send" class="w-4 h-4"></i> Send
                     </button>

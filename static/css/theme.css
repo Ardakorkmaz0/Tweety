@@ -61,6 +61,11 @@
   --font-weight-normal: 400;
   --ring: rgba(16, 242, 140, 0.5);
   --radius: 16px;
+  --scrollbar-track: rgba(14, 14, 30, 0.5);
+  --scrollbar-thumb: rgba(138, 138, 163, 0.3);
+  --scrollbar-thumb-hover: rgba(138, 138, 163, 0.5);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -179,9 +184,9 @@ body {
 .animate-slide-up { animation: slide-up 0.3s ease-out; }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: rgba(14, 14, 30, 0.5); border-radius: 4px; }
-::-webkit-scrollbar-thumb { background: rgba(138, 138, 163, 0.3); border-radius: 4px; transition: background 0.3s ease; }
-::-webkit-scrollbar-thumb:hover { background: rgba(138, 138, 163, 0.5); }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; transition: background 0.3s ease; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
 :root.light-theme {
   /* Light background colors */
@@ -211,4 +216,10 @@ body {
   --input: rgba(0, 0, 0, 0.04);
   --input-background: rgba(0, 0, 0, 0.04);
   --border: rgba(0, 0, 0, 0.08);
+
+  --scrollbar-track: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  color-scheme: light;
 }

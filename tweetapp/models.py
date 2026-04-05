@@ -8,7 +8,7 @@ import datetime
 class Tweet(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     nickname = models.CharField(max_length=10)
-    message = models.CharField(max_length=280)
+    message = models.CharField(max_length=3000)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
     VISIBILITY_CHOICES = [('public', 'Public'), ('followers', 'Followers Only')]
@@ -48,7 +48,7 @@ class Like(models.Model):
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     tweet = models.ForeignKey(Tweet, on_delete=models.CASCADE, related_name='comments')
-    message = models.CharField(max_length=280)
+    message = models.CharField(max_length=3000)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

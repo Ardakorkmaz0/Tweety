@@ -18,7 +18,8 @@
 
             <div>
                 <label class="block mb-2 font-medium" style="color: var(--text-secondary)">Attach Images</label>
-                <input type="file" name="images" multiple class="w-full p-3 rounded-xl focus:outline-none transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                <input type="file" id="tweet-images" name="images" accept="image/*" multiple class="w-full p-3 rounded-xl focus:outline-none transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                <p class="mt-2 text-xs" style="color: var(--text-muted)">Max 10 images per tweet.</p>
             </div>
 
             <div class="pt-4">
@@ -49,4 +50,18 @@ form textarea {
     resize: vertical;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const imageInput = document.getElementById('tweet-images');
+    if (!imageInput) return;
+
+    imageInput.addEventListener('change', function () {
+        if (this.files.length > 10) {
+            alert('You can upload at most 10 images per tweet.');
+            this.value = '';
+        }
+    });
+});
+</script>
 {% endblock %}

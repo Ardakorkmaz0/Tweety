@@ -1,6 +1,30 @@
-db.sqlite3
-media/
-__pycache__/
-*.pyc
+# Environments
+venv/
+env/
+ENV/
 .env
+
+# Logs and databases
+nohup.out
+*.log
+db.sqlite3
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django stuff
+staticfiles/
+media/
+*.save
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
 .claude/

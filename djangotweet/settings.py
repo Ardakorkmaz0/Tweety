@@ -16,12 +16,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-m*u#io8c09*ol#2z3tjy6
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # On PythonAnywhere, this should be False
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['tweetapptweety.ddns.net', '51.20.248.223', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['16.171.190.141', 'tweetapptweety.com', 'www.tweetapptweety.com']
 
-
-
+DEBUG = False
 # Application definition
 INSTALLED_APPS = [
     'tweetapp.apps.TweetappConfig',
@@ -131,3 +129,5 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+CSRF_TRUSTED_ORIGINS = ['https://tweetapptweety.com', 'https://www.tweetapptweety.com']
