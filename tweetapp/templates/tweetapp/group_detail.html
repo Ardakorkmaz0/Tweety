@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load mention_tags %}
 
+{% block content_width_class %}max-w-[1040px]{% endblock %}
+
 {% block content %}
 <div class="max-w-5xl mx-auto space-y-6">
     <!-- Group Header -->
@@ -88,9 +90,9 @@
     </div>
     {% endif %}
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 gap-6">
         <!-- Messages -->
-        <div class="lg:col-span-2">
+        <div>
             <div class="glass-card flex flex-col" style="height: 600px;">
                 <div class="flex-1 p-4 overflow-y-auto" id="chatBox">
                     <div id="gm-msgs-wrap" class="space-y-1">
@@ -190,105 +192,6 @@
             </div>
         </div>
 
-        <!-- Members Sidebar -->
-        <div class="lg:col-span-1 space-y-6">
-            <div class="glass-card p-6">
-                <h6 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.1em;">Members ({{ members.count }})</h6>
-                <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                    {% for m in members %}
-                    <div class="flex justify-between items-center p-2 rounded-lg hover:bg-[rgba(255,255,255,0.02)] transition-colors group/member">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="relative shrink-0">
-                                {% if m.user.profile.profile_image %}
-                                    <img src="{{ m.user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover">
-                                {% else %}
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--surface-bg); color: var(--text-primary);">
-                                        {{ m.user.username|first|upper }}
-                                    </div>
-                                {% endif %}
-                                {% if m.user.id in online_user_ids %}
-                                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style="background: var(--neon-green); border-color: var(--card-bg);"></span>
-                                {% else %}
-                                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style="background: var(--text-muted); border-color: var(--card-bg); opacity: 0.4;"></span>
-                                {% endif %}
-                            </div>
-
-                            <a href="{% url 'tweetapp:profile' username=m.user.username %}" class="font-medium hover:underline decoration-transparent transition-all truncate" style="color: var(--text-primary)">
-                                {{ m.user.username }}
-                            </a>
-
-                            {% if m.role == 'admin' %}
-                            <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0" style="background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid var(--warning)">Admin</span>
-                            {% endif %}
-                        </div>
-
-                        {% if membership.role == 'admin' and m.user != request.user %}
-                        <div class="flex gap-1 opacity-0 group-hover/member:opacity-100 transition-opacity shrink-0">
-                            <!-- Promote/Demote -->
-                            <form action="{% url 'tweetapp:group_promote_member' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
-                                {% csrf_token %}
-                                <button class="p-1.5 rounded hover:bg-[rgba(251,191,36,0.1)] transition-colors" title="{% if m.role == 'member' %}Promote to Admin{% else %}Demote to Member{% endif %}">
-                                    {% if m.role == 'member' %}
-                                        <i data-lucide="shield" class="w-4 h-4" style="color: var(--warning)"></i>
-                                    {% else %}
-                                        <i data-lucide="shield-off" class="w-4 h-4" style="color: var(--text-muted)"></i>
-                                    {% endif %}
-                                </button>
-                            </form>
-                            <!-- Kick -->
-                            {% if m.role != 'admin' %}
-                            <form action="{% url 'tweetapp:group_kick' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
-                                {% csrf_token %}
-                                <button class="p-1.5 rounded hover:bg-[rgba(255,107,107,0.1)] transition-colors" onclick="return confirm('Kick user?')">
-                                    <i data-lucide="user-minus" class="w-4 h-4" style="color: var(--danger)"></i>
-                                </button>
-                            </form>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-
-                {% if membership.role == 'admin' %}
-                <!-- Invite -->
-                <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-subtle)">
-                    <h6 class="font-bold text-sm uppercase mb-3 whitespace-nowrap" style="color: var(--neon-green); letter-spacing: 0.1em;">Invite Member</h6>
-                    <form action="{% url 'tweetapp:group_invite' pk=group.pk %}" method="POST" class="m-0">
-                        {% csrf_token %}
-                        <div class="flex flex-col gap-3">
-                            <input type="text" name="username" class="w-full p-2.5 rounded-xl text-sm focus:outline-none transition-all placeholder:text-[var(--text-muted)] hover:border-[var(--neon-green)]" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Username" required>
-                            <button type="submit" class="w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-[rgba(16,242,140,0.1)]" style="color: var(--neon-green); border: 1px solid var(--neon-green)">Invite</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Join Requests -->
-                {% if join_requests %}
-                <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-subtle)">
-                    <h6 class="font-bold text-sm uppercase mb-3" style="color: var(--warning); letter-spacing: 0.1em;">Join Requests</h6>
-                    <div class="space-y-2">
-                        {% for jr in join_requests %}
-                        <div class="flex items-center justify-between p-2 rounded-lg" style="border: 1px solid var(--border-subtle);">
-                            <a href="{% url 'tweetapp:profile' username=jr.user.username %}" class="text-sm font-medium" style="color: var(--text-primary); text-decoration: none;">@{{ jr.user.username }}</a>
-                            <div class="flex gap-1">
-                                <form action="{% url 'tweetapp:group_accept_request' pk=jr.pk %}" method="POST" class="m-0">
-                                    {% csrf_token %}
-                                    <button class="p-1 rounded hover:bg-[rgba(16,242,140,0.1)]"><i data-lucide="check" class="w-4 h-4" style="color: var(--neon-green)"></i></button>
-                                </form>
-                                <form action="{% url 'tweetapp:group_decline_request' pk=jr.pk %}" method="POST" class="m-0">
-                                    {% csrf_token %}
-                                    <button class="p-1 rounded hover:bg-[rgba(255,107,107,0.1)]"><i data-lucide="x" class="w-4 h-4" style="color: var(--danger)"></i></button>
-                                </form>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-                {% endif %}
-            </div>
-        </div>
     </div>
 </div>
 
@@ -557,4 +460,102 @@
     });
 })();
 </script>
+{% endblock %}
+
+{% block right_sidebar %}
+<div class="space-y-6 hidden lg:block">
+    <div class="glass-card p-5">
+        <h6 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.1em;">Members ({{ members.count }})</h6>
+        <div class="space-y-3 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
+            {% for m in members %}
+            <div class="flex justify-between items-center p-2 rounded-lg hover:bg-[rgba(255,255,255,0.02)] transition-colors group/member">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="relative shrink-0">
+                        {% if m.user.profile.profile_image %}
+                            <img src="{{ m.user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover">
+                        {% else %}
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--surface-bg); color: var(--text-primary);">
+                                {{ m.user.username|first|upper }}
+                            </div>
+                        {% endif %}
+                        {% if m.user.id in online_user_ids %}
+                            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style="background: var(--neon-green); border-color: var(--card-bg);"></span>
+                        {% else %}
+                            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style="background: var(--text-muted); border-color: var(--card-bg); opacity: 0.4;"></span>
+                        {% endif %}
+                    </div>
+
+                    <a href="{% url 'tweetapp:profile' username=m.user.username %}" class="font-medium hover:underline decoration-transparent transition-all truncate" style="color: var(--text-primary)">
+                        {{ m.user.username }}
+                    </a>
+
+                    {% if m.role == 'admin' %}
+                    <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0" style="background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid var(--warning)">Admin</span>
+                    {% endif %}
+                </div>
+
+                {% if membership.role == 'admin' and m.user != request.user %}
+                <div class="flex gap-1 opacity-0 group-hover/member:opacity-100 transition-opacity shrink-0">
+                    <form action="{% url 'tweetapp:group_promote_member' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
+                        {% csrf_token %}
+                        <button class="p-1.5 rounded hover:bg-[rgba(251,191,36,0.1)] transition-colors" title="{% if m.role == 'member' %}Promote to Admin{% else %}Demote to Member{% endif %}">
+                            {% if m.role == 'member' %}
+                                <i data-lucide="shield" class="w-4 h-4" style="color: var(--warning)"></i>
+                            {% else %}
+                                <i data-lucide="shield-off" class="w-4 h-4" style="color: var(--text-muted)"></i>
+                            {% endif %}
+                        </button>
+                    </form>
+                    {% if m.role != 'admin' %}
+                    <form action="{% url 'tweetapp:group_kick' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
+                        {% csrf_token %}
+                        <button class="p-1.5 rounded hover:bg-[rgba(255,107,107,0.1)] transition-colors" onclick="return confirm('Kick user?')">
+                            <i data-lucide="user-minus" class="w-4 h-4" style="color: var(--danger)"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="glass-card p-5">
+        <h6 class="font-bold text-sm uppercase mb-4" style="color: var(--neon-green); letter-spacing: 0.1em;">Invite Member</h6>
+        {% if membership.role == 'admin' %}
+            <form action="{% url 'tweetapp:group_invite' pk=group.pk %}" method="POST" class="m-0">
+                {% csrf_token %}
+                <div class="flex flex-col gap-3">
+                    <input type="text" name="username" class="w-full p-2.5 rounded-xl text-sm focus:outline-none transition-all placeholder:text-[var(--text-muted)] hover:border-[var(--neon-green)]" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Username" required>
+                    <button type="submit" class="w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-[rgba(16,242,140,0.1)]" style="color: var(--neon-green); border: 1px solid var(--neon-green)">Invite</button>
+                </div>
+            </form>
+            {% if join_requests %}
+            <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-subtle)">
+                <h6 class="font-bold text-sm uppercase mb-3" style="color: var(--warning); letter-spacing: 0.1em;">Join Requests</h6>
+                <div class="space-y-2">
+                    {% for jr in join_requests %}
+                    <div class="flex items-center justify-between p-2 rounded-lg" style="border: 1px solid var(--border-subtle);">
+                        <a href="{% url 'tweetapp:profile' username=jr.user.username %}" class="text-sm font-medium" style="color: var(--text-primary); text-decoration: none;">@{{ jr.user.username }}</a>
+                        <div class="flex gap-1">
+                            <form action="{% url 'tweetapp:group_accept_request' pk=jr.pk %}" method="POST" class="m-0">
+                                {% csrf_token %}
+                                <button class="p-1 rounded hover:bg-[rgba(16,242,140,0.1)]"><i data-lucide="check" class="w-4 h-4" style="color: var(--neon-green)"></i></button>
+                            </form>
+                            <form action="{% url 'tweetapp:group_decline_request' pk=jr.pk %}" method="POST" class="m-0">
+                                {% csrf_token %}
+                                <button class="p-1 rounded hover:bg-[rgba(255,107,107,0.1)]"><i data-lucide="x" class="w-4 h-4" style="color: var(--danger)"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+            <p class="text-sm m-0" style="color: var(--text-muted)">Sadece adminler davet gönderebilir.</p>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}
