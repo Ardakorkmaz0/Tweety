@@ -23,7 +23,7 @@
 
 {% block content %}
 <div class="max-w-[600px] mx-auto space-y-4">
-    <a href="{% url 'tweetapp:listtweet' %}" class="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--neon-green)] transition-all decoration-transparent">
+    <a href="javascript:void(0);" onclick="if(document.referrer.includes(window.location.host)) { history.back(); } else { window.location.href='{% url 'tweetapp:listtweet' %}'; }" class="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--neon-green)] transition-all decoration-transparent">
         <i data-lucide="arrow-left" class="w-5 h-5"></i>
         <span class="font-bold text-sm">Back to Feed</span>
     </a>
@@ -84,7 +84,7 @@
             </div>
             {% endif %}
 
-            <p class="mb-6 whitespace-pre-wrap break-words" style="color: var(--text-primary); font-size: 15px; line-height: 1.6;">{{ tweet.message|linkify_mentions }}</p>
+            <p class="mb-6" style="color: var(--text-primary); font-size: 16px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;">{{ tweet.message|linkify_mentions }}</p>
 
             <!-- Controls -->
             <div class="flex flex-wrap gap-2 mb-6">
@@ -116,7 +116,7 @@
             {% if user == tweet.user and tweet.can_edit %}
             <form id="edit-form-{{tweet.pk}}" action="{% url 'tweetapp:edit_tweet' pk=tweet.pk %}" method="POST" class="hidden mb-6">
                 {% csrf_token %}
-                <textarea name="message" class="w-full p-4 rounded-xl mb-3 focus:outline-none focus:border-[var(--neon-green)] transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);" rows="3" maxlength="3000">{{ tweet.message }}</textarea>
+                <textarea name="message" class="w-full p-4 rounded-xl mb-3 focus:outline-none focus:border-[var(--neon-green)] transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary); line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;" rows="3" maxlength="3000">{{ tweet.message }}</textarea>
                 <button type="submit" class="btn-gradient px-6 py-2 rounded-xl font-bold">Save Changes</button>
             </form>
             {% endif %}
@@ -156,7 +156,7 @@
                             <a href="{% url 'tweetapp:profile' username=comment.user.username %}" class="font-semibold text-sm hover:underline decoration-transparent" style="color: var(--neon-green);">@{{ comment.user.username }}</a>
                             <span class="text-xs" style="color: var(--text-muted);">{{ comment.created_at|date:"M d, H:i" }}</span>
                         </div>
-                        <p class="text-sm" style="color: var(--text-primary);">{{ comment.message|linkify_mentions }}</p>
+                        <p class="text-sm mt-1" style="color: var(--text-primary); line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;">{{ comment.message|linkify_mentions }}</p>
 
                         {% if user == comment.user or user.is_staff %}
                         <form action="{% url 'tweetapp:delete_comment' pk=comment.pk %}" method="POST" class="absolute top-4 right-4 m-0 opacity-0 group-hover:opacity-100 transition-opacity">

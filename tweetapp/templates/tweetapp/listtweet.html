@@ -42,6 +42,25 @@
 {% endif %}
 
 <!-- Tweet Cards Container -->
+{% if is_search and searched_users %}
+<div class="glass-card mb-6 p-4">
+    <h3 class="text-sm font-bold mb-3" style="color: var(--text-secondary);">Kişiler</h3>
+    <div class="flex overflow-x-auto gap-4 pb-2" style="scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent;">
+        {% for su in searched_users %}
+        <a href="{% url 'tweetapp:profile' username=su.username %}" class="flex flex-col items-center gap-2 decoration-transparent min-w-[72px] group">
+            {% if su.profile.profile_image %}
+                <img src="{{ su.profile.profile_image.url }}" class="w-14 h-14 rounded-full object-cover border-2 border-[var(--border-subtle)] group-hover:border-[var(--neon-green)] transition-all">
+            {% else %}
+                <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl border-2 border-[var(--border-subtle)] group-hover:border-[var(--neon-green)] transition-all" style="background: var(--surface-bg); color: var(--text-primary);">
+                    {{ su.username|first|upper }}
+                </div>
+            {% endif %}
+            <span class="text-xs font-medium truncate w-full text-center group-hover:text-[var(--neon-green)] transition-colors" style="color: var(--text-primary);">{{ su.username }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 <div class="space-y-4 mb-6">
     {% if active_tab == 'latest' %}
         {% for tweet in latest_tweets %}

@@ -3,65 +3,209 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto space-y-6">
-    <div class="glass-card p-8">
-        <h2 class="text-2xl font-bold mb-6" style="color: var(--neon-green)">Post a New Tweet</h2>
-        
-        <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
-            {% csrf_token %}
-            
-            {% for field in form %}
-            <div>
-                <label class="block mb-2 font-medium" style="color: var(--text-secondary)">{{ field.label }}</label>
-                {{ field }}
+    <div class="glass-card mb-6" style="border: none;">
+        <!-- Header -->
+        <div class="px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid var(--border-subtle);">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'tweetapp:listtweet' %}" class="hover:bg-[rgba(255,255,255,0.05)] p-2 rounded-full transition-colors cursor-pointer decoration-transparent">
+                    <i data-lucide="arrow-left" class="w-5 h-5" style="color: var(--text-primary)"></i>
+                </a>
+                <span class="font-bold text-lg">Post</span>
             </div>
-            {% endfor %}
+            <button type="button" id="submit-btn" class="btn-gradient px-6 py-2 rounded-full font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed">Post</button>
+        </div>
 
-            <div>
-                <label class="block mb-2 font-medium" style="color: var(--text-secondary)">Attach Images</label>
-                <input type="file" id="tweet-images" name="images" accept="image/*" multiple class="w-full p-3 rounded-xl focus:outline-none transition-all" style="background: var(--input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
-                <p class="mt-2 text-xs" style="color: var(--text-muted)">Max 10 images per tweet.</p>
+        <!-- Form Body -->
+        <div class="p-4 flex gap-4">
+            <!-- Avatar -->
+            <div class="flex-shrink-0">
+                {% if user.profile.profile_image %}
+                    <img src="{{ user.profile.profile_image.url }}" class="w-12 h-12 rounded-full object-cover border border-[var(--border-subtle)]">
+                {% else %}
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl" style="background: var(--surface-bg); border: 1px solid var(--border-subtle);">
+                        {{ user.username|first|upper }}
+                    </div>
+                {% endif %}
             </div>
 
-            <div class="pt-4">
-                <button type="submit" class="btn-gradient w-full py-3 rounded-xl font-bold text-lg">Send Tweet</button>
+            <!-- Content Area -->
+            <div class="flex-1 w-full min-w-0 pt-2">
+                <form id="tweet-form" action="" method="POST" enctype="multipart/form-data" class="w-full">
+                    {% csrf_token %}
+                    
+                    <!-- Visibility Select -->
+                    <div class="mb-3">
+                        <select name="visibility" id="id_visibility" class="text-sm font-semibold rounded-full px-3 py-1 cursor-pointer outline-none appearance-none" style="background: rgba(16, 242, 140, 0.1); color: var(--neon-green); border: 1px solid rgba(16, 242, 140, 0.2);">
+                            <option value="public" style="background: var(--deep-bg); color: var(--text-primary)">🌎 Everyone</option>
+                            <option value="followers" style="background: var(--deep-bg); color: var(--text-primary)">🔒 Followers Only</option>
+                        </select>
+                    </div>
+
+                    <!-- Textarea -->
+                    <textarea id="id_message_input" name="message_input" maxlength="3000" class="w-full bg-transparent border-none outline-none resize-none text-xl mb-3" style="color: var(--text-primary); min-height: 80px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; line-height: 1.5;" placeholder="What is happening?! (Paste images via Ctrl+V)"></textarea>
+
+                    <!-- Preview Container -->
+                    <div id="image-preview-container" class="grid grid-cols-2 gap-2 mb-4 hidden"></div>
+
+                    <!-- Hidden File Input -->
+                    <input type="file" id="tweet-images" name="images" accept="image/*" multiple class="hidden">
+                    
+                    <div style="border-top: 1px solid var(--border-subtle);" class="pt-4 flex items-center justify-between">
+                        <div class="flex gap-2 items-center">
+                            <button type="button" onclick="document.getElementById('tweet-images').click()" class="p-2 rounded-full hover:bg-[rgba(16,242,140,0.1)] transition-colors group">
+                                <i data-lucide="image" class="w-5 h-5 group-hover:stroke-[var(--neon-green)]" style="color: var(--neon-green)"></i>
+                            </button>
+                            <!-- Note for copy paste -->
+                            <span class="text-xs" style="color: var(--text-muted)">Max 10. Copy and paste works!</span>
+                        </div>
+                        <div id="char-counter" class="text-xs font-semibold select-none transition-colors" style="color: var(--text-muted);">0 / 3000</div>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<style>
-/* Style the django rendered form fields natively */
-form textarea, form select, form input[type="text"], form input[type="password"], form input[type="email"] {
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    background: var(--input);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-primary);
-    transition: all 0.3s ease;
-}
-form textarea:focus, form select:focus, form input[type="text"]:focus, form input[type="password"]:focus, form input[type="email"]:focus {
-    outline: none;
-    border-color: var(--neon-green);
-    box-shadow: 0 0 10px rgba(16, 242, 140, 0.2);
-}
-form textarea {
-    min-height: 120px;
-    resize: vertical;
-}
-</style>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const textarea = document.getElementById('id_message_input');
     const imageInput = document.getElementById('tweet-images');
-    if (!imageInput) return;
+    const previewContainer = document.getElementById('image-preview-container');
+    const submitBtn = document.getElementById('submit-btn');
+    const form = document.getElementById('tweet-form');
+    const charCounter = document.getElementById('char-counter');
+
+    // Focus textbox on load
+    textarea.focus();
+    
+    // Auto-resize textarea logic
+    textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+        validateForm();
+        updateCharCounter();
+    });
+
+    function updateCharCounter() {
+        const len = textarea.value.length;
+        charCounter.textContent = `${len} / 3000`;
+        if(len >= 3000) {
+            charCounter.style.color = "var(--danger)";
+        } else if(len >= 2800) {
+            charCounter.style.color = "var(--warning)";
+        } else {
+            charCounter.style.color = "var(--text-muted)";
+        }
+    }
+
+    function validateForm() {
+        const hasText = textarea.value.trim().length > 0;
+        const hasImages = dt.files.length > 0;
+        submitBtn.disabled = !hasText && !hasImages || textarea.value.length > 3000;
+    }
+
+    submitBtn.disabled = true;
+
+    submitBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Just before submit, attach files properly
+        imageInput.files = dt.files;
+        form.submit();
+    });
+
+    let dt = new DataTransfer();
+
+    function updatePreviews() {
+        previewContainer.innerHTML = '';
+        if (dt.files.length > 0) {
+            previewContainer.classList.remove('hidden');
+        } else {
+            previewContainer.classList.add('hidden');
+        }
+
+        Array.from(dt.files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const wrapper = document.createElement('div');
+                wrapper.className = "relative rounded-xl overflow-hidden group border border-[var(--border-subtle)]";
+                
+                // Full width grid cell for single images or odd remainders
+                if (dt.files.length === 1 || (dt.files.length === 3 && index === 0)) {
+                    wrapper.className += " col-span-2";
+                }
+                
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = "w-full object-cover transition-all";
+                img.style.maxHeight = wrapper.classList.contains('col-span-2') ? '400px' : '250px';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                removeBtn.className = "absolute top-2 right-2 bg-black/60 p-1.5 rounded-full hover:bg-black/80 transition-colors z-10 backdrop-blur-sm cursor-pointer";
+                removeBtn.onclick = (event) => {
+                    event.preventDefault();
+                    removeFile(index);
+                };
+
+                wrapper.appendChild(img);
+                wrapper.appendChild(removeBtn);
+                previewContainer.appendChild(wrapper);
+            }
+            reader.readAsDataURL(file);
+        });
+        
+        imageInput.files = dt.files;
+        validateForm();
+    }
+
+    function removeFile(index) {
+        const newDt = new DataTransfer();
+        for(let i=0; i<dt.files.length; i++) {
+            if(i !== index) newDt.items.add(dt.files[i]);
+        }
+        dt = newDt;
+        updatePreviews();
+    }
 
     imageInput.addEventListener('change', function () {
-        if (this.files.length > 10) {
-            alert('You can upload at most 10 images per tweet.');
-            this.value = '';
+        if (dt.files.length + this.files.length > 10) {
+            alert('Max 10 images allowed.');
+        } else {
+            for(let file of this.files) dt.items.add(file);
+        }
+        updatePreviews();
+    });
+
+    // Paste listener natively on document handles blobs efficiently
+    document.addEventListener('paste', function(e) {
+        let items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let pastedImg = false;
+        
+        for (let index in items) {
+            let item = items[index];
+            if (item.kind === 'file') {
+                let blob = item.getAsFile();
+                if(dt.files.length < 10) {
+                    dt.items.add(blob);
+                    pastedImg = true;
+                } else {
+                    alert('Max 10 images allowed per tweet.');
+                    break;
+                }
+            }
+        }
+        
+        if(pastedImg) {
+            // Prevent browser from pasting raw path/filename strings into textarea if copying file
+            e.preventDefault(); 
+            updatePreviews();
         }
     });
 });
 </script>
+
+<style>
+textarea#id_message_input::placeholder { color: var(--text-muted); }
+textarea#id_message_input:focus { border: none !important; box-shadow: none !important; outline: none !important; }
+</style>
 {% endblock %}

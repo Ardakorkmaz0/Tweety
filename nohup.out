@@ -1,14 +1,21 @@
 nohup: ignoring input
-[2026-04-05 13:08:16 +0000] [11085] [INFO] Starting gunicorn 25.3.0
-[2026-04-05 13:08:16 +0000] [11085] [INFO] Listening at: http://127.0.0.1:8000 (11085)
-[2026-04-05 13:08:16 +0000] [11085] [INFO] Using worker: sync
-[2026-04-05 13:08:16 +0000] [11086] [INFO] Booting worker with pid: 11086
-[2026-04-05 13:08:16 +0000] [11087] [INFO] Booting worker with pid: 11087
-[2026-04-05 13:08:16 +0000] [11088] [INFO] Booting worker with pid: 11088
-[2026-04-05 13:08:16 +0000] [11085] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
-[2026-04-05 16:08:16 +0300] [10510] [INFO] Worker exiting (pid: 10510)
-[2026-04-05 16:08:16 +0300] [10509] [INFO] Worker exiting (pid: 10509)
-[2026-04-05 13:08:16 +0000] [10505] [INFO] Handling signal: term
-[2026-04-05 16:08:16 +0300] [10511] [INFO] Worker exiting (pid: 10511)
-[2026-04-05 13:08:16 +0000] [10505] [INFO] Worker (pid:10511) was sent SIGTERM!
-[2026-04-05 13:08:16 +0000] [10505] [INFO] Shutting down: Master
+[2026-04-05 13:40:11 +0000] [20294] [INFO] Starting gunicorn 25.3.0
+[2026-04-05 13:40:11 +0000] [20294] [ERROR] Connection in use: ('127.0.0.1', 8000)
+[2026-04-05 13:40:11 +0000] [20294] [ERROR] connection to ('127.0.0.1', 8000) failed: [Errno 98] Address already in use
+[2026-04-05 13:40:12 +0000] [20294] [INFO] Listening at: http://127.0.0.1:8000 (20294)
+[2026-04-05 13:40:12 +0000] [20294] [INFO] Using worker: sync
+[2026-04-05 13:40:12 +0000] [20312] [INFO] Booting worker with pid: 20312
+[2026-04-05 13:40:12 +0000] [20313] [INFO] Booting worker with pid: 20313
+[2026-04-05 13:40:12 +0000] [20314] [INFO] Booting worker with pid: 20314
+[2026-04-05 13:40:12 +0000] [20294] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-05 13:41:54 +0000] [20294] [WARNING] Worker (pid:20312) was sent SIGHUP!
+[2026-04-05 13:41:55 +0000] [20294] [WARNING] Worker (pid:20313) was sent SIGHUP!
+[2026-04-05 13:41:55 +0000] [20294] [WARNING] Worker (pid:20314) was sent SIGHUP!
+[2026-04-05 13:41:55 +0000] [20294] [INFO] Handling signal: hup
+[2026-04-05 13:41:55 +0000] [20294] [INFO] Hang up: Master
+[2026-04-05 13:41:56 +0000] [20831] [INFO] Booting worker with pid: 20831
+[2026-04-05 13:41:56 +0000] [20294] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-05 13:41:58 +0000] [20833] [INFO] Booting worker with pid: 20833
+[2026-04-05 13:41:58 +0000] [20294] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-04-05 13:42:00 +0000] [20837] [INFO] Booting worker with pid: 20837
+[2026-04-05 13:42:00 +0000] [20294] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl

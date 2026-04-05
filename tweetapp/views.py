@@ -72,7 +72,11 @@ def listtweet(request):
         following_tweets = models.Tweet.objects.none()
         liked_ids = []
 
-    tab = request.GET.get('tab', 'latest')
+    tab = request.GET.get('tab')
+    if tab:
+        request.session['active_tab'] = tab
+    else:
+        tab = request.session.get('active_tab', 'latest')
 
     paginator = Paginator(latest_tweets, 20)
     page_number = request.GET.get('page')
@@ -119,9 +123,20 @@ def addtweetbyform(request):
 
 def searchtweet(request):
     query = request.GET.get('q', '')
-    tab = request.GET.get('tab', 'latest')
+    tab = request.GET.get('tab')
+    if tab:
+        request.session['active_tab'] = tab
+    else:
+        tab = request.session.get('active_tab', 'latest')
     
     if query:
+        clean_query = query[1:] if query.startswith('@') else query
+        searched_users = User.objects.filter(
+            Q(username__icontains=clean_query) |
+            Q(profile__first_name__icontains=clean_query) |
+            Q(profile__last_name__icontains=clean_query)
+        ).select_related('profile').distinct()[:15]
+
         if query.startswith('@'):
             nickname = query[1:]
             results = models.Tweet.objects.filter(nickname__iexact=nickname)
@@ -151,6 +166,7 @@ def searchtweet(request):
             recommended_tweets = results
             following_tweets = results
     else:
+        searched_users = []
         latest_tweets = models.Tweet.objects.none()
         recommended_tweets = models.Tweet.objects.none()
         following_tweets = models.Tweet.objects.none()
@@ -166,6 +182,7 @@ def searchtweet(request):
         'following_tweets': following_tweets,
         'liked_ids': liked_ids,
         'suggested_users': [],
+        'searched_users': searched_users,
         'active_tab': tab,
         'is_search': bool(query),
         'search_query': query,

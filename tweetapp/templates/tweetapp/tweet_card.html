@@ -31,7 +31,7 @@
 
     <!-- Content -->
     <div class="mb-3">
-        {% load mention_tags %}<p style="color: var(--text-primary); font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;">{{tweet.message|linkify_mentions}}</p>
+        {% load mention_tags %}<p style="color: var(--text-primary); font-size: 15px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;">{{tweet.message|linkify_mentions}}</p>
     </div>
 
     <!-- Images -->
