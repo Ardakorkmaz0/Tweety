@@ -13,10 +13,11 @@ def should_notify(user, notification_type):
 
 def extract_mentions(text):
     """Return a set of usernames mentioned with @username in text."""
-    return set(re.findall(r'@(\w+)', text or ''))
+    # Allow dots in username
+    return set(re.findall(r'@([\w.]+)', text or ''))
 
 
-def process_mentions(text, actor, tweet=None, comment_obj=None):
+def process_mentions(text, actor, tweet=None, comment_obj=None, message_obj=None):
     """Find @mentions, create Notification + push for each valid user."""
     from tweetapp.models import Notification
     from tweetapp.views import send_push_notification
@@ -32,14 +33,25 @@ def process_mentions(text, actor, tweet=None, comment_obj=None):
             continue
         if not should_notify(user, 'mention'):
             continue
+            
+        chat_thread = message_obj.thread if message_obj else None
+        
         Notification.objects.create(
             recipient=user,
             actor=actor,
             notification_type='mention',
             tweet=tweet,
+            chat_thread=chat_thread
         )
+        
         tweet_ref = tweet or (comment_obj.tweet if comment_obj else None)
-        url = f'/tweetapp/tweet/{tweet_ref.pk}/' if tweet_ref else '/tweetapp/notifications/'
+        if tweet_ref:
+            url = f'/tweetapp/tweet/{tweet_ref.pk}/'
+        elif chat_thread:
+            url = f'/tweetapp/chat/{chat_thread.pk}/'
+        else:
+            url = '/tweetapp/notifications/'
+            
         send_push_notification(
             user=user,
             title='Tweety',

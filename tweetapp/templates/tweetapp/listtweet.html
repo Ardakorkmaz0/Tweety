@@ -62,25 +62,19 @@
 </div>
 {% endif %}
 <div class="space-y-4 mb-6">
-    {% if active_tab == 'latest' %}
-        {% for tweet in latest_tweets %}
-            {% include "tweetapp/tweet_card.html" %}
-        {% empty %}
-            <div class="glass-card p-5 text-center" style="color: var(--text-muted)">No tweets yet.</div>
-        {% endfor %}
-    {% elif active_tab == 'recommended' %}
-        {% for tweet in recommended_tweets %}
-            {% include "tweetapp/tweet_card.html" %}
-        {% empty %}
-            <div class="glass-card p-5 text-center" style="color: var(--text-muted)">No recommendations yet.</div>
-        {% endfor %}
-    {% elif active_tab == 'following' %}
-        {% for tweet in following_tweets %}
-            {% include "tweetapp/tweet_card.html" %}
-        {% empty %}
-            <div class="glass-card p-5 text-center" style="color: var(--text-muted)">Follow people to see their tweets here.</div>
-        {% endfor %}
-    {% endif %}
+    {% for tweet in page_obj %}
+        {% include "tweetapp/tweet_card.html" %}
+    {% empty %}
+        <div class="glass-card p-5 text-center" style="color: var(--text-muted)">
+            {% if active_tab == 'following' %}
+                Follow people to see their tweets here.
+            {% elif active_tab == 'recommended' %}
+                No recommendations yet.
+            {% else %}
+                No tweets yet.
+            {% endif %}
+        </div>
+    {% endfor %}
 </div>
 
 {% if page_obj and page_obj.paginator.num_pages > 1 %}

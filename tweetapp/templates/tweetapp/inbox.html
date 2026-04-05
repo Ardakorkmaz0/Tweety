@@ -505,8 +505,9 @@
                     {% if msg.reply_to.is_deleted %}This message was deleted{% else %}{{ msg.reply_to.content|truncatechars:60 }}{% endif %}
                   </div>
                   {% endif %}
+                  {% load mention_tags %}
                   {% if msg.image %}<img src="{{ msg.image.url }}">{% endif %}
-                  {% if msg.content %}{{ msg.content }}{% endif %}
+                  {% if msg.content %}{{ msg.content|linkify_mentions }}{% endif %}
                 {% endif %}
               </div>
               <div class="dm-btime">
@@ -678,6 +679,12 @@
   };
 
   function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function linkify(s){
+    var e = esc(s);
+    return e.replace(/@([\w.]+)/g, function(match, username){
+      return '<a href="/tweetapp/profile/'+username+'/" style="color: var(--neon-green); font-weight: 600; text-decoration: none;" onclick="event.stopPropagation()">@'+username+'</a>';
+    });
+  }
 
   function addBubble(m){
     if(m.id && wrap.querySelector('[data-msg-id="'+m.id+'"]')){
@@ -713,7 +720,7 @@
         cH+='</div>';
       }
       if(m.image_url) cH+='<img src="'+m.image_url+'">';
-      if(m.content) cH+=esc(m.content);
+      if(m.content) cH+=linkify(m.content);
     }
 
     var bClass='dm-bubble'+(m.is_deleted?' dm-deleted':'');

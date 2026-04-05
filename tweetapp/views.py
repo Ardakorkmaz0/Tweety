@@ -44,51 +44,53 @@ def get_sidebar_context(request):
 
 
 def listtweet(request):
-    if request.user.is_authenticated:
-        liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
-        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
-        
-        if request.user.is_staff:
-            latest_tweets = models.Tweet.objects.all().order_by('-created_at')
-            recommended_tweets = models.Tweet.objects.all().annotate(like_count=Count('likes')).order_by('-like_count', '-created_at')[:20]
-        else:
-            visible = models.Tweet.objects.filter(
-                Q(visibility='public') |
-                Q(user=request.user) |
-                Q(user_id__in=following_ids, visibility='followers')
-            )
-            latest_tweets = visible.order_by('-created_at')
-            recommended_tweets = visible.annotate(like_count=Count('likes')).order_by('-like_count', '-created_at')[:20]
-        
-        following_tweets = models.Tweet.objects.filter(
-            user_id__in=following_ids
-        ).filter(
-            Q(visibility='public') |
-            Q(visibility='followers')
-        ).order_by('-created_at')
-    else:
-        latest_tweets = models.Tweet.objects.filter(visibility='public').order_by('-created_at')
-        recommended_tweets = latest_tweets[:20]
-        following_tweets = models.Tweet.objects.none()
-        liked_ids = []
-
     tab = request.GET.get('tab')
     if tab:
         request.session['active_tab'] = tab
     else:
         tab = request.session.get('active_tab', 'latest')
 
-    paginator = Paginator(latest_tweets, 20)
+    liked_ids = []
+    following_ids = []
+
+    if request.user.is_authenticated:
+        liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
+        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
+        
+        visible_tweets = models.Tweet.objects.filter(
+            Q(visibility='public') |
+            Q(user=request.user) |
+            Q(user_id__in=following_ids, visibility='followers')
+        )
+        if request.user.is_staff:
+            visible_tweets = models.Tweet.objects.all()
+    else:
+        visible_tweets = models.Tweet.objects.filter(visibility='public')
+        if tab == 'following':
+            tab = 'latest'
+
+    # Build dynamically based on tab strategy
+    if tab == 'following':
+        # People you follow exclusively
+        qs = visible_tweets.filter(user_id__in=following_ids).order_by('-created_at')
+    elif tab == 'recommended':
+        # "For You" Feed: Rank by custom engagement algorithm
+        # Engagement = (Likes * 2) + (Comments * 3)
+        qs = visible_tweets.annotate(
+            engagement_score=(Count('likes', distinct=True) * 2) + (Count('comments', distinct=True) * 3)
+        ).order_by('-engagement_score', '-created_at')
+    else:
+        # "Latest" Feed
+        qs = visible_tweets.order_by('-created_at')
+
+    paginator = Paginator(qs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     context = {
-        'latest_tweets': page_obj,
-        'recommended_tweets': recommended_tweets,
-        'following_tweets': following_tweets,
+        'page_obj': page_obj,
         'liked_ids': liked_ids,
         'active_tab': tab,
-        'page_obj': page_obj,
     }
     context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/listtweet.html', context)
@@ -158,28 +160,28 @@ def searchtweet(request):
         
         if tab == 'following' and request.user.is_authenticated:
             following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
-            latest_tweets = results.filter(user_id__in=following_ids)
-            recommended_tweets = latest_tweets
-            following_tweets = latest_tweets
+            qs = results.filter(user_id__in=following_ids)
+        elif tab == 'recommended':
+            qs = results.annotate(
+                engagement_score=(Count('likes', distinct=True) * 2) + (Count('comments', distinct=True) * 3)
+            ).order_by('-engagement_score', '-created_at')
         else:
-            latest_tweets = results
-            recommended_tweets = results
-            following_tweets = results
+            qs = results
     else:
         searched_users = []
-        latest_tweets = models.Tweet.objects.none()
-        recommended_tweets = models.Tweet.objects.none()
-        following_tweets = models.Tweet.objects.none()
+        qs = models.Tweet.objects.none()
         
     if request.user.is_authenticated:
         liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
     else:
         liked_ids = []
+        
+    paginator = Paginator(qs, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     return render(request, 'tweetapp/listtweet.html', {
-        'latest_tweets': latest_tweets,
-        'recommended_tweets': recommended_tweets,
-        'following_tweets': following_tweets,
+        'page_obj': page_obj,
         'liked_ids': liked_ids,
         'suggested_users': [],
         'searched_users': searched_users,
@@ -1297,6 +1299,8 @@ def api_send_message(request, thread_id):
             url=f'/tweetapp/chat/{thread.pk}/'
         )
         
+    process_mentions(msg.content, request.user, message_obj=msg)
+        
     reply_data = None
     if msg.reply_to and not msg.reply_to.is_deleted:
         reply_data = {
@@ -1409,6 +1413,30 @@ def update_chat_theme(request, thread_id):
     
     # redirect back to chat
     return redirect('tweetapp:chat_detail', thread_id=thread.pk)
+
+
+@login_required
+def api_mention_autocomplete(request):
+    """Return top 5 user matches for a mention query."""
+    q = request.GET.get('q', '').strip()
+    if not q:
+        return JsonResponse({'users': []})
+        
+    users = User.objects.filter(
+        Q(username__icontains=q) |
+        Q(profile__first_name__icontains=q) |
+        Q(profile__last_name__icontains=q)
+    ).select_related('profile').distinct()[:5]
+    
+    results = []
+    for u in users:
+        results.append({
+            'username': u.username,
+            'full_name': f"{u.profile.first_name} {u.profile.last_name}".strip() if u.profile.first_name or u.profile.last_name else u.username,
+            'avatar_url': u.profile.profile_image.url if u.profile.profile_image else None
+        })
+        
+    return JsonResponse({'users': results})
 
 
 # ─── Web Push Notifications ───────────────────────────────────────

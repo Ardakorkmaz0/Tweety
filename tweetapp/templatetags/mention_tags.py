@@ -12,7 +12,7 @@ def linkify_mentions(text):
     if not text:
         return text
     escaped = escape(text)
-    usernames = set(re.findall(r'@(\w+)', escaped))
+    usernames = set(re.findall(r'@([\w.]+)', escaped))
     if not usernames:
         return mark_safe(escaped)
     valid_users = set(User.objects.filter(username__in=usernames).values_list('username', flat=True))
@@ -27,4 +27,4 @@ def linkify_mentions(text):
             )
         return match.group(0)
 
-    return mark_safe(re.sub(r'@(\w+)', replace_mention, escaped))
+    return mark_safe(re.sub(r'@([\w.]+)', replace_mention, escaped))
