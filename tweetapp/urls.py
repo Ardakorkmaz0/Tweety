@@ -60,4 +60,7 @@ urlpatterns = [
     path('push/unsubscribe/', views.push_unsubscribe, name='push_unsubscribe'),
     path('push/vapid-key/', views.vapid_public_key, name='vapid_public_key'),
     path('api/mentions-autocomplete/', views.api_mention_autocomplete, name='api_mention_autocomplete'),
+    path('games/', views.games_view, name='games'),
+    path('games/submit-score/', views.api_submit_score, name='submit_score'),
+    path('leaderboard/', views.leaderboard_view, name='leaderboard'),
 ]

@@ -158,6 +158,20 @@
                     <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"></i>
                     <input type="text" name="q" placeholder="Search..." class="w-full pl-11 pr-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--card-bg)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--neon-green)]">
                 </form>
+
+                {% if user.is_authenticated %}
+                {% if request.resolver_match.url_name != 'games' %}
+                <a href="{% url 'tweetapp:games' %}" class="glass-card p-4 flex items-center gap-3 decoration-transparent transition-all hover:scale-[1.02] group" style="border: 1px solid rgba(251, 191, 36, 0.15);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110" style="background: linear-gradient(135deg, #FBBF24, #10F28C); font-size: 18px;">🐦</div>
+                    <div class="flex-1">
+                        <div class="font-bold text-sm" style="color: #FBBF24;">Flappy Tweet</div>
+                        <div class="text-xs" style="color: var(--text-muted);">Tap to play!</div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4" style="color: var(--text-muted);"></i>
+                </a>
+                {% endif %}
+                {% endif %}
+
                 {% block right_sidebar %}{% endblock %}
             </div>
         </div>
@@ -181,6 +195,10 @@
                 <div class="flex-1 flex justify-center relative">
                     <button class="p-1 w-full flex justify-center menu-toggle transition-colors" style="color: rgba(255, 255, 255, 0.5);" id="moreBtn"><i data-lucide="more-horizontal" class="w-6 h-6"></i></button>
                     <div class="absolute bottom-full right-0 mb-2 bg-[var(--card-bg)] rounded-lg border border-[var(--border-subtle)] shadow-xl menu-dropdown hidden transition-all duration-200 z-50" style="width: 140px; min-width: max-content;">
+                        <a href="{% url 'tweetapp:games' %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(251,191,36,0.05)] transition-colors text-sm" style="color: #FBBF24; border-bottom: 1px solid var(--border-subtle);">
+                            <span class="text-base">🎮</span>
+                            <span>Games</span>
+                        </a>
                         <a href="{% url 'tweetapp:profile' username=user.username %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] transition-colors text-sm" style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
                             <i data-lucide="user" class="w-4 h-4"></i>
                             <span>Profile</span>

@@ -1532,3 +1532,214 @@ def push_unsubscribe(request):
 def vapid_public_key(request):
     """Return the VAPID public key for the frontend."""
     return JsonResponse({'public_key': getattr(settings, 'VAPID_PUBLIC_KEY', '')})
+
+
+# ─── Games ───────────────────────────────────────────────────────────────────
+
+@login_required(login_url='/login/')
+def games_view(request):
+    """Render the Flappy Tweet game page with sidebar context."""
+    user = request.user
+    # User's all-time best score
+    best_score_obj = models.GameScore.objects.filter(
+        user=user, game='flappy_tweet'
+    ).order_by('-score').first()
+    best_score = best_score_obj.score if best_score_obj else 0
+
+    # Today's best score
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    daily_best_obj = models.GameScore.objects.filter(
+        user=user, game='flappy_tweet', created_at__gte=today_start
+    ).order_by('-score').first()
+    daily_best = daily_best_obj.score if daily_best_obj else 0
+
+    # Top 5 all-time leaderboard for sidebar
+    from django.db.models import Max
+    top5 = (
+        models.GameScore.objects
+        .filter(game='flappy_tweet')
+        .values('user__username', 'user__id')
+        .annotate(top_score=Max('score'))
+        .order_by('-top_score')[:5]
+    )
+
+    # Enrich with profile images
+    top5_list = []
+    for entry in top5:
+        try:
+            u = User.objects.select_related('profile').get(pk=entry['user__id'])
+            img = u.profile.profile_image.url if u.profile.profile_image else None
+        except Exception:
+            img = None
+        top5_list.append({
+            'username': entry['user__username'],
+            'score': entry['top_score'],
+            'profile_image': img,
+        })
+
+    # Recent notifications (last 5 unread)
+    recent_notifs = models.Notification.objects.filter(
+        recipient=user, is_read=False
+    ).select_related('actor')[:5]
+
+    # Unread message count + last message
+    unread_threads = models.Message.objects.filter(
+        thread__participants=user, is_read=False
+    ).exclude(sender=user).select_related('sender', 'thread')
+    unread_msg_count = unread_threads.count()
+    last_message = unread_threads.order_by('-created_at').first()
+
+    # Online users
+    five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+    online_users = User.objects.filter(
+        profile__last_active__gte=five_minutes_ago
+    ).select_related('profile')[:10]
+
+    # Recent group activity
+    user_groups = models.Group.objects.filter(memberships__user=user)
+    recent_group_msgs = models.GroupMessage.objects.filter(
+        group__in=user_groups
+    ).exclude(user=user).select_related('user', 'group').order_by('-created_at')[:5]
+
+    context = {
+        'best_score': best_score,
+        'daily_best': daily_best,
+        'top5': top5_list,
+        'recent_notifs': recent_notifs,
+        'unread_msg_count': unread_msg_count,
+        'last_message': last_message,
+        'online_users': online_users,
+        'recent_group_msgs': recent_group_msgs,
+    }
+    return render(request, 'tweetapp/games.html', context)
+
+
+@login_required(login_url='/login/')
+def api_submit_score(request):
+    """Save a game score via AJAX POST."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    score = data.get('score')
+    if score is None or not isinstance(score, int) or score < 0:
+        return JsonResponse({'error': 'Invalid score'}, status=400)
+
+    models.GameScore.objects.create(
+        user=request.user,
+        game='flappy_tweet',
+        score=score,
+    )
+
+    # Return updated best scores
+    from django.db.models import Max
+    best = models.GameScore.objects.filter(
+        user=request.user, game='flappy_tweet'
+    ).aggregate(best=Max('score'))['best'] or 0
+
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    daily_best = models.GameScore.objects.filter(
+        user=request.user, game='flappy_tweet', created_at__gte=today_start
+    ).aggregate(best=Max('score'))['best'] or 0
+
+    return JsonResponse({
+        'success': True,
+        'best_score': best,
+        'daily_best': daily_best,
+    })
+
+
+@login_required(login_url='/login/')
+def leaderboard_view(request):
+    """Render the leaderboard page with daily + all-time tabs."""
+    from django.db.models import Max
+    tab = request.GET.get('tab', 'alltime')
+
+    if tab == 'daily':
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        entries = (
+            models.GameScore.objects
+            .filter(game='flappy_tweet', created_at__gte=today_start)
+            .values('user__username', 'user__id')
+            .annotate(top_score=Max('score'))
+            .order_by('-top_score')[:50]
+        )
+    else:
+        entries = (
+            models.GameScore.objects
+            .filter(game='flappy_tweet')
+            .values('user__username', 'user__id')
+            .annotate(top_score=Max('score'))
+            .order_by('-top_score')[:50]
+        )
+
+    leaderboard = []
+    for i, entry in enumerate(entries, 1):
+        try:
+            u = User.objects.select_related('profile').get(pk=entry['user__id'])
+            img = u.profile.profile_image.url if u.profile.profile_image else None
+        except Exception:
+            img = None
+        leaderboard.append({
+            'rank': i,
+            'username': entry['user__username'],
+            'user_id': entry['user__id'],
+            'score': entry['top_score'],
+            'profile_image': img,
+        })
+
+    # Current user's rank
+    my_rank = None
+    my_score = None
+    for entry in leaderboard:
+        if entry['user_id'] == request.user.id:
+            my_rank = entry['rank']
+            my_score = entry['score']
+            break
+
+    if my_rank is None:
+        # User not in top 50, find their rank
+        if tab == 'daily':
+            today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            user_best = models.GameScore.objects.filter(
+                user=request.user, game='flappy_tweet', created_at__gte=today_start
+            ).aggregate(best=Max('score'))['best']
+        else:
+            user_best = models.GameScore.objects.filter(
+                user=request.user, game='flappy_tweet'
+            ).aggregate(best=Max('score'))['best']
+
+        if user_best is not None:
+            my_score = user_best
+            if tab == 'daily':
+                today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                higher_count = (
+                    models.GameScore.objects
+                    .filter(game='flappy_tweet', created_at__gte=today_start)
+                    .values('user')
+                    .annotate(top_score=Max('score'))
+                    .filter(top_score__gt=user_best)
+                    .count()
+                )
+            else:
+                higher_count = (
+                    models.GameScore.objects
+                    .filter(game='flappy_tweet')
+                    .values('user')
+                    .annotate(top_score=Max('score'))
+                    .filter(top_score__gt=user_best)
+                    .count()
+                )
+            my_rank = higher_count + 1
+
+    context = {
+        'leaderboard': leaderboard,
+        'active_tab': tab,
+        'my_rank': my_rank,
+        'my_score': my_score,
+    }
+    context.update(get_sidebar_context(request))
+    return render(request, 'tweetapp/leaderboard.html', context)

@@ -223,3 +223,16 @@ class NotificationPreference(models.Model):
 
     def __str__(self):
         return f"Notification prefs for {self.user.username}"
+
+
+class GameScore(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='game_scores')
+    game = models.CharField(max_length=50, default='flappy_tweet')
+    score = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-score']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.game}: {self.score}"

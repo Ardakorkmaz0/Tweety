@@ -1,0 +1,890 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Flappy Tweet - Tweety Games{% endblock %}
+
+{% block content_width_class %}max-w-[600px]{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <!-- Game Header -->
+    <div class="glass-card p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #FBBF24, #10F28C); font-size: 20px;">🐦</div>
+            <div>
+                <h2 class="text-lg font-bold" style="color: var(--text-primary); margin: 0;">Flappy Tweet</h2>
+                <p class="text-xs" style="color: var(--text-muted); margin: 0;">Tap to fly, avoid the pipes!</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+            <div class="text-center">
+                <div class="font-bold" style="color: #FBBF24;" id="bestScoreHeader">{{ best_score }}</div>
+                <div style="color: var(--text-muted); font-size: 10px;">BEST</div>
+            </div>
+            <div class="text-center">
+                <div class="font-bold" style="color: #10F28C;" id="dailyBestHeader">{{ daily_best }}</div>
+                <div style="color: var(--text-muted); font-size: 10px;">TODAY</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Canvas Container -->
+    <div class="glass-card overflow-hidden relative" id="gameContainer" style="border: 1px solid rgba(251, 191, 36, 0.2);">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- Mobile Controls Hint -->
+    <div class="lg:hidden text-center text-xs" style="color: var(--text-muted);">
+        Tap anywhere on the game to flap! 🐦
+    </div>
+
+    <!-- Mobile Leaderboard & Actions (visible only on mobile) -->
+    <div class="lg:hidden space-y-3">
+        <div class="flex gap-2">
+            <a href="{% url 'tweetapp:leaderboard' %}" class="flex-1 py-3 rounded-xl text-center text-sm font-bold decoration-transparent transition-all active:scale-95" style="background: linear-gradient(135deg, #FBBF24, #F59E0B); color: #0a0a1a;">
+                🏆 Leaderboard
+            </a>
+            <a href="{% url 'tweetapp:leaderboard' %}?tab=daily" class="flex-1 py-3 rounded-xl text-center text-sm font-bold decoration-transparent transition-all active:scale-95" style="background: linear-gradient(135deg, #10F28C, #059669); color: #0a0a1a;">
+                📅 Today's Ranking
+            </a>
+        </div>
+
+        <!-- Mini Top Players -->
+        <div class="glass-card p-4 space-y-2">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-sm" style="color: #FBBF24; margin: 0;">🏆 Top Players</h3>
+                <a href="{% url 'tweetapp:leaderboard' %}" class="text-xs font-semibold decoration-transparent" style="color: #10F28C;">View All</a>
+            </div>
+            {% for player in top5 %}
+            <div class="flex items-center gap-3 py-1 {% if not forloop.last %}border-b border-[var(--border-subtle)]{% endif %}">
+                <span class="w-5 text-center font-bold text-xs">
+                    {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}{{ forloop.counter }}{% endif %}
+                </span>
+                {% if player.profile_image %}
+                <img src="{{ player.profile_image }}" class="w-7 h-7 rounded-full object-cover">
+                {% else %}
+                <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--surface-bg);">{{ player.username|first|upper }}</div>
+                {% endif %}
+                <span class="flex-1 text-sm font-semibold truncate" style="color: var(--text-primary);">{{ player.username }}</span>
+                <span class="text-sm font-bold" style="color: #FBBF24;">{{ player.score }}</span>
+            </div>
+            {% empty %}
+            <p class="text-xs text-center py-2" style="color: var(--text-muted);">No scores yet!</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+    #gameCanvas {
+        display: block;
+        width: 100%;
+        cursor: pointer;
+        background: #0a0a1a;
+        touch-action: none;
+    }
+    .light-theme #gameCanvas {
+        background: #e8f0f8;
+    }
+</style>
+
+<script>
+(function() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('gameContainer');
+
+    // ─── Responsive Canvas Setup ─────────────────────────────────────
+    const GAME_WIDTH = 400;
+    const GAME_HEIGHT = 600;
+    let scale = 1;
+
+    function resizeCanvas() {
+        const containerWidth = container.clientWidth;
+        scale = containerWidth / GAME_WIDTH;
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+        canvas.style.width = containerWidth + 'px';
+        canvas.style.height = (GAME_HEIGHT * scale) + 'px';
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // ─── Theme Detection ─────────────────────────────────────────────
+    function isLightTheme() {
+        return document.documentElement.classList.contains('light-theme');
+    }
+
+    // ─── Game State ──────────────────────────────────────────────────
+    // Physics constants calibrated for 60 FPS
+    const TARGET_FPS = 60;
+    const FRAME_DURATION = 1000 / TARGET_FPS; // ~16.67ms
+    const GRAVITY = 0.45;
+    const JUMP_FORCE = -7.5;
+    const PIPE_WIDTH = 52;
+    const PIPE_GAP = 150;
+    const PIPE_SPEED = 2.2;
+    const PIPE_SPAWN_INTERVAL = 180; // at 60fps = 3 seconds
+
+    let bird, pipes, score, bestScore, dailyBest, gameState, frameCount, particles;
+    let animationId = null;
+    let lastTime = 0;
+    let accumulator = 0; // for fixed-step physics
+
+    bestScore = {{ best_score }};
+    dailyBest = {{ daily_best }};
+
+    function resetGame() {
+        bird = {
+            x: 80,
+            y: GAME_HEIGHT / 2,
+            velocity: 0,
+            width: 30,
+            height: 24,
+            rotation: 0,
+            flapFrame: 0,
+        };
+        pipes = [];
+        particles = [];
+        score = 0;
+        frameCount = 0;
+        accumulator = 0;
+        lastTime = 0;
+        gameState = 'waiting'; // waiting, playing, dead
+    }
+    resetGame();
+
+    // ─── Particle System ─────────────────────────────────────────────
+    function spawnParticles(x, y, color, count) {
+        for (let i = 0; i < count; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                life: 30 + Math.random() * 20,
+                maxLife: 50,
+                size: 2 + Math.random() * 3,
+                color: color,
+            });
+        }
+    }
+
+    function spawnScoreParticles(x, y) {
+        const colors = ['#FBBF24', '#F59E0B', '#10F28C', '#ffffff'];
+        for (let i = 0; i < 8; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 4,
+                vy: -Math.random() * 4 - 1,
+                life: 40,
+                maxLife: 40,
+                size: 3 + Math.random() * 3,
+                color: colors[Math.floor(Math.random() * colors.length)],
+            });
+        }
+    }
+
+    // ─── Drawing Functions ───────────────────────────────────────────
+
+    function drawBackground() {
+        const light = isLightTheme();
+        if (light) {
+            // Light theme gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+            grad.addColorStop(0, '#c9e8f7');
+            grad.addColorStop(0.6, '#e8f4f8');
+            grad.addColorStop(1, '#a8e6a1');
+            ctx.fillStyle = grad;
+        } else {
+            // Dark theme gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+            grad.addColorStop(0, '#07070f');
+            grad.addColorStop(0.5, '#0a0a1a');
+            grad.addColorStop(1, '#0d1a0d');
+            ctx.fillStyle = grad;
+        }
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // Subtle grid pattern
+        ctx.strokeStyle = light ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < GAME_WIDTH; x += 40) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, GAME_HEIGHT);
+            ctx.stroke();
+        }
+        for (let y = 0; y < GAME_HEIGHT; y += 40) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(GAME_WIDTH, y);
+            ctx.stroke();
+        }
+    }
+
+    function drawGround() {
+        const light = isLightTheme();
+        const groundY = GAME_HEIGHT - 40;
+        const grad = ctx.createLinearGradient(0, groundY, 0, GAME_HEIGHT);
+        if (light) {
+            grad.addColorStop(0, '#22c55e');
+            grad.addColorStop(1, '#16a34a');
+        } else {
+            grad.addColorStop(0, '#10F28C');
+            grad.addColorStop(0.5, '#0a8050');
+            grad.addColorStop(1, '#064030');
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, groundY, GAME_WIDTH, 40);
+
+        // Ground line
+        ctx.strokeStyle = '#FBBF24';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, groundY);
+        ctx.lineTo(GAME_WIDTH, groundY);
+        ctx.stroke();
+
+        // Ground texture lines
+        ctx.strokeStyle = light ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        const offset = (frameCount * 2) % 20;
+        for (let x = -20 + offset; x < GAME_WIDTH + 20; x += 20) {
+            ctx.beginPath();
+            ctx.moveTo(x, groundY + 5);
+            ctx.lineTo(x - 10, GAME_HEIGHT);
+            ctx.stroke();
+        }
+    }
+
+    function drawBird() {
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+
+        // Rotation based on velocity
+        bird.rotation = Math.min(Math.max(bird.velocity * 3, -30), 70) * Math.PI / 180;
+        ctx.rotate(bird.rotation);
+
+        // Wing flap animation
+        bird.flapFrame = (bird.flapFrame + 0.15) % (Math.PI * 2);
+        const wingOffset = Math.sin(bird.flapFrame) * 4;
+
+        // Body shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath();
+        ctx.ellipse(2, 2, 15, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body
+        const bodyGrad = ctx.createRadialGradient(-3, -3, 2, 0, 0, 15);
+        bodyGrad.addColorStop(0, '#FDE68A');
+        bodyGrad.addColorStop(0.5, '#FBBF24');
+        bodyGrad.addColorStop(1, '#F59E0B');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 15, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body outline
+        ctx.strokeStyle = '#D97706';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Wing
+        ctx.fillStyle = '#FCD34D';
+        ctx.beginPath();
+        ctx.ellipse(-5, wingOffset, 8, 6, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#D97706';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Eye
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(7, -4, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pupil
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.arc(8.5, -4, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye highlight
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(9.5, -5.5, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Beak
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.moveTo(13, -1);
+        ctx.lineTo(21, 1);
+        ctx.lineTo(13, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Tail feathers
+        ctx.fillStyle = '#F59E0B';
+        ctx.beginPath();
+        ctx.moveTo(-14, -3);
+        ctx.lineTo(-22, -6 + wingOffset * 0.5);
+        ctx.lineTo(-18, 0);
+        ctx.lineTo(-22, 5 - wingOffset * 0.5);
+        ctx.lineTo(-14, 3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+
+        // Trail particles when playing
+        if (gameState === 'playing' && frameCount % 3 === 0) {
+            particles.push({
+                x: bird.x - 15,
+                y: bird.y + Math.random() * 6 - 3,
+                vx: -1,
+                vy: (Math.random() - 0.5) * 0.5,
+                life: 15,
+                maxLife: 15,
+                size: 2 + Math.random() * 2,
+                color: '#FBBF24',
+            });
+        }
+    }
+
+    function drawPipe(pipe) {
+        const light = isLightTheme();
+
+        // Top pipe
+        const topGrad = ctx.createLinearGradient(pipe.x, 0, pipe.x + PIPE_WIDTH, 0);
+        if (light) {
+            topGrad.addColorStop(0, '#16a34a');
+            topGrad.addColorStop(0.5, '#22c55e');
+            topGrad.addColorStop(1, '#16a34a');
+        } else {
+            topGrad.addColorStop(0, '#065f46');
+            topGrad.addColorStop(0.3, '#10F28C');
+            topGrad.addColorStop(0.7, '#10F28C');
+            topGrad.addColorStop(1, '#065f46');
+        }
+
+        ctx.fillStyle = topGrad;
+        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
+
+        // Top pipe cap
+        const capHeight = 20;
+        ctx.fillStyle = light ? '#15803d' : '#0a8050';
+        ctx.beginPath();
+        ctx.roundRect(pipe.x - 4, pipe.topHeight - capHeight, PIPE_WIDTH + 8, capHeight, [0, 0, 6, 6]);
+        ctx.fill();
+
+        // Top pipe glow
+        if (!light) {
+            ctx.shadowColor = '#10F28C';
+            ctx.shadowBlur = 8;
+            ctx.strokeStyle = 'rgba(16, 242, 140, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(pipe.x - 4, pipe.topHeight - capHeight, PIPE_WIDTH + 8, capHeight);
+            ctx.shadowBlur = 0;
+        }
+
+        // Bottom pipe
+        const bottomY = pipe.topHeight + PIPE_GAP;
+        ctx.fillStyle = topGrad;
+        ctx.fillRect(pipe.x, bottomY, PIPE_WIDTH, GAME_HEIGHT - bottomY - 40);
+
+        // Bottom pipe cap
+        ctx.fillStyle = light ? '#15803d' : '#0a8050';
+        ctx.beginPath();
+        ctx.roundRect(pipe.x - 4, bottomY, PIPE_WIDTH + 8, capHeight, [6, 6, 0, 0]);
+        ctx.fill();
+
+        // Bottom pipe glow
+        if (!light) {
+            ctx.shadowColor = '#10F28C';
+            ctx.shadowBlur = 8;
+            ctx.strokeStyle = 'rgba(16, 242, 140, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(pipe.x - 4, bottomY, PIPE_WIDTH + 8, capHeight);
+            ctx.shadowBlur = 0;
+        }
+
+        // Pipe shine line
+        ctx.fillStyle = light ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)';
+        ctx.fillRect(pipe.x + 8, 0, 4, pipe.topHeight);
+        ctx.fillRect(pipe.x + 8, bottomY, 4, GAME_HEIGHT - bottomY - 40);
+    }
+
+    function drawParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life--;
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+                continue;
+            }
+            const alpha = p.life / p.maxLife;
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawScore() {
+        if (gameState === 'playing') {
+            // Score text with shadow
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 48px "Inter", system-ui, sans-serif';
+
+            // Glow
+            ctx.shadowColor = '#FBBF24';
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#FBBF24';
+            ctx.fillText(score, GAME_WIDTH / 2, 70);
+
+            // White outline
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 3;
+            ctx.strokeText(score, GAME_WIDTH / 2, 70);
+            ctx.fillText(score, GAME_WIDTH / 2, 70);
+
+            ctx.restore();
+        }
+    }
+
+    function drawStartScreen() {
+        const light = isLightTheme();
+        // Semi-transparent overlay
+        ctx.fillStyle = light ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // Title
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 42px "Inter", system-ui, sans-serif';
+        ctx.fillStyle = '#FBBF24';
+        ctx.shadowColor = '#FBBF24';
+        ctx.shadowBlur = 20;
+        ctx.fillText('Flappy Tweet', GAME_WIDTH / 2, 200);
+        ctx.shadowBlur = 0;
+
+        // Draw the bird in the center as preview
+        ctx.save();
+        const savedBirdX = bird.x, savedBirdY = bird.y;
+        bird.x = GAME_WIDTH / 2;
+        bird.y = 270;
+        drawBird();
+        bird.x = savedBirdX;
+        bird.y = savedBirdY;
+        ctx.restore();
+
+        // Instruction
+        ctx.font = '18px "Inter", system-ui, sans-serif';
+        ctx.fillStyle = light ? '#334155' : '#8a8aa3';
+        const isMobile = 'ontouchstart' in window;
+        ctx.fillText(isMobile ? 'Tap to Start!' : 'Click or Press Space', GAME_WIDTH / 2, 350);
+
+        // Pulsing indicator
+        const pulse = Math.sin(Date.now() / 500) * 0.3 + 0.7;
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = '#10F28C';
+        ctx.beginPath();
+        ctx.arc(GAME_WIDTH / 2, 390, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Best scores
+        if (bestScore > 0) {
+            ctx.font = '14px "Inter", system-ui, sans-serif';
+            ctx.fillStyle = '#FBBF24';
+            ctx.fillText('Best: ' + bestScore, GAME_WIDTH / 2, 440);
+        }
+    }
+
+    function drawGameOver() {
+        const light = isLightTheme();
+        // Overlay
+        ctx.fillStyle = light ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // Game Over card
+        const cardX = 50, cardY = 140, cardW = 300, cardH = 320;
+        ctx.fillStyle = light ? 'rgba(255,255,255,0.95)' : 'rgba(26, 26, 46, 0.95)';
+        ctx.beginPath();
+        ctx.roundRect(cardX, cardY, cardW, cardH, 16);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+
+        // Title
+        ctx.font = 'bold 28px "Inter", system-ui, sans-serif';
+        ctx.fillStyle = '#EF4444';
+        ctx.fillText('Game Over!', GAME_WIDTH / 2, cardY + 50);
+
+        // Score
+        ctx.font = 'bold 60px "Inter", system-ui, sans-serif';
+        ctx.fillStyle = '#FBBF24';
+        ctx.shadowColor = '#FBBF24';
+        ctx.shadowBlur = 15;
+        ctx.fillText(score, GAME_WIDTH / 2, cardY + 130);
+        ctx.shadowBlur = 0;
+
+        ctx.font = '13px "Inter", system-ui, sans-serif';
+        ctx.fillStyle = light ? '#64748b' : '#8a8aa3';
+        ctx.fillText('SCORE', GAME_WIDTH / 2, cardY + 150);
+
+        // Best score
+        ctx.font = 'bold 20px "Inter", system-ui, sans-serif';
+        const isNewBest = score >= bestScore && score > 0;
+        if (isNewBest) {
+            ctx.fillStyle = '#10F28C';
+            ctx.fillText('🎉 New Best: ' + bestScore + '!', GAME_WIDTH / 2, cardY + 190);
+        } else {
+            ctx.fillStyle = light ? '#334155' : '#f0f0f0';
+            ctx.fillText('Best: ' + bestScore, GAME_WIDTH / 2, cardY + 190);
+        }
+
+        // Today's best
+        ctx.font = '14px "Inter", system-ui, sans-serif';
+        ctx.fillStyle = '#10F28C';
+        ctx.fillText("Today's Best: " + dailyBest, GAME_WIDTH / 2, cardY + 220);
+
+        // Restart prompt
+        const pulse = Math.sin(Date.now() / 400) * 0.3 + 0.7;
+        ctx.globalAlpha = pulse;
+        ctx.font = '16px "Inter", system-ui, sans-serif';
+        ctx.fillStyle = '#FBBF24';
+        const isMobile = 'ontouchstart' in window;
+        ctx.fillText(isMobile ? 'Tap to Retry' : 'Click or Space to Retry', GAME_WIDTH / 2, cardY + 270);
+        ctx.globalAlpha = 1;
+
+        // Leaderboard button
+        ctx.fillStyle = '#10F28C';
+        ctx.beginPath();
+        ctx.roundRect(cardX + 60, cardY + 285, 180, 30, 8);
+        ctx.fill();
+        ctx.font = 'bold 13px "Inter", system-ui, sans-serif';
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillText('🏆 Leaderboard', GAME_WIDTH / 2, cardY + 305);
+    }
+
+    // ─── Game Logic ──────────────────────────────────────────────────
+
+    function jump() {
+        if (gameState === 'waiting') {
+            gameState = 'playing';
+            bird.velocity = JUMP_FORCE;
+            return;
+        }
+        if (gameState === 'playing') {
+            bird.velocity = JUMP_FORCE;
+            bird.flapFrame = 0;
+            spawnParticles(bird.x - 10, bird.y + 8, '#FBBF24', 3);
+            return;
+        }
+        if (gameState === 'dead') {
+            resetGame();
+            return;
+        }
+    }
+
+    function checkLeaderboardClick(e) {
+        if (gameState !== 'dead') return;
+        const rect = canvas.getBoundingClientRect();
+        const clickX = (e.clientX - rect.left) / scale;
+        const clickY = (e.clientY - rect.top) / scale;
+
+        // Leaderboard button bounds
+        const btnX = 110, btnY = 425, btnW = 180, btnH = 30;
+        if (clickX >= btnX && clickX <= btnX + btnW && clickY >= btnY && clickY <= btnY + btnH) {
+            window.location.href = '{% url "tweetapp:leaderboard" %}';
+            return true;
+        }
+        return false;
+    }
+
+    function update() {
+        if (gameState !== 'playing') return;
+
+        frameCount++;
+
+        // Bird physics
+        bird.velocity += GRAVITY;
+        bird.y += bird.velocity;
+
+        // Spawn pipes
+        if (frameCount % PIPE_SPAWN_INTERVAL === 0) {
+            const minTop = 80;
+            const maxTop = GAME_HEIGHT - PIPE_GAP - 120;
+            const topHeight = minTop + Math.random() * (maxTop - minTop);
+            pipes.push({
+                x: GAME_WIDTH,
+                topHeight: topHeight,
+                scored: false,
+            });
+        }
+
+        // Move pipes
+        for (let i = pipes.length - 1; i >= 0; i--) {
+            pipes[i].x -= PIPE_SPEED;
+
+            // Score
+            if (!pipes[i].scored && pipes[i].x + PIPE_WIDTH < bird.x) {
+                pipes[i].scored = true;
+                score++;
+                spawnScoreParticles(bird.x, bird.y - 30);
+
+                // Update header scores live
+                document.getElementById('bestScoreHeader').textContent = Math.max(score, bestScore);
+            }
+
+            // Remove off-screen pipes
+            if (pipes[i].x + PIPE_WIDTH < -10) {
+                pipes.splice(i, 1);
+            }
+        }
+
+        // Collision detection
+        const birdLeft = bird.x - 12;
+        const birdRight = bird.x + 12;
+        const birdTop = bird.y - 10;
+        const birdBottom = bird.y + 10;
+
+        // Ground/ceiling
+        if (birdBottom >= GAME_HEIGHT - 40 || birdTop <= 0) {
+            die();
+            return;
+        }
+
+        // Pipes
+        for (const pipe of pipes) {
+            if (birdRight > pipe.x && birdLeft < pipe.x + PIPE_WIDTH) {
+                if (birdTop < pipe.topHeight || birdBottom > pipe.topHeight + PIPE_GAP) {
+                    die();
+                    return;
+                }
+            }
+        }
+    }
+
+    function die() {
+        gameState = 'dead';
+        spawnParticles(bird.x, bird.y, '#EF4444', 15);
+        spawnParticles(bird.x, bird.y, '#FBBF24', 10);
+
+        // Submit score to server
+        if (score > bestScore) bestScore = score;
+        if (score > dailyBest) dailyBest = score;
+
+        // Update header
+        document.getElementById('bestScoreHeader').textContent = bestScore;
+        document.getElementById('dailyBestHeader').textContent = dailyBest;
+
+        fetch('{% url "tweetapp:submit_score" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ score: score }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.best_score) bestScore = data.best_score;
+            if (data.daily_best) dailyBest = data.daily_best;
+            document.getElementById('bestScoreHeader').textContent = bestScore;
+            document.getElementById('dailyBestHeader').textContent = dailyBest;
+        })
+        .catch(() => {});
+    }
+
+    // ─── Main Game Loop (delta-time fixed step) ───────────────────────
+
+    function gameLoop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const deltaTime = timestamp - lastTime;
+        lastTime = timestamp;
+
+        // Accumulate time and run physics in fixed steps (60 FPS)
+        // Cap deltaTime to avoid spiral of death on tab switch
+        accumulator += Math.min(deltaTime, 100);
+
+        while (accumulator >= FRAME_DURATION) {
+            update();
+            accumulator -= FRAME_DURATION;
+        }
+
+        // Render
+        drawBackground();
+        drawGround();
+
+        for (const pipe of pipes) {
+            drawPipe(pipe);
+        }
+
+        drawParticles();
+        drawBird();
+        drawScore();
+
+        if (gameState === 'waiting') drawStartScreen();
+        if (gameState === 'dead') drawGameOver();
+
+        animationId = requestAnimationFrame(gameLoop);
+    }
+
+    // ─── Event Listeners ─────────────────────────────────────────────
+
+    canvas.addEventListener('click', (e) => {
+        if (!checkLeaderboardClick(e)) {
+            jump();
+        }
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        jump();
+    }, { passive: false });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+            // Only respond if game canvas is visible
+            const rect = canvas.getBoundingClientRect();
+            if (rect.top < window.innerHeight && rect.bottom > 0) {
+                e.preventDefault();
+                jump();
+            }
+        }
+    });
+
+    // Start the game loop
+    requestAnimationFrame(gameLoop);
+})();
+</script>
+{% endblock %}
+
+{% block right_sidebar %}
+<!-- Mini Leaderboard -->
+<div class="glass-card p-4 space-y-3">
+    <div class="flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2" style="color: #FBBF24; margin: 0;">
+            🏆 Top Players
+        </h3>
+        <a href="{% url 'tweetapp:leaderboard' %}" class="text-xs font-semibold decoration-transparent hover:underline" style="color: #10F28C;">View All</a>
+    </div>
+    {% for player in top5 %}
+    <div class="flex items-center gap-3 py-1.5 {% if not forloop.last %}border-b border-[var(--border-subtle)]{% endif %}">
+        <span class="w-5 text-center font-bold text-xs {% if forloop.counter == 1 %}text-[#FBBF24]{% elif forloop.counter == 2 %}text-[#C0C0C0]{% elif forloop.counter == 3 %}text-[#CD7F32]{% else %}text-[var(--text-muted)]{% endif %}">
+            {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}{{ forloop.counter }}{% endif %}
+        </span>
+        {% if player.profile_image %}
+        <img src="{{ player.profile_image }}" class="w-7 h-7 rounded-full object-cover">
+        {% else %}
+        <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--surface-bg); color: var(--text-primary);">{{ player.username|first|upper }}</div>
+        {% endif %}
+        <a href="{% url 'tweetapp:profile' username=player.username %}" class="flex-1 text-sm font-semibold truncate decoration-transparent hover:underline" style="color: var(--text-primary);">{{ player.username }}</a>
+        <span class="text-sm font-bold" style="color: #FBBF24;">{{ player.score }}</span>
+    </div>
+    {% empty %}
+    <p class="text-xs text-center py-4" style="color: var(--text-muted);">No scores yet. Be the first! 🐦</p>
+    {% endfor %}
+</div>
+
+<!-- Online Users -->
+<div class="glass-card p-4 space-y-3">
+    <h3 class="font-bold text-sm flex items-center gap-2" style="color: var(--text-primary); margin: 0;">
+        <span class="w-2 h-2 rounded-full bg-[#10F28C] inline-block"></span>
+        Online Now
+    </h3>
+    {% for online_user in online_users %}
+    <div class="flex items-center gap-2 py-1">
+        {% if online_user.profile.profile_image %}
+        <img src="{{ online_user.profile.profile_image.url }}" class="w-6 h-6 rounded-full object-cover">
+        {% else %}
+        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--surface-bg);">{{ online_user.username|first|upper }}</div>
+        {% endif %}
+        <a href="{% url 'tweetapp:profile' username=online_user.username %}" class="text-sm truncate decoration-transparent hover:underline" style="color: var(--text-primary);">{{ online_user.username }}</a>
+    </div>
+    {% empty %}
+    <p class="text-xs" style="color: var(--text-muted);">No users online</p>
+    {% endfor %}
+</div>
+
+<!-- Recent Notifications -->
+<div class="glass-card p-4 space-y-3">
+    <div class="flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2" style="color: var(--text-primary); margin: 0;">
+            🔔 Notifications
+        </h3>
+        <a href="{% url 'tweetapp:notifications' %}" class="text-xs font-semibold decoration-transparent hover:underline" style="color: #10F28C;">View All</a>
+    </div>
+    {% for notif in recent_notifs %}
+    <div class="flex items-center gap-2 py-1 text-xs" style="color: var(--text-secondary);">
+        <span class="font-semibold" style="color: var(--neon-green);">@{{ notif.actor.username }}</span>
+        <span>
+            {% if notif.notification_type == 'like' %}liked your tweet ❤️
+            {% elif notif.notification_type == 'comment' %}commented 💬
+            {% elif notif.notification_type == 'follow' %}followed you 👤
+            {% elif notif.notification_type == 'mention' %}mentioned you 📢
+            {% else %}{{ notif.notification_type }}
+            {% endif %}
+        </span>
+    </div>
+    {% empty %}
+    <p class="text-xs" style="color: var(--text-muted);">All caught up! ✅</p>
+    {% endfor %}
+</div>
+
+<!-- Unread Messages -->
+<div class="glass-card p-4 space-y-3">
+    <div class="flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2" style="color: var(--text-primary); margin: 0;">
+            💬 Messages
+            {% if unread_msg_count > 0 %}
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)]">{{ unread_msg_count }}</span>
+            {% endif %}
+        </h3>
+        <a href="{% url 'tweetapp:inbox' %}" class="text-xs font-semibold decoration-transparent hover:underline" style="color: #10F28C;">Open</a>
+    </div>
+    {% if last_message %}
+    <div class="flex items-center gap-2 py-1 text-xs" style="color: var(--text-secondary);">
+        <span class="font-semibold" style="color: var(--neon-green);">@{{ last_message.sender.username }}:</span>
+        <span class="truncate">{{ last_message.content|truncatechars:40 }}</span>
+    </div>
+    {% else %}
+    <p class="text-xs" style="color: var(--text-muted);">No new messages</p>
+    {% endif %}
+</div>
+
+<!-- Recent Group Activity -->
+{% if recent_group_msgs %}
+<div class="glass-card p-4 space-y-3">
+    <h3 class="font-bold text-sm flex items-center gap-2" style="color: var(--text-primary); margin: 0;">
+        👥 Group Activity
+    </h3>
+    {% for gmsg in recent_group_msgs %}
+    <div class="py-1 text-xs" style="color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle);">
+        <div>
+            <span class="font-semibold" style="color: #00d2ff;">{{ gmsg.group.name }}</span>
+        </div>
+        <div class="truncate mt-0.5">
+            <span class="font-semibold" style="color: var(--text-primary);">@{{ gmsg.user.username }}:</span>
+            {{ gmsg.message|truncatechars:30 }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
