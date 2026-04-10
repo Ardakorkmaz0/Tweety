@@ -9,14 +9,14 @@
     <div class="glass-card p-5">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #FBBF24, #10F28C); font-size: 20px;">🏆</div>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); font-size: 20px;">🏆</div>
                 <div>
                     <h2 class="text-lg font-bold" style="color: var(--text-primary); margin: 0;">Leaderboard</h2>
                     <p class="text-xs" style="color: var(--text-muted); margin: 0;">Flappy Tweet Rankings</p>
                 </div>
             </div>
-            <a href="{% url 'tweetapp:games' %}" class="px-4 py-2 rounded-xl text-sm font-bold decoration-transparent transition-all hover:scale-105" 
-               style="background: linear-gradient(135deg, #FBBF24, #F59E0B); color: #0a0a1a;">
+                <a href="{% url 'tweetapp:games' %}" class="px-4 py-2 rounded-xl text-sm font-bold decoration-transparent transition-all hover:scale-105" 
+                    style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.05);">
                 🐦 Play
             </a>
         </div>
@@ -25,7 +25,7 @@
         <div class="flex gap-2">
             <a href="{% url 'tweetapp:leaderboard' %}?tab=alltime" 
                class="flex-1 py-2.5 rounded-xl text-center text-sm font-bold transition-all decoration-transparent"
-               style="{% if active_tab == 'alltime' %}background: linear-gradient(135deg, #FBBF24, #F59E0B); color: #0a0a1a;{% else %}background: var(--surface-bg); color: var(--text-muted);{% endif %}">
+                    style="{% if active_tab == 'alltime' %}background: linear-gradient(135deg, #10F28C, #059669); color: #0a0a1a;{% else %}background: var(--surface-bg); color: var(--text-muted);{% endif %}">
                 🏆 All Time
             </a>
             <a href="{% url 'tweetapp:leaderboard' %}?tab=daily" 
@@ -59,30 +59,30 @@
             <div class="flex flex-col items-center flex-1">
                 <div class="relative mb-2">
                     {% if leaderboard.0.profile_image %}
-                    <img src="{{ leaderboard.0.profile_image }}" class="w-16 h-16 rounded-full object-cover border-3" style="border: 3px solid #FBBF24; box-shadow: 0 0 20px rgba(251,191,36,0.4);">
+                    <img src="{{ leaderboard.0.profile_image }}" class="w-16 h-16 rounded-full object-cover border-3" style="border: 3px solid #22D3EE; box-shadow: 0 0 20px rgba(34,211,238,0.35);">
                     {% else %}
-                    <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="background: var(--surface-bg); border: 3px solid #FBBF24; box-shadow: 0 0 20px rgba(251,191,36,0.4);">{{ leaderboard.0.username|first|upper }}</div>
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="background: var(--surface-bg); border: 3px solid #22D3EE; box-shadow: 0 0 20px rgba(34,211,238,0.35);">{{ leaderboard.0.username|first|upper }}</div>
                     {% endif %}
                 </div>
                 <span class="text-xl">🥇</span>
-                <a href="{% url 'tweetapp:profile' username=leaderboard.0.username %}" class="text-sm font-bold truncate max-w-full decoration-transparent hover:underline" style="color: #FBBF24;">{{ leaderboard.0.username }}</a>
-                <span class="text-lg font-bold" style="color: #FBBF24;">{{ leaderboard.0.score }}</span>
-                <div class="w-full rounded-t-lg mt-2" style="height: 90px; background: linear-gradient(180deg, rgba(251,191,36,0.3), rgba(251,191,36,0.1));"></div>
+            <a href="{% url 'tweetapp:profile' username=leaderboard.0.username %}" class="text-sm font-bold truncate max-w-full decoration-transparent hover:underline" style="color: #22D3EE;">{{ leaderboard.0.username }}</a>
+            <span class="text-lg font-bold" style="color: #22D3EE;">{{ leaderboard.0.score }}</span>
+            <div class="w-full rounded-t-lg mt-2" style="height: 90px; background: linear-gradient(180deg, rgba(34,211,238,0.3), rgba(34,211,238,0.1));"></div>
             </div>
 
             <!-- 3rd Place -->
             <div class="flex flex-col items-center flex-1">
                 <div class="relative mb-2">
                     {% if leaderboard.2.profile_image %}
-                    <img src="{{ leaderboard.2.profile_image }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: #CD7F32;">
+                    <img src="{{ leaderboard.2.profile_image }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: #818CF8;">
                     {% else %}
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold border-2" style="background: var(--surface-bg); border-color: #CD7F32;">{{ leaderboard.2.username|first|upper }}</div>
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold border-2" style="background: var(--surface-bg); border-color: #818CF8;">{{ leaderboard.2.username|first|upper }}</div>
                     {% endif %}
                 </div>
                 <span class="text-lg">🥉</span>
                 <a href="{% url 'tweetapp:profile' username=leaderboard.2.username %}" class="text-xs font-semibold truncate max-w-full decoration-transparent hover:underline" style="color: var(--text-primary);">{{ leaderboard.2.username }}</a>
-                <span class="text-sm font-bold" style="color: #CD7F32;">{{ leaderboard.2.score }}</span>
-                <div class="w-full rounded-t-lg mt-2" style="height: 40px; background: linear-gradient(180deg, rgba(205,127,50,0.3), rgba(205,127,50,0.1));"></div>
+            <span class="text-sm font-bold" style="color: #818CF8;">{{ leaderboard.2.score }}</span>
+            <div class="w-full rounded-t-lg mt-2" style="height: 40px; background: linear-gradient(180deg, rgba(129,140,248,0.3), rgba(129,140,248,0.1));"></div>
             </div>
         </div>
     </div>
@@ -95,11 +95,11 @@
         </div>
         
         {% for entry in leaderboard %}
-        <div class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[rgba(251,191,36,0.03)] {% if not forloop.last %}border-b border-[var(--border-subtle)]{% endif %} {% if entry.user_id == request.user.id %}bg-[rgba(251,191,36,0.05)]{% endif %}"
-             {% if forloop.counter <= 3 %}style="{% if forloop.counter == 1 %}border-left: 3px solid #FBBF24;{% elif forloop.counter == 2 %}border-left: 3px solid #C0C0C0;{% elif forloop.counter == 3 %}border-left: 3px solid #CD7F32;{% endif %}"{% endif %}>
+           <div class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[rgba(255,255,255,0.03)] {% if not forloop.last %}border-b border-[var(--border-subtle)]{% endif %} {% if entry.user_id == request.user.id %}bg-[rgba(255,255,255,0.05)]{% endif %}"
+               {% if forloop.counter <= 3 %}style="{% if forloop.counter == 1 %}border-left: 3px solid #22D3EE;{% elif forloop.counter == 2 %}border-left: 3px solid #C0C0C0;{% elif forloop.counter == 3 %}border-left: 3px solid #818CF8;{% endif %}"{% endif %}>
             
             <!-- Rank -->
-            <span class="w-8 text-center font-bold text-sm {% if forloop.counter == 1 %}text-[#FBBF24]{% elif forloop.counter == 2 %}text-[#C0C0C0]{% elif forloop.counter == 3 %}text-[#CD7F32]{% else %}text-[var(--text-muted)]{% endif %}">
+            <span class="w-8 text-center font-bold text-sm {% if forloop.counter == 1 %}text-[#22D3EE]{% elif forloop.counter == 2 %}text-[#C0C0C0]{% elif forloop.counter == 3 %}text-[#818CF8]{% else %}text-[var(--text-muted)]{% endif %}">
                 {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}#{{ forloop.counter }}{% endif %}
             </span>
 
@@ -112,13 +112,13 @@
 
             <!-- Username -->
             <a href="{% url 'tweetapp:profile' username=entry.username %}" class="flex-1 font-semibold text-sm truncate decoration-transparent hover:underline {% if entry.user_id == request.user.id %}{% endif %}" 
-               style="color: {% if entry.user_id == request.user.id %}#FBBF24{% else %}var(--text-primary){% endif %};">
+               style="color: {% if entry.user_id == request.user.id %}#22D3EE{% else %}var(--text-primary){% endif %};">
                 {{ entry.username }}
                 {% if entry.user_id == request.user.id %}<span class="text-xs" style="color: var(--text-muted);">(you)</span>{% endif %}
             </a>
 
             <!-- Score -->
-            <span class="font-bold text-sm" style="color: {% if forloop.counter == 1 %}#FBBF24{% elif forloop.counter <= 3 %}var(--text-primary){% else %}var(--text-secondary){% endif %};">
+            <span class="font-bold text-sm" style="color: {% if forloop.counter == 1 %}#22D3EE{% elif forloop.counter <= 3 %}var(--text-primary){% else %}var(--text-secondary){% endif %};">
                 {{ entry.score }}
             </span>
         </div>
@@ -127,8 +127,8 @@
             <div class="text-4xl mb-3">🐦</div>
             <p class="font-semibold" style="color: var(--text-primary);">No scores yet!</p>
             <p class="text-sm mt-1" style="color: var(--text-muted);">Be the first to play Flappy Tweet</p>
-            <a href="{% url 'tweetapp:games' %}" class="inline-block mt-4 px-6 py-2 rounded-xl text-sm font-bold decoration-transparent transition-all hover:scale-105" 
-               style="background: linear-gradient(135deg, #FBBF24, #F59E0B); color: #0a0a1a;">
+                <a href="{% url 'tweetapp:games' %}" class="inline-block mt-4 px-6 py-2 rounded-xl text-sm font-bold decoration-transparent transition-all hover:scale-105" 
+                    style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.05);">
                 Play Now
             </a>
         </div>
@@ -141,12 +141,12 @@
         <div class="flex items-center gap-3">
             <span class="w-8 text-center font-bold text-sm" style="color: var(--text-muted);">#{{ my_rank }}</span>
             {% if request.user.profile.profile_image %}
-            <img src="{{ request.user.profile.profile_image.url }}" class="w-9 h-9 rounded-full object-cover border-2" style="border-color: #FBBF24;">
+            <img src="{{ request.user.profile.profile_image.url }}" class="w-9 h-9 rounded-full object-cover border-2" style="border-color: #22D3EE;">
             {% else %}
-            <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2" style="background: var(--surface-bg); border-color: #FBBF24;">{{ request.user.username|first|upper }}</div>
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2" style="background: var(--surface-bg); border-color: #22D3EE;">{{ request.user.username|first|upper }}</div>
             {% endif %}
-            <span class="flex-1 font-bold text-sm" style="color: #FBBF24;">{{ request.user.username }} <span class="text-xs" style="color: var(--text-muted);">(you)</span></span>
-            <span class="font-bold text-sm" style="color: #FBBF24;">{{ my_score }}</span>
+            <span class="flex-1 font-bold text-sm" style="color: #22D3EE;">{{ request.user.username }} <span class="text-xs" style="color: var(--text-muted);">(you)</span></span>
+            <span class="font-bold text-sm" style="color: #22D3EE;">{{ my_score }}</span>
         </div>
     </div>
     {% endif %}
@@ -154,34 +154,4 @@
 {% endblock %}
 
 {% block right_sidebar %}
-<!-- Play Game Card -->
-<div class="glass-card p-4" style="border: 1px solid rgba(251, 191, 36, 0.2);">
-    <div class="text-center space-y-3">
-        <div class="text-3xl">🐦</div>
-        <h3 class="font-bold" style="color: #FBBF24; margin: 0;">Flappy Tweet</h3>
-        <p class="text-xs" style="color: var(--text-muted);">Can you beat the top score?</p>
-        <a href="{% url 'tweetapp:games' %}" class="block w-full py-2.5 rounded-xl text-sm font-bold decoration-transparent text-center transition-all hover:scale-105"
-           style="background: linear-gradient(135deg, #FBBF24, #F59E0B); color: #0a0a1a;">
-            Play Now
-        </a>
-    </div>
-</div>
-
-<!-- Suggested Users -->
-{% if suggested_users %}
-<div class="glass-card p-4 space-y-3">
-    <h3 class="font-bold text-sm" style="color: var(--text-primary); margin: 0;">SUGGESTED FOR YOU</h3>
-    {% for suggested_user in suggested_users %}
-    <div class="flex items-center gap-2">
-        {% if suggested_user.profile.profile_image %}
-        <img src="{{ suggested_user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover">
-        {% else %}
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--surface-bg);">{{ suggested_user.username|first|upper }}</div>
-        {% endif %}
-        <a href="{% url 'tweetapp:profile' username=suggested_user.username %}" class="flex-1 text-sm font-semibold truncate decoration-transparent hover:underline" style="color: var(--text-primary);">{{ suggested_user.username }}</a>
-        <a href="{% url 'tweetapp:follow_user' username=suggested_user.username %}" class="px-3 py-1 rounded-lg text-xs font-bold decoration-transparent" style="background: var(--neon-green); color: black;">Follow</a>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
 {% endblock %}

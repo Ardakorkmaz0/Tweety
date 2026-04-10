@@ -49,7 +49,7 @@
                     <div class="flex items-center gap-2 mt-1">
                         <span class="text-xs" style="color: var(--text-muted)">{{ group.memberships.count }} members</span>
                         {% if group.is_private %}
-                        <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold" style="background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid var(--warning)">Private</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold" style="background: rgba(255,255,255,0.05); color: var(--warning); border: 1px solid var(--warning)">Private</span>
                         {% endif %}
                     </div>
                 </div>
@@ -86,7 +86,7 @@
                     <div class="flex items-center gap-2 mt-1">
                         <span class="text-xs" style="color: var(--text-muted)">{{ group.memberships.count }} members</span>
                         {% if group.is_private %}
-                        <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold" style="background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid var(--warning)">Private</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold" style="background: rgba(255,255,255,0.05); color: var(--warning); border: 1px solid var(--warning)">Private</span>
                         {% endif %}
                     </div>
                 </div>
@@ -99,7 +99,7 @@
                     {% else %}
                         <form action="{% url 'tweetapp:group_request_join' pk=group.pk %}" method="POST" class="m-0">
                             {% csrf_token %}
-                            <button class="px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-[rgba(251,191,36,0.1)] transition-colors" style="border: 1px solid var(--warning); color: var(--warning)">Request</button>
+                            <button class="px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-[rgba(255,255,255,0.05)] transition-colors" style="border: 1px solid var(--warning); color: var(--warning)">Request</button>
                         </form>
                     {% endif %}
                 {% else %}

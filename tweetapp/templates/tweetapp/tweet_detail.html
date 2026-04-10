@@ -89,7 +89,7 @@
             <!-- Controls -->
             <div class="flex flex-wrap gap-2 mb-6">
                 {% if user == tweet.user and tweet.can_edit %}
-                <button class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-[rgba(251,191,36,0.1)]" style="border: 1px solid var(--warning); color: var(--warning);" onclick="document.getElementById('edit-form-{{tweet.pk}}').classList.toggle('hidden')">
+                <button class="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-[rgba(255,255,255,0.05)]" style="border: 1px solid var(--warning); color: var(--warning);" onclick="document.getElementById('edit-form-{{tweet.pk}}').classList.toggle('hidden')">
                     Edit Tweet
                 </button>
                 {% endif %}

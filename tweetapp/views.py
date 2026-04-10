@@ -1546,10 +1546,10 @@ def games_view(request):
     ).order_by('-score').first()
     best_score = best_score_obj.score if best_score_obj else 0
 
-    # Today's best score
-    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Today's best score (local timezone day)
+    today_local = timezone.localdate()
     daily_best_obj = models.GameScore.objects.filter(
-        user=user, game='flappy_tweet', created_at__gte=today_start
+        user=user, game='flappy_tweet', created_at__date=today_local
     ).order_by('-score').first()
     daily_best = daily_best_obj.score if daily_best_obj else 0
 
@@ -1640,9 +1640,9 @@ def api_submit_score(request):
         user=request.user, game='flappy_tweet'
     ).aggregate(best=Max('score'))['best'] or 0
 
-    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_local = timezone.localdate()
     daily_best = models.GameScore.objects.filter(
-        user=request.user, game='flappy_tweet', created_at__gte=today_start
+        user=request.user, game='flappy_tweet', created_at__date=today_local
     ).aggregate(best=Max('score'))['best'] or 0
 
     return JsonResponse({
@@ -1659,10 +1659,10 @@ def leaderboard_view(request):
     tab = request.GET.get('tab', 'alltime')
 
     if tab == 'daily':
-        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_local = timezone.localdate()
         entries = (
             models.GameScore.objects
-            .filter(game='flappy_tweet', created_at__gte=today_start)
+            .filter(game='flappy_tweet', created_at__date=today_local)
             .values('user__username', 'user__id')
             .annotate(top_score=Max('score'))
             .order_by('-top_score')[:50]
@@ -1703,9 +1703,9 @@ def leaderboard_view(request):
     if my_rank is None:
         # User not in top 50, find their rank
         if tab == 'daily':
-            today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            today_local = timezone.localdate()
             user_best = models.GameScore.objects.filter(
-                user=request.user, game='flappy_tweet', created_at__gte=today_start
+                user=request.user, game='flappy_tweet', created_at__date=today_local
             ).aggregate(best=Max('score'))['best']
         else:
             user_best = models.GameScore.objects.filter(
@@ -1715,10 +1715,10 @@ def leaderboard_view(request):
         if user_best is not None:
             my_score = user_best
             if tab == 'daily':
-                today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                today_local = timezone.localdate()
                 higher_count = (
                     models.GameScore.objects
-                    .filter(game='flappy_tweet', created_at__gte=today_start)
+                    .filter(game='flappy_tweet', created_at__date=today_local)
                     .values('user')
                     .annotate(top_score=Max('score'))
                     .filter(top_score__gt=user_best)

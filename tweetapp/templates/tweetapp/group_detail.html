@@ -62,7 +62,7 @@
                 {% if membership.role != 'admin' or other_admins_exist %}
                 <form action="{% url 'tweetapp:group_leave' pk=group.pk %}" method="POST" class="m-0">
                     {% csrf_token %}
-                    <button class="px-3 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(251,191,36,0.1)]" style="color: var(--warning); border: 1px solid var(--warning);" onclick="return confirm('Leave group?')" title="Leave Group">
+                    <button class="px-3 py-2 rounded-xl text-sm font-bold transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--warning); border: 1px solid var(--warning);" onclick="return confirm('Leave group?')" title="Leave Group">
                         <i data-lucide="log-out" class="w-4 h-4"></i>
                     </button>
                 </form>
@@ -490,7 +490,7 @@
                     </a>
 
                     {% if m.role == 'admin' %}
-                    <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0" style="background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid var(--warning)">Admin</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0" style="background: rgba(255,255,255,0.05); color: var(--warning); border: 1px solid var(--warning)">Admin</span>
                     {% endif %}
                 </div>
 
@@ -498,7 +498,7 @@
                 <div class="flex gap-1 opacity-0 group-hover/member:opacity-100 transition-opacity shrink-0">
                     <form action="{% url 'tweetapp:group_promote_member' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
                         {% csrf_token %}
-                        <button class="p-1.5 rounded hover:bg-[rgba(251,191,36,0.1)] transition-colors" title="{% if m.role == 'member' %}Promote to Admin{% else %}Demote to Member{% endif %}">
+                        <button class="p-1.5 rounded hover:bg-[rgba(255,255,255,0.05)] transition-colors" title="{% if m.role == 'member' %}Promote to Admin{% else %}Demote to Member{% endif %}">
                             {% if m.role == 'member' %}
                                 <i data-lucide="shield" class="w-4 h-4" style="color: var(--warning)"></i>
                             {% else %}
