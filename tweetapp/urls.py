@@ -46,6 +46,7 @@ urlpatterns = [
     path('notifications/', views.notifications_view, name='notifications'),
     path('notifications/settings/', views.notification_settings, name='notification_settings'),
     path('api/unread-counts/', views.api_unread_counts, name='api_unread_counts'),
+    path('api/theme-preference/', views.api_set_theme_preference, name='api_set_theme_preference'),
     path('tweet/<int:pk>/', views.tweet_detail, name='tweet_detail'),
     path('tweet/<int:pk>/likes/', views.tweet_likers, name='tweet_likers'),
     path('chat/', views.inbox, name='inbox'),
@@ -63,4 +64,6 @@ urlpatterns = [
     path('games/', views.games_view, name='games'),
     path('games/submit-score/', views.api_submit_score, name='submit_score'),
     path('leaderboard/', views.leaderboard_view, name='leaderboard'),
+    path('api/game-settings/save/', views.api_save_game_settings, name='save_game_settings'),
+    path('api/game-settings/get/', views.api_get_game_settings, name='get_game_settings'),
 ]

@@ -4,7 +4,7 @@ import datetime
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from .models import Follow, Message, Notification
+from .models import Follow, Message, Notification, Profile
 
 def unread_notifications(request):
     if request.user.is_authenticated:
@@ -22,7 +22,13 @@ def unread_notifications(request):
 
 def global_sidebar_data(request):
     """Provide online users and suggestions globally for the right sidebar."""
+    user_theme_preference = 'dark'
     if request.user.is_authenticated:
+        try:
+            user_theme_preference = request.user.profile.theme_preference
+        except Profile.DoesNotExist:
+            user_theme_preference = 'dark'
+
         following_ids = list(
             Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
         )
@@ -41,4 +47,5 @@ def global_sidebar_data(request):
     return {
         'suggested_users': suggested_users,
         'online_users': online_users,
+        'user_theme_preference': user_theme_preference,
     }

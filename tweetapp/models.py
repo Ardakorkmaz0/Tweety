@@ -28,6 +28,8 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     bio = models.CharField(max_length=160, blank=True)
     profile_image = models.ImageField(upload_to='profile_images/', blank=True)
+    THEME_CHOICES = [('dark', 'Dark'), ('light', 'Light')]
+    theme_preference = models.CharField(max_length=10, choices=THEME_CHOICES, default='dark')
     first_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=True)
     age = models.PositiveIntegerField(null=True, blank=True)
@@ -236,3 +238,17 @@ class GameScore(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.game}: {self.score}"
+
+
+class GameSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='game_settings')
+    bg_images = models.TextField(default='[]')  # JSON array of base64 images
+    bg_selected = models.IntegerField(default=-1)
+    pipe_images = models.TextField(default='[]')
+    pipe_selected = models.IntegerField(default=-1)
+    bird_images = models.TextField(default='[]')
+    bird_selected = models.CharField(max_length=50, default='yellow')
+    accent_color = models.CharField(max_length=7, default='#10F28C')
+
+    def __str__(self):
+        return f"Game settings for {self.user.username}"

@@ -19,7 +19,12 @@
     <link rel="stylesheet" href="{% static 'css/theme.css' %}">
     
     <script>
-        const savedTheme = localStorage.getItem('tweety_theme') || 'dark';
+        const isAuthenticatedUser = {{ user.is_authenticated|yesno:"true,false" }};
+        const authUsername = "{{ user.username|default:''|escapejs }}";
+        const userThemeKey = authUsername ? `tweety_theme_${authUsername}` : 'tweety_theme_guest';
+        const serverTheme = "{{ user_theme_preference|default:'dark' }}";
+        const localTheme = localStorage.getItem(userThemeKey);
+        const savedTheme = isAuthenticatedUser ? (localTheme || serverTheme || 'dark') : (localTheme || localStorage.getItem('tweety_theme') || 'dark');
         if (savedTheme === 'light') { document.documentElement.classList.add('light-theme'); }
     </script>
 
@@ -416,7 +421,21 @@
             updateThemeIcon();
             themeToggle.addEventListener('click', () => {
                 document.documentElement.classList.toggle('light-theme');
-                localStorage.setItem('tweety_theme', document.documentElement.classList.contains('light-theme') ? 'light' : 'dark');
+                const nextTheme = document.documentElement.classList.contains('light-theme') ? 'light' : 'dark';
+                localStorage.setItem(userThemeKey, nextTheme);
+                if (isAuthenticatedUser) {
+                    fetch('{% url "tweetapp:api_set_theme_preference" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ theme: nextTheme })
+                    }).catch(() => {});
+                } else {
+                    localStorage.setItem('tweety_theme', nextTheme);
+                }
                 updateThemeIcon();
             });
         }

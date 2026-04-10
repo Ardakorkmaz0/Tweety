@@ -1077,6 +1077,27 @@ def api_unread_counts(request):
     return JsonResponse({'notif_count': notif_count, 'msg_count': msg_count})
 
 
+@login_required(login_url='/login/')
+def api_set_theme_preference(request):
+    """Persist theme preference for the authenticated user."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    theme = data.get('theme')
+    if theme not in ('dark', 'light'):
+        return JsonResponse({'error': 'Invalid theme'}, status=400)
+
+    profile, _ = models.Profile.objects.get_or_create(user=request.user)
+    profile.theme_preference = theme
+    profile.save(update_fields=['theme_preference'])
+    return JsonResponse({'success': True, 'theme': theme})
+
+
 def tweet_detail(request, pk):
     from django.http import Http404
     
@@ -1601,6 +1622,9 @@ def games_view(request):
         group__in=user_groups
     ).exclude(user=user).select_related('user', 'group').order_by('-created_at')[:5]
 
+    # Game Settings
+    game_settings, _ = models.GameSettings.objects.get_or_create(user=user)
+
     context = {
         'best_score': best_score,
         'daily_best': daily_best,
@@ -1610,6 +1634,15 @@ def games_view(request):
         'last_message': last_message,
         'online_users': online_users,
         'recent_group_msgs': recent_group_msgs,
+        'game_settings': {
+            'bgImages': json.loads(game_settings.bg_images),
+            'bgSelected': game_settings.bg_selected,
+            'pipeImages': json.loads(game_settings.pipe_images),
+            'pipeSelected': game_settings.pipe_selected,
+            'birdImages': json.loads(game_settings.bird_images),
+            'birdSelected': game_settings.bird_selected,
+            'accent': game_settings.accent_color,
+        }
     }
     return render(request, 'tweetapp/games.html', context)
 
@@ -1743,3 +1776,50 @@ def leaderboard_view(request):
     }
     context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/leaderboard.html', context)
+
+@login_required(login_url='/login/')
+def api_save_game_settings(request):
+    """Save game settings to the database via AJAX POST."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    settings_obj, _ = models.GameSettings.objects.get_or_create(user=request.user)
+    
+    # Update fields if provided
+    if 'bgImages' in data:
+        settings_obj.bg_images = json.dumps(data['bgImages'])
+    if 'bgSelected' in data:
+        settings_obj.bg_selected = data['bgSelected']
+    if 'pipeImages' in data:
+        settings_obj.pipe_images = json.dumps(data['pipeImages'])
+    if 'pipeSelected' in data:
+        settings_obj.pipe_selected = data['pipeSelected']
+    if 'birdImages' in data:
+        settings_obj.bird_images = json.dumps(data['birdImages'])
+    if 'birdSelected' in data:
+        settings_obj.bird_selected = data['birdSelected']
+    if 'accent' in data:
+        settings_obj.accent_color = data['accent']
+        
+    settings_obj.save()
+    return JsonResponse({'success': True})
+
+
+@login_required(login_url='/login/')
+def api_get_game_settings(request):
+    """Retrieve game settings for the current user."""
+    settings_obj, _ = models.GameSettings.objects.get_or_create(user=request.user)
+    return JsonResponse({
+        'bgImages': json.loads(settings_obj.bg_images),
+        'bgSelected': settings_obj.bg_selected,
+        'pipeImages': json.loads(settings_obj.pipe_images),
+        'pipeSelected': settings_obj.pipe_selected,
+        'birdImages': json.loads(settings_obj.bird_images),
+        'birdSelected': settings_obj.bird_selected,
+        'accent': settings_obj.accent_color,
+    })
