@@ -15,11 +15,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-m*u#io8c09*ol#2z3tjy6zjg7(5wwb!xk9ht5y8e*uz^zd3z%q')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# On PythonAnywhere, this should be False
+# Set ENVIRONMENT=production on your server; defaults to development for local use
+ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')
 
-ALLOWED_HOSTS = ['16.171.190.141', 'tweetapptweety.com', 'www.tweetapptweety.com']
+DEBUG = ENVIRONMENT == 'development'
 
-DEBUG = False
+if ENVIRONMENT == 'production':
+    ALLOWED_HOSTS = ['16.171.190.141', 'tweetapptweety.com', 'www.tweetapptweety.com']
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 # Application definition
 INSTALLED_APPS = [
     'tweetapp.apps.TweetappConfig',
@@ -124,10 +128,10 @@ else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 
-
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-
-CSRF_TRUSTED_ORIGINS = ['https://tweetapptweety.com', 'https://www.tweetapptweety.com']
+# Production-only security settings
+if ENVIRONMENT == 'production':
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = ['https://tweetapptweety.com', 'https://www.tweetapptweety.com']
