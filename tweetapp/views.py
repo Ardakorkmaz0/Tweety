@@ -64,11 +64,91 @@ def listtweet(request):
         # People you follow exclusively
         qs = visible_tweets.filter(user_id__in=following_ids).order_by('-created_at')
     elif tab == 'recommended':
-        # "For You" Feed: Rank by custom engagement algorithm
-        # Engagement = (Likes * 2) + (Comments * 3)
+        # ── "For You" Feed ──
+        # Twitter-style ranking algorithm:
+        #   1. Recency dominates — fresh tweets always surface
+        #   2. Engagement boosts — likes & comments push tweets up
+        #   3. Following boost — tweets from people you follow rank higher
+        #   4. Affinity boost — tweets from users you interact with most
+        #      (liked/commented on recently) get an extra nudge
+        #   5. Own tweets demoted — you don't need to see your own stuff
+        #   6. Already-seen demotion — tweets you already liked sink
+        from django.db.models import Case, When, Value, IntegerField, ExpressionWrapper
+
+        now = timezone.now()
+
+        # Users you've recently interacted with (liked or commented on
+        # their tweets in the last 14 days) — "affinity" signal.
+        if request.user.is_authenticated:
+            recent_cutoff = now - datetime.timedelta(days=14)
+            liked_author_ids = list(
+                models.Like.objects.filter(
+                    user=request.user, created_at__gte=recent_cutoff
+                ).values_list('tweet__user_id', flat=True)
+            )
+            commented_author_ids = list(
+                models.Comment.objects.filter(
+                    user=request.user, created_at__gte=recent_cutoff
+                ).values_list('tweet__user_id', flat=True)
+            )
+            # Count interactions per author — more = higher affinity
+            from collections import Counter
+            interaction_counts = Counter(liked_author_ids + commented_author_ids)
+            # Top 20 users by interaction (high-affinity circle)
+            high_affinity_ids = [uid for uid, _ in interaction_counts.most_common(20)]
+        else:
+            high_affinity_ids = []
+
         qs = visible_tweets.annotate(
-            engagement_score=(F('like_count') * 2) + (F('comment_count') * 3)
-        ).order_by('-engagement_score', '-created_at')
+            # Time-bucket bonus — newer = much higher baseline
+            recency_bonus=Case(
+                When(created_at__gte=now - datetime.timedelta(minutes=30), then=Value(300)),
+                When(created_at__gte=now - datetime.timedelta(hours=1),    then=Value(200)),
+                When(created_at__gte=now - datetime.timedelta(hours=3),    then=Value(120)),
+                When(created_at__gte=now - datetime.timedelta(hours=6),    then=Value(80)),
+                When(created_at__gte=now - datetime.timedelta(hours=12),   then=Value(50)),
+                When(created_at__gte=now - datetime.timedelta(hours=24),   then=Value(30)),
+                When(created_at__gte=now - datetime.timedelta(days=3),     then=Value(12)),
+                When(created_at__gte=now - datetime.timedelta(days=7),     then=Value(5)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+            # Posts from people you follow get a nudge
+            following_boost=Case(
+                When(user_id__in=following_ids, then=Value(25)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+            # Posts from people you interact with most get extra boost
+            affinity_boost=Case(
+                When(user_id__in=high_affinity_ids, then=Value(40)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+            # Demote your own tweets — you already know about them
+            own_penalty=Case(
+                When(user=request.user if request.user.is_authenticated else None, then=Value(-80)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+            # Demote tweets you already liked — you've seen them
+            seen_penalty=Case(
+                When(pk__in=liked_ids, then=Value(-50)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+            # Final composite score
+            feed_score=ExpressionWrapper(
+                F('recency_bonus')
+                + F('following_boost')
+                + F('affinity_boost')
+                + F('own_penalty')
+                + F('seen_penalty')
+                + (F('like_count') * 2)
+                + (F('comment_count') * 3),
+                output_field=IntegerField(),
+            ),
+        ).order_by('-feed_score', '-created_at')
     else:
         # "Latest" Feed
         qs = visible_tweets.order_by('-created_at')
