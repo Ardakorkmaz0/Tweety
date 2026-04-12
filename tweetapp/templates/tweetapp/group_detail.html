@@ -605,11 +605,10 @@
 
 <script>
     (function () {
-        const GROUP_ID = {{ group.pk }
-    };
-    const MY = {{ request.user.pk }};
-    const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    const wrap = document.getElementById('gm-msgs-wrap');
+        const GROUP_ID = {{ group.pk }};
+        const MY = {{ request.user.pk }};
+        const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const wrap = document.getElementById('gm-msgs-wrap');
     const container = document.getElementById('chatBox');
     const form = document.getElementById('gm-form');
     const textIn = document.getElementById('gm-text');
