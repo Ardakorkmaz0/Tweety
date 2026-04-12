@@ -152,10 +152,6 @@
                             <p class="text-center" style="color: var(--text-muted)">No messages yet. Say hello!</p>
                         </div>
                     {% endfor %}
-                    <div id="gm-typing" class="gm-typing">
-                        <div class="gm-typing-dots"><span></span><span></span><span></span></div>
-                        <span id="gm-typing-text">typing...</span>
-                    </div>
                     </div>
                 </div>
 
@@ -174,7 +170,11 @@
                     <button onclick="clearImg()" class="gm-reply-bar-close">&times;</button>
                 </div>
 
-                <!-- Input Area -->
+                <!-- Typing Indicator + Input Area -->
+                <div id="gm-typing" class="gm-typing">
+                    <div class="gm-typing-dots"><span></span><span></span><span></span></div>
+                    <span id="gm-typing-text">typing...</span>
+                </div>
                 <div class="p-4" style="border-top: 1px solid var(--border-subtle)">
                     <form id="gm-form" class="m-0" enctype="multipart/form-data">
                         {% csrf_token %}
@@ -265,7 +265,7 @@
 .gm-highlight { outline: 2px solid var(--neon-green); outline-offset: 2px; border-radius: 16px; transition: outline-color 1.5s; }
 
 /* Typing indicator */
-.gm-typing { display:none; align-items:center; gap:8px; padding:6px 14px; font-size:13px; color:var(--text-secondary); }
+.gm-typing { display:none; align-items:center; gap:8px; padding:4px 14px 2px; font-size:13px; color:var(--text-secondary); flex-shrink:0; }
 .gm-typing.show { display:flex; }
 .gm-typing-dots { display:flex; gap:3px; }
 .gm-typing-dots span { width:5px; height:5px; border-radius:50%; background:var(--text-muted); animation: gmTypingBounce 1.2s infinite ease-in-out; }
@@ -469,7 +469,6 @@
                         ? '@' + names + ' is typing...'
                         : names + ' are typing...';
                     typingEl.classList.add('show');
-                    scrollEnd();
                 } else {
                     typingEl.classList.remove('show');
                 }
@@ -499,6 +498,93 @@
     });
 })();
 </script>
+
+<!-- Mobile Members & Join Requests (visible only on mobile) -->
+<div class="lg:hidden space-y-4 mt-4">
+    <div class="glass-card p-5">
+        <h6 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.1em;">Members ({{ members.count }})</h6>
+        <div class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            {% for m in members %}
+            <div class="flex justify-between items-center p-2 rounded-lg">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="relative shrink-0">
+                        {% if m.user.profile.profile_image %}
+                            <img src="{{ m.user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover">
+                        {% else %}
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--surface-bg); color: var(--text-primary);">{{ m.user.username|first|upper }}</div>
+                        {% endif %}
+                        {% if m.user.id in online_user_ids %}
+                            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style="background: var(--neon-green); border-color: var(--card-bg);"></span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'tweetapp:profile' username=m.user.username %}" class="font-medium hover:underline decoration-transparent truncate" style="color: var(--text-primary)">{{ m.user.username }}</a>
+                    {% if m.role == 'admin' %}
+                    <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0" style="background: rgba(255,255,255,0.05); color: var(--warning); border: 1px solid var(--warning)">Admin</span>
+                    {% endif %}
+                </div>
+                {% if membership.role == 'admin' and m.user != request.user %}
+                <div class="flex gap-1 shrink-0">
+                    <form action="{% url 'tweetapp:group_promote_member' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
+                        {% csrf_token %}
+                        <button class="p-1.5 rounded hover:bg-[rgba(255,255,255,0.05)] transition-colors" title="{% if m.role == 'member' %}Promote{% else %}Demote{% endif %}">
+                            {% if m.role == 'member' %}
+                                <i data-lucide="shield" class="w-4 h-4" style="color: var(--warning)"></i>
+                            {% else %}
+                                <i data-lucide="shield-off" class="w-4 h-4" style="color: var(--text-muted)"></i>
+                            {% endif %}
+                        </button>
+                    </form>
+                    {% if m.role != 'admin' %}
+                    <form action="{% url 'tweetapp:group_kick' pk=group.pk user_id=m.user.pk %}" method="POST" class="m-0">
+                        {% csrf_token %}
+                        <button class="p-1.5 rounded hover:bg-[rgba(255,107,107,0.1)] transition-colors" onclick="return confirm('Kick user?')">
+                            <i data-lucide="user-minus" class="w-4 h-4" style="color: var(--danger)"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if membership.role == 'admin' %}
+    <div class="glass-card p-5">
+        <h6 class="font-bold text-sm uppercase mb-4" style="color: var(--neon-green); letter-spacing: 0.1em;">Invite Member</h6>
+        <form action="{% url 'tweetapp:group_invite' pk=group.pk %}" method="POST" class="m-0">
+            {% csrf_token %}
+            <div class="flex gap-2">
+                <input type="text" name="username" class="flex-1 p-2.5 rounded-xl text-sm focus:outline-none" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); color: var(--text-primary);" placeholder="Username" required>
+                <button type="submit" class="px-4 py-2.5 rounded-xl text-sm font-bold" style="color: var(--neon-green); border: 1px solid var(--neon-green)">Invite</button>
+            </div>
+        </form>
+        {% if join_requests %}
+        <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle)">
+            <h6 class="font-bold text-sm uppercase mb-3" style="color: var(--warning); letter-spacing: 0.1em;">Join Requests</h6>
+            <div class="space-y-2">
+                {% for jr in join_requests %}
+                <div class="flex items-center justify-between p-2 rounded-lg" style="border: 1px solid var(--border-subtle);">
+                    <a href="{% url 'tweetapp:profile' username=jr.user.username %}" class="text-sm font-medium decoration-transparent" style="color: var(--text-primary);">@{{ jr.user.username }}</a>
+                    <div class="flex gap-1">
+                        <form action="{% url 'tweetapp:group_accept_request' pk=jr.pk %}" method="POST" class="m-0">
+                            {% csrf_token %}
+                            <button class="p-1 rounded hover:bg-[rgba(16,242,140,0.1)]"><i data-lucide="check" class="w-4 h-4" style="color: var(--neon-green)"></i></button>
+                        </form>
+                        <form action="{% url 'tweetapp:group_decline_request' pk=jr.pk %}" method="POST" class="m-0">
+                            {% csrf_token %}
+                            <button class="p-1 rounded hover:bg-[rgba(255,107,107,0.1)]"><i data-lucide="x" class="w-4 h-4" style="color: var(--danger)"></i></button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
 {% endblock %}
 
 {% block right_sidebar %}

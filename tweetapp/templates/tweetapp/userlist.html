@@ -11,7 +11,7 @@
                 {% for online_user in online_users %}
                 <a href="{% url 'tweetapp:profile' username=online_user.username %}" class="flex items-center gap-2 p-3 rounded-lg hover:bg-[rgba(16,242,140,0.05)] transition-colors decoration-transparent group">
                     {% if online_user.profile.profile_image %}
-                        <img src="{{ online_user.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover shrink-0">
+                        <img src="{{ online_user.profile.profile_image.url }}" loading="lazy" decoding="async" class="w-8 h-8 rounded-full object-cover shrink-0">
                     {% else %}
                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">{{ online_user.username|first|upper }}</div>
                     {% endif %}
@@ -36,7 +36,7 @@
                 <div class="flex items-center justify-between p-3 rounded-lg hover:bg-[rgba(16,242,140,0.05)] transition-colors group">
                     <a href="{% url 'tweetapp:profile' username=suggested.username %}" class="flex items-center gap-2 flex-1 decoration-transparent min-w-0">
                         {% if suggested.profile.profile_image %}
-                            <img src="{{ suggested.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover shrink-0">
+                            <img src="{{ suggested.profile.profile_image.url }}" loading="lazy" decoding="async" class="w-8 h-8 rounded-full object-cover shrink-0">
                         {% else %}
                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">{{ suggested.username|first|upper }}</div>
                         {% endif %}

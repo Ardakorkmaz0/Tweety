@@ -44,7 +44,7 @@
             <div class="flex flex-col items-center flex-1">
                 <div class="relative mb-2">
                     {% if leaderboard.1.profile_image %}
-                    <img src="{{ leaderboard.1.profile_image }}" class="w-14 h-14 rounded-full object-cover border-2" style="border-color: #C0C0C0;">
+                    <img src="{{ leaderboard.1.profile_image }}" loading="lazy" decoding="async" class="w-14 h-14 rounded-full object-cover border-2" style="border-color: #C0C0C0;">
                     {% else %}
                     <div class="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold border-2" style="background: var(--surface-bg); border-color: #C0C0C0;">{{ leaderboard.1.username|first|upper }}</div>
                     {% endif %}
@@ -59,7 +59,7 @@
             <div class="flex flex-col items-center flex-1">
                 <div class="relative mb-2">
                     {% if leaderboard.0.profile_image %}
-                    <img src="{{ leaderboard.0.profile_image }}" class="w-16 h-16 rounded-full object-cover border-3" style="border: 3px solid #22D3EE; box-shadow: 0 0 20px rgba(34,211,238,0.35);">
+                    <img src="{{ leaderboard.0.profile_image }}" loading="lazy" decoding="async" class="w-16 h-16 rounded-full object-cover border-3" style="border: 3px solid #22D3EE; box-shadow: 0 0 20px rgba(34,211,238,0.35);">
                     {% else %}
                     <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="background: var(--surface-bg); border: 3px solid #22D3EE; box-shadow: 0 0 20px rgba(34,211,238,0.35);">{{ leaderboard.0.username|first|upper }}</div>
                     {% endif %}
@@ -74,7 +74,7 @@
             <div class="flex flex-col items-center flex-1">
                 <div class="relative mb-2">
                     {% if leaderboard.2.profile_image %}
-                    <img src="{{ leaderboard.2.profile_image }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: #818CF8;">
+                    <img src="{{ leaderboard.2.profile_image }}" loading="lazy" decoding="async" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: #818CF8;">
                     {% else %}
                     <div class="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold border-2" style="background: var(--surface-bg); border-color: #818CF8;">{{ leaderboard.2.username|first|upper }}</div>
                     {% endif %}
@@ -105,7 +105,7 @@
 
             <!-- Avatar -->
             {% if entry.profile_image %}
-            <img src="{{ entry.profile_image }}" class="w-9 h-9 rounded-full object-cover">
+            <img src="{{ entry.profile_image }}" loading="lazy" decoding="async" class="w-9 h-9 rounded-full object-cover">
             {% else %}
             <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style="background: var(--surface-bg); color: var(--text-primary);">{{ entry.username|first|upper }}</div>
             {% endif %}
@@ -141,7 +141,7 @@
         <div class="flex items-center gap-3">
             <span class="w-8 text-center font-bold text-sm" style="color: var(--text-muted);">#{{ my_rank }}</span>
             {% if request.user.profile.profile_image %}
-            <img src="{{ request.user.profile.profile_image.url }}" class="w-9 h-9 rounded-full object-cover border-2" style="border-color: #22D3EE;">
+            <img src="{{ request.user.profile.profile_image.url }}" loading="lazy" decoding="async" class="w-9 h-9 rounded-full object-cover border-2" style="border-color: #22D3EE;">
             {% else %}
             <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2" style="background: var(--surface-bg); border-color: #22D3EE;">{{ request.user.username|first|upper }}</div>
             {% endif %}

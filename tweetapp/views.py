@@ -25,36 +25,6 @@ logger = logging.getLogger(__name__)
 MAX_TWEET_IMAGES = 10
 
 
-def get_sidebar_context(request):
-    import random as _random
-    if request.user.is_authenticated:
-        following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
-        # Avoid ORDER BY RANDOM() — pull a small candidate window of IDs and
-        # shuffle in Python.
-        candidate_ids = list(
-            User.objects.exclude(pk__in=following_ids + [request.user.pk])
-                .values_list('pk', flat=True)[:200]
-        )
-        _random.shuffle(candidate_ids)
-        suggested_users = list(
-            User.objects.filter(pk__in=candidate_ids[:5]).select_related('profile')
-        )
-        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        online_users = User.objects.filter(
-            profile__last_active__gte=five_minutes_ago
-        ).select_related('profile')[:10]
-    else:
-        candidate_ids = list(User.objects.values_list('pk', flat=True)[:200])
-        _random.shuffle(candidate_ids)
-        suggested_users = list(
-            User.objects.filter(pk__in=candidate_ids[:5]).select_related('profile')
-        )
-        online_users = User.objects.none()
-    return {
-        'suggested_users': suggested_users,
-        'online_users': online_users,
-    }
-
 
 def listtweet(request):
     tab = request.GET.get('tab')
@@ -112,7 +82,6 @@ def listtweet(request):
         'liked_ids': liked_ids,
         'active_tab': tab,
     }
-    context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/listtweet.html', context)
 
 
@@ -370,7 +339,6 @@ def account_settings(request):
         'username_error': error,
         'username_success': success,
     }
-    context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/settings.html', context)
 
 
@@ -444,46 +412,86 @@ def add_comment(request, pk):
     if request.method != "POST":
         return redirect(reverse('tweetapp:listtweet'))
     message = request.POST.get('comment_message', '')
-    if message:
-        tweet = get_object_or_404(models.Tweet, pk=pk)
-        
-        # Security: Prevent unauthorized users from commenting on private tweets
-        if tweet.visibility == 'followers' and request.user != tweet.user and not request.user.is_staff:
-            if not models.Follow.objects.filter(follower=request.user, following=tweet.user).exists():
-                raise Http404()
-                
-        comment_obj = models.Comment.objects.create(user=request.user, tweet=tweet, message=message)
+    image = request.FILES.get('comment_image')
 
-        if request.user != tweet.user and should_notify(tweet.user, 'comment'):
+    if not message and not image:
+        return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
+
+    tweet = get_object_or_404(models.Tweet, pk=pk)
+
+    # Security: Prevent unauthorized users from commenting on private tweets
+    if tweet.visibility == 'followers' and request.user != tweet.user and not request.user.is_staff:
+        if not models.Follow.objects.filter(follower=request.user, following=tweet.user).exists():
+            raise Http404()
+
+    # Image validation
+    if image:
+        try:
+            validate_image(image)
+        except ValidationError as e:
+            messages.error(request, e.messages[0] if e.messages else 'Invalid image')
+            return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
+
+    # Reply-to parent comment
+    parent = None
+    parent_id = request.POST.get('parent_id')
+    if parent_id:
+        parent = models.Comment.objects.filter(pk=parent_id, tweet=tweet).first()
+
+    comment_obj = models.Comment.objects.create(
+        user=request.user, tweet=tweet, message=message,
+        image=image, parent=parent,
+    )
+
+    # Notify tweet owner
+    if request.user != tweet.user and should_notify(tweet.user, 'comment'):
+        models.Notification.objects.create(
+            recipient=tweet.user, actor=request.user,
+            notification_type='comment', tweet=tweet
+        )
+        send_push_notification(
+            user=tweet.user,
+            title='Tweety',
+            body=f'@{request.user.username} commented on your tweet',
+            url=f'/tweetapp/tweet/{tweet.pk}/'
+        )
+
+    # Notify parent comment owner on reply
+    if parent and parent.user != request.user and parent.user != tweet.user:
+        if should_notify(parent.user, 'thread'):
             models.Notification.objects.create(
-                recipient=tweet.user, actor=request.user,
-                notification_type='comment', tweet=tweet
+                recipient=parent.user, actor=request.user,
+                notification_type='thread', tweet=tweet
             )
             send_push_notification(
-                user=tweet.user,
+                user=parent.user,
                 title='Tweety',
-                body=f'@{request.user.username} commented on your tweet',
+                body=f'@{request.user.username} replied to your comment',
                 url=f'/tweetapp/tweet/{tweet.pk}/'
             )
 
-        other_commenters = User.objects.filter(
-            comment__tweet=tweet
-        ).exclude(id=request.user.id).exclude(id=tweet.user.id).distinct()
+    # Notify other commenters in the thread
+    other_commenters = User.objects.filter(
+        comment__tweet=tweet
+    ).exclude(id=request.user.id).exclude(id=tweet.user.id)
+    if parent:
+        other_commenters = other_commenters.exclude(id=parent.user.id)
+    other_commenters = other_commenters.distinct()
 
-        for commenter in other_commenters:
-            if should_notify(commenter, 'thread'):
-                models.Notification.objects.create(
-                    recipient=commenter, actor=request.user,
-                    notification_type='thread', tweet=tweet
-                )
-                send_push_notification(
-                    user=commenter,
-                    title='Tweety',
-                    body=f'@{request.user.username} also commented on a tweet you commented on',
-                    url=f'/tweetapp/tweet/{tweet.pk}/'
-                )
+    for commenter in other_commenters:
+        if should_notify(commenter, 'thread'):
+            models.Notification.objects.create(
+                recipient=commenter, actor=request.user,
+                notification_type='thread', tweet=tweet
+            )
+            send_push_notification(
+                user=commenter,
+                title='Tweety',
+                body=f'@{request.user.username} also commented on a tweet you commented on',
+                url=f'/tweetapp/tweet/{tweet.pk}/'
+            )
 
-        process_mentions(message, request.user, tweet=tweet, comment_obj=comment_obj)
+    process_mentions(message, request.user, tweet=tweet, comment_obj=comment_obj)
     return redirect(request.META.get('HTTP_REFERER', reverse('tweetapp:listtweet')))
 
 
@@ -511,7 +519,6 @@ def userlist(request):
         'users': page_obj,
         'page_obj': page_obj,
     }
-    context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/userlist.html', context)
 
 
@@ -1132,7 +1139,6 @@ def notifications_view(request):
         'notifications': notifs,
         'liked_ids': liked_ids,
     }
-    context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/notifications.html', context)
 
 
@@ -1162,7 +1168,6 @@ def notification_settings(request):
         'prefs': prefs,
         'pref_fields': [(f, label, icon, desc, getattr(prefs, f)) for f, label, icon, desc in PREF_FIELDS],
     }
-    context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/notification_settings.html', context)
 
 
@@ -1200,27 +1205,43 @@ def tweet_detail(request, pk):
     from django.http import Http404
     
     tweet = get_object_or_404(
-        models.Tweet.objects.select_related('user', 'user__profile').prefetch_related('images', 'comments', 'comments__user'),
+        models.Tweet.objects.select_related('user', 'user__profile').prefetch_related(
+            'images',
+            'comments__user__profile',
+            'comments__parent__user',
+            'comments__replies',
+        ),
         pk=pk
     )
-    
+
     # Security: Prevent viewing followers-only tweets by direct link if not authorized
     if tweet.visibility == 'followers' and request.user != tweet.user and not request.user.is_staff:
         if not request.user.is_authenticated:
             raise Http404()
         if not models.Follow.objects.filter(follower=request.user, following=tweet.user).exists():
             raise Http404()
-    
+
     if request.user.is_authenticated:
         liked_ids = list(models.Like.objects.filter(user=request.user).values_list('tweet_id', flat=True))
     else:
         liked_ids = []
-    
+
+    # Build threaded comments: top-level + replies map
+    all_comments = list(
+        tweet.comments.select_related('user__profile', 'parent__user').order_by('created_at')
+    )
+    top_comments = [c for c in all_comments if c.parent is None]
+    replies_map = {}
+    for c in all_comments:
+        if c.parent_id:
+            replies_map.setdefault(c.parent_id, []).append(c)
+
     context = {
         'tweet': tweet,
         'liked_ids': liked_ids,
+        'top_comments': top_comments,
+        'replies_map': replies_map,
     }
-    context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/tweet_detail.html', context)
 
 
@@ -1250,7 +1271,6 @@ def tweet_likers(request, pk):
         'likers': likes_qs,
         'search_query': query,
     }
-    context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/tweet_likers.html', context)
 
 # --- DIRECT MESSAGING ---
@@ -1300,23 +1320,23 @@ def _build_chat_list(request_user):
 def inbox(request):
     """List all chat threads for the logged in user."""
     chat_list, chat_user_ids = _build_chat_list(request.user)
-    
-    context = get_sidebar_context(request)
-    # Filter online_users to only people I follow or have chatted with
+
+    # Override online_users to only people I follow or have chatted with
     following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
     relevant_ids = set(following_ids + chat_user_ids)
     if relevant_ids:
         five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        context['online_users'] = User.objects.filter(
+        online_users = User.objects.filter(
             pk__in=relevant_ids,
             profile__last_active__gte=five_minutes_ago
         ).exclude(pk=request.user.pk).select_related('profile')[:15]
     else:
-        context['online_users'] = User.objects.none()
-    context.update({
+        online_users = User.objects.none()
+    context = {
+        'online_users': online_users,
         'chat_list': chat_list,
-        'active_thread_id': None
-    })
+        'active_thread_id': None,
+    }
     return render(request, 'tweetapp/inbox.html', context)
 
 @login_required
@@ -1354,24 +1374,24 @@ def chat_detail(request, thread_id):
         
     msgs = thread.messages.select_related('sender').order_by('created_at')
     
-    context = get_sidebar_context(request)
     following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
     relevant_ids = set(following_ids + chat_user_ids)
     if relevant_ids:
         five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        context['online_users'] = User.objects.filter(
+        online_users = User.objects.filter(
             pk__in=relevant_ids,
             profile__last_active__gte=five_minutes_ago
         ).exclude(pk=request.user.pk).select_related('profile')[:15]
     else:
-        context['online_users'] = User.objects.none()
-    context.update({
+        online_users = User.objects.none()
+    context = {
+        'online_users': online_users,
         'chat_list': chat_list,
         'active_thread': thread,
         'active_thread_id': thread.pk,
         'other_user': other_user,
         'chat_messages': msgs,
-    })
+    }
     return render(request, 'tweetapp/inbox.html', context)
 
 @login_required
@@ -1481,11 +1501,9 @@ def api_poll_messages(request, thread_id):
     for oid in other_ids:
         cache_key = f'typing:{thread_id}:{oid}'
         val = cache.get(cache_key)
-        print(f'[POLL-CHECK] user={request.user.pk} checking cache key={cache_key} val={val}')
         if val:
             other_typing = True
             break
-    print(f'[POLL] user={request.user.pk} thread={thread_id} other_ids={other_ids} typing={other_typing}')
 
     new_messages = thread.messages.filter(id__gt=last_id).order_by('created_at')
     new_messages.exclude(sender=request.user).filter(is_read=False).update(is_read=True)
@@ -1532,7 +1550,6 @@ def api_set_typing(request, thread_id):
     if request.user not in thread.participants.all():
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     cache.set(f'typing:{thread_id}:{request.user.pk}', 1, timeout=5)
-    print(f'[TYPING-SET] user={request.user.pk} thread={thread_id}')
     return JsonResponse({'success': True})
 
 
@@ -1927,7 +1944,6 @@ def leaderboard_view(request):
         'my_rank': my_rank,
         'my_score': my_score,
     }
-    context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/leaderboard.html', context)
 
 @login_required(login_url='/login/')

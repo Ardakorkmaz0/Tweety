@@ -38,7 +38,7 @@
         <div class="glass-card p-4 flex justify-between items-center hover:border-[var(--border-glow)] transition-all">
             <a href="{% url 'tweetapp:group_detail' pk=group.pk %}" class="flex items-center flex-1 decoration-transparent group-hover:opacity-80 transition-opacity">
                 {% if group.image %}
-                    <img src="{{ group.image.url }}" class="w-12 h-12 rounded-xl object-cover" style="box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                    <img src="{{ group.image.url }}" loading="lazy" decoding="async" class="w-12 h-12 rounded-xl object-cover" style="box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 {% else %}
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg" style="background: var(--surface-bg); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                         {{ group.name|first|upper }}
@@ -75,7 +75,7 @@
         <div class="glass-card p-4 flex justify-between items-center hover:border-[var(--border-glow)] transition-all">
             <div class="flex items-center flex-1">
                 {% if group.image %}
-                    <img src="{{ group.image.url }}" class="w-12 h-12 rounded-xl object-cover" style="box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                    <img src="{{ group.image.url }}" loading="lazy" decoding="async" class="w-12 h-12 rounded-xl object-cover" style="box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                 {% else %}
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg" style="background: var(--surface-bg); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                         {{ group.name|first|upper }}

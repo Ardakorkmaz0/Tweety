@@ -29,7 +29,7 @@
 <div class="glass-card mb-6 p-4 flex items-center justify-between cursor-pointer hover:border-[var(--border-glow)] transition-colors" onclick="window.location.href='{% url 'tweetapp:addtweetbyform' %}'">
     <div class="flex items-center gap-3">
         {% if user.profile.profile_image %}
-            <img src="{{ user.profile.profile_image.url }}" class="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)]">
+            <img src="{{ user.profile.profile_image.url }}" loading="lazy" decoding="async" class="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)]">
         {% else %}
             <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold" style="background: var(--surface-bg); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                 {{ user.username|first|upper }}

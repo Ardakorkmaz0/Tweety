@@ -9,7 +9,7 @@
             {% if profile_exists %}
                 <div class="relative mb-4">
                     {% if profile_user.profile.profile_image %}
-                        <img src="{{ profile_user.profile.profile_image.url }}" alt="{{ profile_user.username }}" class="w-28 h-28 rounded-full object-cover shadow-[0_4px_20px_rgba(16,242,140,0.3)]" style="border: 3px solid var(--neon-green)">
+                        <img src="{{ profile_user.profile.profile_image.url }}" alt="{{ profile_user.username }}" loading="lazy" decoding="async" class="w-28 h-28 rounded-full object-cover shadow-[0_4px_20px_rgba(16,242,140,0.3)]" style="border: 3px solid var(--neon-green)">
                     {% else %}
                         <div class="w-28 h-28 rounded-full flex items-center justify-center font-bold text-4xl shadow-[0_4px_20px_rgba(16,242,140,0.3)]" style="border: 3px solid var(--neon-green); background: var(--surface-bg); color: var(--text-primary);">
                             {{ profile_user.username|first|upper }}

@@ -56,7 +56,12 @@ class Like(models.Model):
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     tweet = models.ForeignKey(Tweet, on_delete=models.CASCADE, related_name='comments')
-    message = models.CharField(max_length=3000)
+    parent = models.ForeignKey(
+        'self', null=True, blank=True,
+        on_delete=models.CASCADE, related_name='replies',
+    )
+    message = models.CharField(max_length=3000, blank=True)
+    image = models.ImageField(upload_to='comment_images/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -38,7 +38,7 @@
             <div class="glass-card p-4 flex justify-between items-center transition-all hover:border-[var(--border-glow)] hover:-translate-y-0.5">
                 <a href="{% url 'tweetapp:profile' username=like.user.username %}" class="flex items-center gap-4 flex-1 decoration-transparent group">
                     {% if like.user.profile.profile_image %}
-                        <img src="{{ like.user.profile.profile_image.url }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: rgba(255,255,255,0.1)">
+                        <img src="{{ like.user.profile.profile_image.url }}" loading="lazy" decoding="async" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: rgba(255,255,255,0.1)">
                     {% else %}
                         <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg" style="background: var(--surface-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-primary);">
                             {{ like.user.username|first|upper }}
