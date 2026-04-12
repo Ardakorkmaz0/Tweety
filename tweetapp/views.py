@@ -230,7 +230,25 @@ def profile(request, username):
     follower_count = 0
     following_count = 0
     if user:
-        user_comments = models.Comment.objects.filter(user=user).select_related('tweet').order_by('-created_at')
+        all_user_comments = models.Comment.objects.filter(user=user).select_related(
+            'tweet', 'tweet__user'
+        ).order_by('-created_at')
+        # Filter out comments on followers-only tweets the viewer can't see
+        if request.user.is_authenticated and (request.user == user or request.user.is_staff):
+            user_comments = all_user_comments
+        elif request.user.is_authenticated:
+            # IDs of tweet authors the viewer follows
+            following_ids_set = set(
+                models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
+            )
+            user_comments = [
+                c for c in all_user_comments
+                if c.tweet.visibility == 'public'
+                or c.tweet.user_id == request.user.pk
+                or c.tweet.user_id in following_ids_set
+            ]
+        else:
+            user_comments = [c for c in all_user_comments if c.tweet.visibility == 'public']
         follower_count = models.Follow.objects.filter(following=user).count()
         following_count = models.Follow.objects.filter(follower=user).count()
         if request.user.is_authenticated and request.user != user:
