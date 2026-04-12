@@ -30,6 +30,7 @@ urlpatterns = [
     path('groups/<int:pk>/delete/', views.group_delete, name='group_delete'),
     path('groups/<int:pk>/api/send/', views.group_api_send_message, name='group_api_send_message'),
     path('groups/<int:pk>/api/poll/', views.group_api_poll_messages, name='group_api_poll_messages'),
+    path('groups/<int:pk>/api/typing/', views.group_api_set_typing, name='group_api_set_typing'),
     path('groups/<int:pk>/api/msg/<int:msg_id>/delete/', views.group_api_delete_message, name='group_api_delete_message'),
     path('groups/<int:pk>/promote/<int:user_id>/', views.group_promote_member, name='group_promote_member'),
     path('groups/<int:pk>/edit/', views.group_edit, name='group_edit'),

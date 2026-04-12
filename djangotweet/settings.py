@@ -100,6 +100,16 @@ TIME_ZONE = 'Europe/Istanbul'
 USE_I18N = True
 USE_TZ = True
 
+# Cache — needed for rate-limiting, typing indicator, last-active throttle.
+# LocMemCache works fine for single-process dev servers.  Switch to Redis /
+# Memcached in production for multi-process setups (gunicorn, etc.).
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'tweety_cache_table',
+    }
+}
+
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']

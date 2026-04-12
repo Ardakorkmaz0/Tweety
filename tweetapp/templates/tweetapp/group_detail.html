@@ -152,6 +152,10 @@
                             <p class="text-center" style="color: var(--text-muted)">No messages yet. Say hello!</p>
                         </div>
                     {% endfor %}
+                    <div id="gm-typing" class="gm-typing">
+                        <div class="gm-typing-dots"><span></span><span></span><span></span></div>
+                        <span id="gm-typing-text">typing...</span>
+                    </div>
                     </div>
                 </div>
 
@@ -259,6 +263,15 @@
 
 /* Highlight on scroll-to */
 .gm-highlight { outline: 2px solid var(--neon-green); outline-offset: 2px; border-radius: 16px; transition: outline-color 1.5s; }
+
+/* Typing indicator */
+.gm-typing { display:none; align-items:center; gap:8px; padding:6px 14px; font-size:13px; color:var(--text-secondary); }
+.gm-typing.show { display:flex; }
+.gm-typing-dots { display:flex; gap:3px; }
+.gm-typing-dots span { width:5px; height:5px; border-radius:50%; background:var(--text-muted); animation: gmTypingBounce 1.2s infinite ease-in-out; }
+.gm-typing-dots span:nth-child(2) { animation-delay:0.15s; }
+.gm-typing-dots span:nth-child(3) { animation-delay:0.3s; }
+@keyframes gmTypingBounce { 0%,60%,100%{transform:translateY(0);opacity:0.4;} 30%{transform:translateY(-4px);opacity:1;} }
 </style>
 
 <script>
@@ -414,6 +427,21 @@
         lucide.createIcons();
     }
 
+    // --- Typing indicator ---
+    var typingEl = document.getElementById('gm-typing');
+    var typingTextEl = document.getElementById('gm-typing-text');
+    var typingTimer = null;
+    function sendTyping(){
+        fetch('/tweetapp/groups/'+GROUP_ID+'/api/typing/',{
+            method:'POST', headers:{'X-CSRFToken':CSRF,'X-Requested-With':'XMLHttpRequest'}
+        });
+    }
+    textIn.addEventListener('input', function(){
+        if(typingTimer) return;
+        sendTyping();
+        typingTimer = setTimeout(function(){ typingTimer=null; }, 3000);
+    });
+
     // Poll
     var sending = false;
     function poll(){
@@ -433,6 +461,17 @@
                         }
                     });
                     if (d.deleted_ids.length > 0) lucide.createIcons();
+                }
+                // Typing indicator
+                if (d.typing_users && d.typing_users.length > 0) {
+                    var names = d.typing_users.join(', ');
+                    typingTextEl.textContent = d.typing_users.length === 1
+                        ? '@' + names + ' is typing...'
+                        : names + ' are typing...';
+                    typingEl.classList.add('show');
+                    scrollEnd();
+                } else {
+                    typingEl.classList.remove('show');
                 }
             });
     }

@@ -894,6 +894,7 @@ def group_api_send_message(request, pk):
 
 @login_required(login_url='/login/')
 def group_api_poll_messages(request, pk):
+    from django.core.cache import cache
     group = get_object_or_404(models.Group, pk=pk)
     if not group.memberships.filter(user=request.user).exists():
         return JsonResponse({'error': 'Not a member'}, status=403)
@@ -902,7 +903,32 @@ def group_api_poll_messages(request, pk):
     # Also return recently deleted messages the client might have
     deleted_ids = list(group.messages.filter(id__lte=last_id, is_deleted=True).values_list('id', flat=True)[:50])
     results = [_group_msg_to_json(m) for m in new_msgs]
-    return JsonResponse({'messages': results, 'deleted_ids': deleted_ids})
+
+    # Typing indicator: collect usernames of other members currently typing
+    member_ids = list(
+        group.memberships.exclude(user=request.user).values_list('user_id', flat=True)
+    )
+    typing_users = []
+    for mid in member_ids:
+        uname = cache.get(f'gtyping:{pk}:{mid}')
+        if uname:
+            typing_users.append(uname)
+
+    return JsonResponse({'messages': results, 'deleted_ids': deleted_ids, 'typing_users': typing_users})
+
+
+@login_required(login_url='/login/')
+@rate_limit('group_typing', limit=120, window=60)
+def group_api_set_typing(request, pk):
+    """Mark current user as typing in this group for ~5 seconds."""
+    from django.core.cache import cache
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    group = get_object_or_404(models.Group, pk=pk)
+    if not group.memberships.filter(user=request.user).exists():
+        return JsonResponse({'error': 'Not a member'}, status=403)
+    cache.set(f'gtyping:{pk}:{request.user.pk}', request.user.username, timeout=5)
+    return JsonResponse({'success': True})
 
 
 @login_required(login_url='/login/')
@@ -1453,9 +1479,13 @@ def api_poll_messages(request, thread_id):
     other_typing = False
     other_ids = list(thread.participants.exclude(pk=request.user.pk).values_list('pk', flat=True))
     for oid in other_ids:
-        if cache.get(f'typing:{thread_id}:{oid}'):
+        cache_key = f'typing:{thread_id}:{oid}'
+        val = cache.get(cache_key)
+        print(f'[POLL-CHECK] user={request.user.pk} checking cache key={cache_key} val={val}')
+        if val:
             other_typing = True
             break
+    print(f'[POLL] user={request.user.pk} thread={thread_id} other_ids={other_ids} typing={other_typing}')
 
     new_messages = thread.messages.filter(id__gt=last_id).order_by('created_at')
     new_messages.exclude(sender=request.user).filter(is_read=False).update(is_read=True)
@@ -1502,6 +1532,7 @@ def api_set_typing(request, thread_id):
     if request.user not in thread.participants.all():
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     cache.set(f'typing:{thread_id}:{request.user.pk}', 1, timeout=5)
+    print(f'[TYPING-SET] user={request.user.pk} thread={thread_id}')
     return JsonResponse({'success': True})
 
 
