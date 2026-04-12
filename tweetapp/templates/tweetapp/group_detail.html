@@ -436,7 +436,7 @@
                 }
             });
     }
-    setInterval(poll, 3000);
+    setInterval(function(){ if(!document.hidden) poll(); }, 5000);
 
     // Form submit
     form.addEventListener('submit', function(e){

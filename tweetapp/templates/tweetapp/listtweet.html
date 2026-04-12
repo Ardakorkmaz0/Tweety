@@ -49,7 +49,7 @@
         {% for su in searched_users %}
         <a href="{% url 'tweetapp:profile' username=su.username %}" class="flex flex-col items-center gap-2 decoration-transparent min-w-[72px] group">
             {% if su.profile.profile_image %}
-                <img src="{{ su.profile.profile_image.url }}" class="w-14 h-14 rounded-full object-cover border-2 border-[var(--border-subtle)] group-hover:border-[var(--neon-green)] transition-all">
+                <img src="{{ su.profile.profile_image.url }}" loading="lazy" decoding="async" class="w-14 h-14 rounded-full object-cover border-2 border-[var(--border-subtle)] group-hover:border-[var(--neon-green)] transition-all">
             {% else %}
                 <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl border-2 border-[var(--border-subtle)] group-hover:border-[var(--neon-green)] transition-all" style="background: var(--surface-bg); color: var(--text-primary);">
                     {{ su.username|first|upper }}

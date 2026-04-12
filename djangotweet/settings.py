@@ -11,14 +11,22 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-m*u#io8c09*ol#2z3tjy6zjg7(5wwb!xk9ht5y8e*uz^zd3z%q')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 # Set ENVIRONMENT=production on your server; defaults to development for local use
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')
 
 DEBUG = ENVIRONMENT == 'development'
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# In dev we fall back to a placeholder so local setup is frictionless,
+# but production MUST provide its own SECRET_KEY via the environment.
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-only-change-me')
+if ENVIRONMENT == 'production' and (
+    not SECRET_KEY or SECRET_KEY.startswith('django-insecure-')
+):
+    raise RuntimeError(
+        'SECRET_KEY environment variable must be set in production.'
+    )
 
 if ENVIRONMENT == 'production':
     ALLOWED_HOSTS = ['16.171.190.141', 'tweetapptweety.com', 'www.tweetapptweety.com']
@@ -136,3 +144,19 @@ if ENVIRONMENT == 'production':
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     CSRF_TRUSTED_ORIGINS = ['https://tweetapptweety.com', 'https://www.tweetapptweety.com']
+
+    # HSTS — start at 1 day so a misconfig is recoverable; bump to 31536000
+    # (1 year) once you're confident HTTPS is stable.
+    SECURE_HSTS_SECONDS = 86400
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = False
+
+    # Misc hardening headers
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+    X_FRAME_OPTIONS = 'DENY'
+
+    # Cookies
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'

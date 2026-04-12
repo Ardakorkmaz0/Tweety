@@ -54,6 +54,7 @@ urlpatterns = [
     path('chat/<int:thread_id>/', views.chat_detail, name='chat_detail'),
     path('chat/<int:thread_id>/send/', views.api_send_message, name='api_send_message'),
     path('chat/<int:thread_id>/poll/', views.api_poll_messages, name='api_poll_messages'),
+    path('chat/<int:thread_id>/typing/', views.api_set_typing, name='api_set_typing'),
     path('chat/<int:thread_id>/theme/', views.update_chat_theme, name='update_chat_theme'),
     path('chat/<int:thread_id>/delete/', views.delete_chat, name='delete_chat'),
     path('chat/<int:thread_id>/msg/<int:msg_id>/delete/', views.api_delete_message, name='api_delete_message'),

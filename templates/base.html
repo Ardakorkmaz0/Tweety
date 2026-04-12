@@ -7,6 +7,29 @@
     <title>{% block page_title %}Tweety{% endblock %}</title>
     <link rel="icon" href="{% static 'tweetapp/favicon.png' %}" type="image/png">
 
+    <!-- Critical inline theme — applied before any external CSS loads to
+         eliminate the dark→light flash on navigation. Mirrors theme.css. -->
+    <style>
+      :root { --deep-bg:#07070f; --text-primary:#f0f0f0; color-scheme:dark; }
+      :root.light-theme { --deep-bg:#f8fafc; --text-primary:#0f172a; color-scheme:light; }
+      html, body { background-color: var(--deep-bg); color: var(--text-primary); }
+    </style>
+    <script>
+      // Run theme detection ASAP so the html.light-theme class is set before
+      // first paint, even if theme.css is still loading.
+      (function(){
+        try {
+          var isAuth = {{ user.is_authenticated|yesno:"true,false" }};
+          var u = "{{ user.username|default:''|escapejs }}";
+          var key = u ? ('tweety_theme_' + u) : 'tweety_theme_guest';
+          var server = "{{ user_theme_preference|default:'dark' }}";
+          var local = localStorage.getItem(key);
+          var saved = isAuth ? (local || server || 'dark') : (local || localStorage.getItem('tweety_theme') || 'dark');
+          if (saved === 'light') document.documentElement.classList.add('light-theme');
+        } catch(e) {}
+      })();
+    </script>
+
     {% block og_meta %}
     <meta property="og:type" content="website">
     <meta property="og:title" content="Tweety">
@@ -14,18 +37,22 @@
     <meta property="og:site_name" content="Tweety">
     <meta name="twitter:card" content="summary">
     {% endblock %}
+    <!-- Tailwind browser CDN compiles utility classes at runtime; deferring it
+         causes inline scripts that measure layout (e.g. games.html canvas) to
+         read pre-style sizes, so it must remain render-blocking here. -->
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="{% static 'css/theme.css' %}">
     
     <script>
+        // Re-export theme constants for inline scripts further down the page
+        // (toggle button, etc). Theme class is already applied above.
         const isAuthenticatedUser = {{ user.is_authenticated|yesno:"true,false" }};
         const authUsername = "{{ user.username|default:''|escapejs }}";
         const userThemeKey = authUsername ? `tweety_theme_${authUsername}` : 'tweety_theme_guest';
         const serverTheme = "{{ user_theme_preference|default:'dark' }}";
         const localTheme = localStorage.getItem(userThemeKey);
         const savedTheme = isAuthenticatedUser ? (localTheme || serverTheme || 'dark') : (localTheme || localStorage.getItem('tweety_theme') || 'dark');
-        if (savedTheme === 'light') { document.documentElement.classList.add('light-theme'); }
     </script>
 
     <style>
@@ -380,7 +407,13 @@
             }
         });
         
-        lucide.createIcons();
+        // Lucide is loaded with `defer`, so it may not be ready when this
+        // inline script executes. Wait for DOMContentLoaded before calling.
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function(){ if (window.lucide) lucide.createIcons(); });
+        } else if (window.lucide) {
+            lucide.createIcons();
+        }
 
         // Scroll position management
         function saveScrollPosition() {
@@ -414,11 +447,15 @@
             if(!themeIconContainer) return;
             const isLight = document.documentElement.classList.contains('light-theme');
             themeIconContainer.innerHTML = isLight ? '<i data-lucide="moon" class="w-6 h-6"></i>' : '<i data-lucide="sun" class="w-6 h-6"></i>';
-            lucide.createIcons({root: themeIconContainer});
+            // lucide is loaded with `defer`; guard so this never throws if called
+            // before the CDN script has executed.
+            if (window.lucide) lucide.createIcons({root: themeIconContainer});
         }
 
         if (themeToggle) {
             updateThemeIcon();
+            // Re-run once lucide is ready so the initial icon gets rendered.
+            document.addEventListener('DOMContentLoaded', updateThemeIcon);
             themeToggle.addEventListener('click', () => {
                 document.documentElement.classList.toggle('light-theme');
                 const nextTheme = document.documentElement.classList.contains('light-theme') ? 'light' : 'dark';

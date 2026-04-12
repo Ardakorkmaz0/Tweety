@@ -94,6 +94,18 @@
             <div class="col-span-full glass-card p-6 text-center" style="color: var(--text-muted)">No users found.</div>
         {% endfor %}
     </div>
+
+    {% if page_obj and page_obj.paginator.num_pages > 1 %}
+    <div class="flex items-center justify-center gap-2 mt-6">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(16,242,140,0.1)] decoration-transparent" style="border: 1px solid var(--border-subtle); color: var(--text-primary);">← Prev</a>
+        {% endif %}
+        <span class="px-4 py-2 rounded-xl font-bold text-sm" style="background: var(--neon-green); color: #07070f;">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(16,242,140,0.1)] decoration-transparent" style="border: 1px solid var(--border-subtle); color: var(--text-primary);">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 

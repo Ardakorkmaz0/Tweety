@@ -1,51 +1,68 @@
 # tweetapp/context_processors.py
 import datetime
+import random
 
 from django.contrib.auth.models import User
 from django.utils import timezone
 
 from .models import Follow, Message, Notification, Profile
 
+
 def unread_notifications(request):
-    if request.user.is_authenticated:
-        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
-        unread_msgs = Message.objects.filter(
-            thread__participants=request.user,
-            is_read=False
-        ).exclude(sender=request.user).count()
-        return {
-            'unread_notif_count': count,
-            'unread_message_count': unread_msgs,
-        }
-    return {'unread_notif_count': 0, 'unread_message_count': 0}
+    # Kept for backwards compatibility — actual work happens in
+    # global_sidebar_data() to avoid duplicate query passes per request.
+    return {}
 
 
 def global_sidebar_data(request):
-    """Provide online users and suggestions globally for the right sidebar."""
+    """Provide sidebar data + unread counts globally in a single pass."""
     user_theme_preference = 'dark'
-    if request.user.is_authenticated:
-        try:
-            user_theme_preference = request.user.profile.theme_preference
-        except Profile.DoesNotExist:
-            user_theme_preference = 'dark'
 
-        following_ids = list(
-            Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
-        )
-        suggested_users = User.objects.exclude(
-            pk__in=following_ids + [request.user.pk]
-        ).select_related('profile').order_by('?')[:5]
+    if not request.user.is_authenticated:
+        return {
+            'suggested_users': User.objects.select_related('profile')[:5],
+            'online_users': User.objects.none(),
+            'user_theme_preference': user_theme_preference,
+            'unread_notif_count': 0,
+            'unread_message_count': 0,
+        }
 
-        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-        online_users = User.objects.filter(
-            profile__last_active__gte=five_minutes_ago
-        ).select_related('profile')[:10]
-    else:
-        suggested_users = User.objects.select_related('profile').order_by('?')[:5]
-        online_users = User.objects.none()
+    try:
+        user_theme_preference = request.user.profile.theme_preference
+    except Profile.DoesNotExist:
+        user_theme_preference = 'dark'
+
+    # Suggested users — avoid ORDER BY RANDOM() (full table sort).
+    # Pull a small candidate window of IDs and shuffle in Python.
+    following_ids = list(
+        Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
+    )
+    candidate_ids = list(
+        User.objects.exclude(pk__in=following_ids + [request.user.pk])
+            .values_list('pk', flat=True)[:200]
+    )
+    random.shuffle(candidate_ids)
+    suggested_users = list(
+        User.objects.filter(pk__in=candidate_ids[:5]).select_related('profile')
+    )
+
+    five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+    online_users = User.objects.filter(
+        profile__last_active__gte=five_minutes_ago
+    ).select_related('profile')[:10]
+
+    unread_notif_count = Notification.objects.filter(
+        recipient=request.user, is_read=False
+    ).count()
+    unread_message_count = Message.objects.filter(
+        thread__participants=request.user,
+        is_read=False,
+    ).exclude(sender=request.user).count()
 
     return {
         'suggested_users': suggested_users,
         'online_users': online_users,
         'user_theme_preference': user_theme_preference,
+        'unread_notif_count': unread_notif_count,
+        'unread_message_count': unread_message_count,
     }

@@ -20,6 +20,12 @@ class Tweet(models.Model):
     def __str__(self):
         return f"Tweet nick: {self.nickname} \n message:{self.message}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['user', '-created_at']),
+        ]
+
 class TweetImage(models.Model):
     tweet = models.ForeignKey(Tweet, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='tweet_images/')
@@ -34,7 +40,7 @@ class Profile(models.Model):
     last_name = models.CharField(max_length=50, blank=True)
     age = models.PositiveIntegerField(null=True, blank=True)
     require_follow_requests = models.BooleanField(default=False)
-    last_active = models.DateTimeField(null=True, blank=True)
+    last_active = models.DateTimeField(null=True, blank=True, db_index=True)
 
     def __str__(self):
         return self.user.username
@@ -52,6 +58,12 @@ class Comment(models.Model):
     tweet = models.ForeignKey(Tweet, on_delete=models.CASCADE, related_name='comments')
     message = models.CharField(max_length=3000)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['tweet', '-created_at']),
+        ]
 
     def __str__(self):
         return f"{self.user.username}: {self.message[:30]}"
@@ -163,6 +175,10 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read', '-created_at']),
+            models.Index(fields=['recipient', '-created_at']),
+        ]
 
     def __str__(self):
         return f"{self.actor.username} -> {self.recipient.username}: {self.notification_type}"
@@ -191,6 +207,10 @@ class Message(models.Model):
 
     class Meta:
         ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['thread', 'created_at']),
+            models.Index(fields=['thread', 'is_read']),
+        ]
 
     def __str__(self):
         return f"Msg {self.pk} in Thread {self.thread.pk} by {self.sender.username}"
@@ -235,6 +255,11 @@ class GameScore(models.Model):
 
     class Meta:
         ordering = ['-score']
+        indexes = [
+            models.Index(fields=['game', '-score']),
+            models.Index(fields=['user', 'game', '-created_at']),
+            models.Index(fields=['game', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.game}: {self.score}"

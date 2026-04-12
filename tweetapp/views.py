@@ -9,7 +9,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.views.generic import CreateView
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from django.db.models import Count
+from django.db.models import Count, F, OuterRef, Subquery
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.conf import settings
@@ -18,24 +18,37 @@ from django.views.decorators.csrf import csrf_exempt
 import datetime
 import json
 import logging
-from tweetapp.utils import should_notify, process_mentions, extract_mentions
+from django.core.exceptions import ValidationError
+from tweetapp.utils import should_notify, process_mentions, extract_mentions, validate_image, rate_limit
 
 logger = logging.getLogger(__name__)
 MAX_TWEET_IMAGES = 10
 
 
 def get_sidebar_context(request):
+    import random as _random
     if request.user.is_authenticated:
         following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
-        suggested_users = User.objects.exclude(
-            pk__in=following_ids + [request.user.pk]
-        ).select_related('profile').order_by('?')[:5]
+        # Avoid ORDER BY RANDOM() — pull a small candidate window of IDs and
+        # shuffle in Python.
+        candidate_ids = list(
+            User.objects.exclude(pk__in=following_ids + [request.user.pk])
+                .values_list('pk', flat=True)[:200]
+        )
+        _random.shuffle(candidate_ids)
+        suggested_users = list(
+            User.objects.filter(pk__in=candidate_ids[:5]).select_related('profile')
+        )
         five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
         online_users = User.objects.filter(
             profile__last_active__gte=five_minutes_ago
         ).select_related('profile')[:10]
     else:
-        suggested_users = User.objects.select_related('profile').order_by('?')[:5]
+        candidate_ids = list(User.objects.values_list('pk', flat=True)[:200])
+        _random.shuffle(candidate_ids)
+        suggested_users = list(
+            User.objects.filter(pk__in=candidate_ids[:5]).select_related('profile')
+        )
         online_users = User.objects.none()
     return {
         'suggested_users': suggested_users,
@@ -69,6 +82,13 @@ def listtweet(request):
         if tab == 'following':
             tab = 'latest'
 
+    # Annotate likes/comments counts once so the template doesn't trigger N+1
+    # via tweet.likes.count / tweet.comments.count per row.
+    visible_tweets = visible_tweets.annotate(
+        like_count=Count('likes', distinct=True),
+        comment_count=Count('comments', distinct=True),
+    ).select_related('user', 'user__profile').prefetch_related('images')
+
     # Build dynamically based on tab strategy
     if tab == 'following':
         # People you follow exclusively
@@ -77,7 +97,7 @@ def listtweet(request):
         # "For You" Feed: Rank by custom engagement algorithm
         # Engagement = (Likes * 2) + (Comments * 3)
         qs = visible_tweets.annotate(
-            engagement_score=(Count('likes', distinct=True) * 2) + (Count('comments', distinct=True) * 3)
+            engagement_score=(F('like_count') * 2) + (F('comment_count') * 3)
         ).order_by('-engagement_score', '-created_at')
     else:
         # "Latest" Feed
@@ -97,6 +117,7 @@ def listtweet(request):
 
 
 @login_required(login_url='/login/')
+@rate_limit('tweet_post', limit=10, window=60)
 def addtweetbyform(request):
     if request.method == "POST":
         form = AddTweetForm(request.POST, request.FILES)
@@ -105,6 +126,14 @@ def addtweetbyform(request):
             if len(uploaded_images) > MAX_TWEET_IMAGES:
                 messages.error(request, f"You can upload at most {MAX_TWEET_IMAGES} images per tweet.")
                 return render(request, 'tweetapp/addtwetbyform.html', context={"form": form})
+
+            # Validate every uploaded image (size, type, Pillow integrity)
+            for file in uploaded_images:
+                try:
+                    validate_image(file)
+                except ValidationError as e:
+                    messages.error(request, e.messages[0] if e.messages else 'Invalid image upload.')
+                    return render(request, 'tweetapp/addtwetbyform.html', context={"form": form})
 
             tweet = models.Tweet.objects.create(
                 user=request.user,
@@ -156,14 +185,17 @@ def searchtweet(request):
         else:
             results = results.filter(visibility='public')
             
-        results = results.order_by('-created_at')
-        
+        results = results.annotate(
+            like_count=Count('likes', distinct=True),
+            comment_count=Count('comments', distinct=True),
+        ).select_related('user', 'user__profile').prefetch_related('images').order_by('-created_at')
+
         if tab == 'following' and request.user.is_authenticated:
             following_ids = list(models.Follow.objects.filter(follower=request.user).values_list('following_id', flat=True))
             qs = results.filter(user_id__in=following_ids)
         elif tab == 'recommended':
             qs = results.annotate(
-                engagement_score=(Count('likes', distinct=True) * 2) + (Count('comments', distinct=True) * 3)
+                engagement_score=(F('like_count') * 2) + (F('comment_count') * 3)
             ).order_by('-engagement_score', '-created_at')
         else:
             qs = results
@@ -200,17 +232,22 @@ def profile(request, username):
         user = None
         profile_exists = False
 
+    base_tweets = models.Tweet.objects.filter(nickname__iexact=username).annotate(
+        like_count=Count('likes', distinct=True),
+        comment_count=Count('comments', distinct=True),
+    ).select_related('user', 'user__profile').prefetch_related('images')
+
     if request.user.is_authenticated:
         if request.user.is_staff or (user and request.user == user):
-            tweets = models.Tweet.objects.filter(nickname__iexact=username).order_by('-created_at')
+            tweets = base_tweets.order_by('-created_at')
         else:
             i_follow_author = user and models.Follow.objects.filter(follower=request.user, following=user).exists()
             if i_follow_author:
-                tweets = models.Tweet.objects.filter(nickname__iexact=username).order_by('-created_at')
+                tweets = base_tweets.order_by('-created_at')
             else:
-                tweets = models.Tweet.objects.filter(nickname__iexact=username, visibility='public').order_by('-created_at')
+                tweets = base_tweets.filter(visibility='public').order_by('-created_at')
     else:
-        tweets = models.Tweet.objects.filter(nickname__iexact=username, visibility='public').order_by('-created_at')    
+        tweets = base_tweets.filter(visibility='public').order_by('-created_at')
     tweet_count = tweets.count()
 
     if request.user.is_authenticated:
@@ -307,24 +344,26 @@ def account_settings(request):
             request.user.save(update_fields=['username'])
             # Update tweet nicknames
             models.Tweet.objects.filter(nickname__iexact=old_username).update(nickname=new_username)
-            # Update @mentions in tweets
-            for tweet in models.Tweet.objects.filter(message__iregex=r'@' + old_username + r'(?!\w)'):
-                tweet.message = re.sub(
-                    r'@' + re.escape(old_username) + r'(?!\w)',
-                    '@' + new_username,
-                    tweet.message,
-                    flags=re.IGNORECASE,
-                )
-                tweet.save(update_fields=['message'])
+            mention_re = re.compile(r'@' + re.escape(old_username) + r'(?!\w)', re.IGNORECASE)
+            replacement = '@' + new_username
+
+            # Update @mentions in tweets (single bulk_update instead of N saves)
+            tweets_to_update = list(
+                models.Tweet.objects.filter(message__iregex=r'@' + old_username + r'(?!\w)')
+            )
+            for tweet in tweets_to_update:
+                tweet.message = mention_re.sub(replacement, tweet.message)
+            if tweets_to_update:
+                models.Tweet.objects.bulk_update(tweets_to_update, ['message'], batch_size=500)
+
             # Update @mentions in comments
-            for comment in models.Comment.objects.filter(message__iregex=r'@' + old_username + r'(?!\w)'):
-                comment.message = re.sub(
-                    r'@' + re.escape(old_username) + r'(?!\w)',
-                    '@' + new_username,
-                    comment.message,
-                    flags=re.IGNORECASE,
-                )
-                comment.save(update_fields=['message'])
+            comments_to_update = list(
+                models.Comment.objects.filter(message__iregex=r'@' + old_username + r'(?!\w)')
+            )
+            for comment in comments_to_update:
+                comment.message = mention_re.sub(replacement, comment.message)
+            if comments_to_update:
+                models.Comment.objects.bulk_update(comments_to_update, ['message'], batch_size=500)
             success = 'Username changed successfully!'
     context = {
         'email': request.user.email,
@@ -362,6 +401,7 @@ def delete_tweet(request, pk):
     return redirect(reverse('tweetapp:listtweet'))
 
 
+@rate_limit('like', limit=60, window=60)
 def like_tweet(request, pk):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'login'}, status=401)
@@ -398,6 +438,7 @@ def like_tweet(request, pk):
 
 
 @login_required(login_url='/login/')
+@rate_limit('comment', limit=20, window=60)
 def add_comment(request, pk):
     from django.http import Http404
     if request.method != "POST":
@@ -459,11 +500,17 @@ def delete_comment(request, pk):
 @login_required(login_url='/login/')
 def userlist(request):
     if request.user.is_staff:
-        users = User.objects.select_related('profile').order_by('-profile__last_active')
+        users_qs = User.objects.select_related('profile').order_by('-profile__last_active')
     else:
-        users = User.objects.select_related('profile').all()
-    
-    context = {'users': users}
+        users_qs = User.objects.select_related('profile').order_by('username')
+
+    paginator = Paginator(users_qs, 30)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'users': page_obj,
+        'page_obj': page_obj,
+    }
     context.update(get_sidebar_context(request))
     return render(request, 'tweetapp/userlist.html', context)
 
@@ -533,6 +580,12 @@ def create_group(request):
         description = request.POST.get('description', '')
         is_private = request.POST.get('is_private') == 'on'
         image = request.FILES.get('image')
+        if image:
+            try:
+                validate_image(image)
+            except ValidationError as e:
+                messages.error(request, e.messages[0] if e.messages else 'Invalid image upload.')
+                return render(request, 'tweetapp/create_group.html')
         if name:
             group = models.Group.objects.create(
                 name=name, description=description,
@@ -576,6 +629,7 @@ def group_detail(request, pk):
 
 
 @login_required(login_url='/login/')
+@rate_limit('group_msg', limit=30, window=60)
 def group_send_message(request, pk):
     group = get_object_or_404(models.Group, pk=pk)
     if not group.memberships.filter(user=request.user).exists():
@@ -583,6 +637,12 @@ def group_send_message(request, pk):
     if request.method == "POST":
         message = request.POST.get('message', '')
         image = request.FILES.get('image')
+        if image:
+            try:
+                validate_image(image)
+            except ValidationError as e:
+                messages.error(request, e.messages[0] if e.messages else 'Invalid image upload.')
+                return redirect('tweetapp:group_detail', pk=pk)
         if message or image:
             models.GroupMessage.objects.create(group=group, user=request.user, message=message, image=image)
     return redirect('tweetapp:group_detail', pk=pk)
@@ -798,6 +858,7 @@ def _group_msg_to_json(msg):
 
 
 @login_required(login_url='/login/')
+@rate_limit('group_msg', limit=30, window=60)
 def group_api_send_message(request, pk):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
@@ -809,6 +870,11 @@ def group_api_send_message(request, pk):
     reply_to_id = request.POST.get('reply_to')
     if not message and not image:
         return JsonResponse({'error': 'Empty message'}, status=400)
+    if image:
+        try:
+            validate_image(image)
+        except ValidationError as e:
+            return JsonResponse({'error': e.messages[0] if e.messages else 'Invalid image'}, status=400)
     reply_to = None
     if reply_to_id:
         try:
@@ -885,6 +951,11 @@ def group_edit(request, pk):
         group.description = request.POST.get('description', '')
         image = request.FILES.get('image')
         if image:
+            try:
+                validate_image(image)
+            except ValidationError as e:
+                messages.error(request, e.messages[0] if e.messages else 'Invalid image')
+                return redirect('tweetapp:group_detail', pk=pk)
             group.image = image
         group.save()
     return redirect('tweetapp:group_detail', pk=pk)
@@ -901,6 +972,7 @@ def group_toggle_mute(request, pk):
 
 
 @login_required(login_url='/login/')
+@rate_limit('follow', limit=30, window=60)
 def follow_user(request, username):
     target = get_object_or_404(User, username=username)
     if target == request.user:
@@ -1157,25 +1229,51 @@ def tweet_likers(request, pk):
 
 # --- DIRECT MESSAGING ---
 
-@login_required
-def inbox(request):
-    """List all chat threads for the logged in user."""
-    threads = request.user.chat_threads.prefetch_related('participants', 'messages').order_by('-updated_at')
-    
+def _build_chat_list(request_user):
+    """Build the inbox chat list with last_message + unread_count in 2 queries
+    instead of N (one per thread). Returns (chat_list, chat_user_ids)."""
+    # Annotate each thread with the id of its most-recent message and the
+    # unread count for the current user.
+    last_msg_id_sq = models.Message.objects.filter(thread=OuterRef('pk')).order_by('-created_at').values('pk')[:1]
+    threads = (
+        request_user.chat_threads
+        .annotate(
+            _last_message_id=Subquery(last_msg_id_sq),
+            _unread_count=Count(
+                'messages',
+                filter=Q(messages__is_read=False) & ~Q(messages__sender=request_user),
+            ),
+        )
+        .prefetch_related('participants', 'participants__profile')
+        .order_by('-updated_at')
+    )
+    threads = list(threads)
+
+    # Bulk-fetch the actual last messages in one query.
+    last_msg_ids = [t._last_message_id for t in threads if t._last_message_id]
+    last_msgs = {
+        m.pk: m for m in models.Message.objects.filter(pk__in=last_msg_ids).select_related('sender')
+    }
+
     chat_list = []
     chat_user_ids = []
     for t in threads:
-        other_user = t.participants.exclude(pk=request.user.pk).first()
+        other_user = next((p for p in t.participants.all() if p.pk != request_user.pk), None)
         if other_user:
             chat_user_ids.append(other_user.pk)
-        last_message = t.messages.last()
-        unread_count = t.messages.exclude(sender=request.user).filter(is_read=False).count()
         chat_list.append({
             'thread': t,
             'other_user': other_user,
-            'last_message': last_message,
-            'unread_count': unread_count,
+            'last_message': last_msgs.get(t._last_message_id),
+            'unread_count': t._unread_count,
         })
+    return chat_list, chat_user_ids
+
+
+@login_required
+def inbox(request):
+    """List all chat threads for the logged in user."""
+    chat_list, chat_user_ids = _build_chat_list(request.user)
     
     context = get_sidebar_context(request)
     # Filter online_users to only people I follow or have chatted with
@@ -1221,25 +1319,12 @@ def chat_detail(request, thread_id):
         return redirect('tweetapp:inbox')
         
     thread.messages.exclude(sender=request.user).filter(is_read=False).update(is_read=True)
-    
-    threads = request.user.chat_threads.prefetch_related('participants', 'messages').order_by('-updated_at')
-    chat_list = []
-    chat_user_ids = []
-    other_user = None
-    for t in threads:
-        ou = t.participants.exclude(pk=request.user.pk).first()
-        if t.pk == thread.pk:
-            other_user = ou
-        if ou:
-            chat_user_ids.append(ou.pk)
-        last_message = t.messages.last()
-        unread_count = t.messages.exclude(sender=request.user).filter(is_read=False).count()
-        chat_list.append({
-            'thread': t,
-            'other_user': ou,
-            'last_message': last_message,
-            'unread_count': unread_count,
-        })
+
+    chat_list, chat_user_ids = _build_chat_list(request.user)
+    other_user = next(
+        (entry['other_user'] for entry in chat_list if entry['thread'].pk == thread.pk),
+        None,
+    )
         
     msgs = thread.messages.select_related('sender').order_by('created_at')
     
@@ -1276,6 +1361,7 @@ def delete_chat(request, thread_id):
     return redirect('tweetapp:inbox')
 
 @login_required
+@rate_limit('dm_send', limit=30, window=60)
 def api_send_message(request, thread_id):
     """Send a message via AJAX."""
     if request.method != 'POST':
@@ -1291,6 +1377,12 @@ def api_send_message(request, thread_id):
 
     if not content and not image:
         return JsonResponse({'error': 'Empty message'}, status=400)
+
+    if image:
+        try:
+            validate_image(image)
+        except ValidationError as e:
+            return JsonResponse({'error': e.messages[0] if e.messages else 'Invalid image'}, status=400)
 
     reply_to = None
     if reply_to_id:
@@ -1345,16 +1437,26 @@ def api_send_message(request, thread_id):
 @login_required
 def api_poll_messages(request, thread_id):
     """Poll for new messages."""
+    from django.core.cache import cache
     thread = get_object_or_404(models.ChatThread, pk=thread_id)
     if request.user not in thread.participants.all():
         return JsonResponse({'error': 'Unauthorized'}, status=403)
-        
+
     last_id = request.GET.get('last_id', 0)
     try:
         last_id = int(last_id)
     except ValueError:
         last_id = 0
-        
+
+    # Typing indicator: did any other participant set a typing flag in cache
+    # within the last 5 seconds?
+    other_typing = False
+    other_ids = list(thread.participants.exclude(pk=request.user.pk).values_list('pk', flat=True))
+    for oid in other_ids:
+        if cache.get(f'typing:{thread_id}:{oid}'):
+            other_typing = True
+            break
+
     new_messages = thread.messages.filter(id__gt=last_id).order_by('created_at')
     new_messages.exclude(sender=request.user).filter(is_read=False).update(is_read=True)
     
@@ -1386,7 +1488,21 @@ def api_poll_messages(request, thread_id):
             .values_list('pk', flat=True)
     )
 
-    return JsonResponse({'messages': results, 'read_ids': read_ids})
+    return JsonResponse({'messages': results, 'read_ids': read_ids, 'typing': other_typing})
+
+
+@login_required
+@rate_limit('typing', limit=120, window=60)
+def api_set_typing(request, thread_id):
+    """Mark current user as typing in this thread for ~5 seconds."""
+    from django.core.cache import cache
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    thread = get_object_or_404(models.ChatThread, pk=thread_id)
+    if request.user not in thread.participants.all():
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    cache.set(f'typing:{thread_id}:{request.user.pk}', 1, timeout=5)
+    return JsonResponse({'success': True})
 
 
 @login_required
@@ -1425,6 +1541,10 @@ def update_chat_theme(request, thread_id):
         
     bg_image = request.FILES.get('background_image')
     if bg_image:
+        try:
+            validate_image(bg_image)
+        except ValidationError as e:
+            return JsonResponse({'error': e.messages[0] if e.messages else 'Invalid image'}, status=400)
         thread.background_image = bg_image
         
     if request.POST.get('clear_background') == 'true':
@@ -1505,6 +1625,7 @@ def send_push_notification(user, title, body, url='/tweetapp/chat/'):
 
 
 @login_required
+@rate_limit('push_sub', limit=10, window=60)
 def push_subscribe(request):
     """Save a push subscription for the current user."""
     if request.method != 'POST':
@@ -1584,19 +1705,20 @@ def games_view(request):
         .order_by('-top_score')[:5]
     )
 
-    # Enrich with profile images
-    top5_list = []
-    for entry in top5:
-        try:
-            u = User.objects.select_related('profile').get(pk=entry['user__id'])
-            img = u.profile.profile_image.url if u.profile.profile_image else None
-        except Exception:
-            img = None
-        top5_list.append({
+    # Enrich with profile images (bulk fetch — no N+1)
+    top5_user_ids = [e['user__id'] for e in top5]
+    top5_profile_images = {
+        p.user_id: (p.profile_image.url if p.profile_image else None)
+        for p in models.Profile.objects.filter(user_id__in=top5_user_ids)
+    }
+    top5_list = [
+        {
             'username': entry['user__username'],
             'score': entry['top_score'],
-            'profile_image': img,
-        })
+            'profile_image': top5_profile_images.get(entry['user__id']),
+        }
+        for entry in top5
+    ]
 
     # Recent notifications (last 5 unread)
     recent_notifs = models.Notification.objects.filter(
@@ -1709,19 +1831,19 @@ def leaderboard_view(request):
             .order_by('-top_score')[:50]
         )
 
+    user_ids = [e['user__id'] for e in entries]
+    profile_images = {
+        p.user_id: (p.profile_image.url if p.profile_image else None)
+        for p in models.Profile.objects.filter(user_id__in=user_ids)
+    }
     leaderboard = []
     for i, entry in enumerate(entries, 1):
-        try:
-            u = User.objects.select_related('profile').get(pk=entry['user__id'])
-            img = u.profile.profile_image.url if u.profile.profile_image else None
-        except Exception:
-            img = None
         leaderboard.append({
             'rank': i,
             'username': entry['user__username'],
             'user_id': entry['user__id'],
             'score': entry['top_score'],
-            'profile_image': img,
+            'profile_image': profile_images.get(entry['user__id']),
         })
 
     # Current user's rank

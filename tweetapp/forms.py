@@ -3,6 +3,7 @@ from django.forms import ModelForm
 from tweetapp.models import Tweet, ChatThread, Message
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from tweetapp.utils import validate_image
 
 class AddTweetForm(forms.Form):
     message_input = forms.CharField(label="Message", max_length=3000, 
@@ -20,6 +21,9 @@ class ProfileForm(forms.Form):
     profile_image = forms.ImageField(label="Profile Photo", required=False)
     require_follow_requests = forms.BooleanField(label="Require Follow Requests", required=False)
 
+    def clean_profile_image(self):
+        return validate_image(self.cleaned_data.get('profile_image'))
+
 class RegisterForm(UserCreationForm):
     first_name = forms.CharField(label="First Name", max_length=50, required=False)
     last_name = forms.CharField(label="Last Name", max_length=50, required=False)
@@ -34,7 +38,14 @@ class ChatThemeForm(forms.ModelForm):
         model = ChatThread
         fields = ['theme_color', 'background_image']
 
+    def clean_background_image(self):
+        return validate_image(self.cleaned_data.get('background_image'))
+
+
 class MessageForm(forms.ModelForm):
     class Meta:
         model = Message
         fields = ['content', 'image']
+
+    def clean_image(self):
+        return validate_image(self.cleaned_data.get('image'))
