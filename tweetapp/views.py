@@ -9,7 +9,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.views.generic import CreateView
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from django.db.models import Count, F, OuterRef, Subquery
+from django.db.models import Count, F, OuterRef, Subquery, Exists, Q
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.conf import settings
@@ -605,10 +605,23 @@ def delete_comment(request, pk):
 
 @login_required(login_url='/login/')
 def userlist(request):
+    q = request.GET.get('q', '').strip()
     if request.user.is_staff:
         users_qs = User.objects.select_related('profile').order_by('-profile__last_active')
     else:
         users_qs = User.objects.select_related('profile').order_by('username')
+        
+    if q:
+        users_qs = users_qs.filter(
+            Q(username__icontains=q) |
+            Q(profile__first_name__icontains=q) |
+            Q(profile__last_name__icontains=q)
+        )
+        
+    users_qs = users_qs.annotate(
+        follower_count=Count('followers', distinct=True),
+        is_following=Exists(models.Follow.objects.filter(follower=request.user, following=OuterRef('pk')))
+    )
 
     paginator = Paginator(users_qs, 30)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -616,6 +629,7 @@ def userlist(request):
     context = {
         'users': page_obj,
         'page_obj': page_obj,
+        'search_query': q,
     }
     return render(request, 'tweetapp/userlist.html', context)
 
@@ -1154,6 +1168,9 @@ def follow_user(request, username):
                     url=f'/tweetapp/profile/{request.user.username}/'
                 )
             
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER')
+    if next_url:
+        return redirect(next_url)
     return redirect('tweetapp:profile', username=username)
 
 

@@ -55,43 +55,119 @@
         {% endif %}
     </div>
 
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col gap-4 mb-6">
         <h2 class="text-2xl font-bold" style="color: var(--text-primary)">Connect with Users</h2>
+        
+        <!-- Search Bar -->
+        <form action="{% url 'tweetapp:userlist' %}" method="GET" class="relative w-full max-w-xl">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i data-lucide="search" class="w-5 h-5 text-[var(--text-muted)]"></i>
+            </div>
+            <input type="text" name="q" value="{{ search_query|default:'' }}" 
+                   placeholder="Search users by name or username..." 
+                   class="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--surface-bg)] text-[var(--text-primary)] border transition-colors focus:outline-none"
+                   style="border-color: var(--border-subtle); box-shadow: 0 2px 10px rgba(0,0,0,0.05);"
+                   onfocus="this.style.borderColor='var(--neon-green)'"
+                   onblur="this.style.borderColor='var(--border-subtle)'">
+            {% if search_query %}
+            <a href="{% url 'tweetapp:userlist' %}" class="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-muted)] hover:text-[#ff6b6b] transition-colors" title="Clear Search">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </a>
+            {% else %}
+            <button type="submit" class="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-muted)] hover:text-[var(--neon-green)] transition-colors">
+                <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+            {% endif %}
+        </form>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="space-y-4">
         {% for u in users %}
-        <div class="glass-card p-4 flex justify-between items-center transition-all hover:border-[var(--border-glow)] hover:-translate-y-0.5 group">
-            <div class="flex items-center gap-4">
-                {% if u.profile.profile_image %}
-                    <img src="{{ u.profile.profile_image.url }}" class="w-12 h-12 rounded-full object-cover border-2" style="border-color: rgba(255,255,255,0.1)">
-                {% else %}
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg" style="background: var(--surface-bg); border: 2px solid rgba(255,255,255,0.1); color: var(--text-primary);">
-                        {{ u.username|first|upper }}
-                    </div>
-                {% endif %}
-                
-                <div>
-                    <a href="{% url 'tweetapp:profile' username=u.username %}" class="font-bold text-lg hover:underline decoration-transparent transition-all" style="color: var(--neon-green)">
-                        @{{ u.username }}
-                    </a>
-                </div>
+        <div class="glass-card flex items-center p-4 transition-all hover:bg-[rgba(255,255,255,0.02)] group" style="border: 1px solid var(--border-subtle); border-radius: 16px;">
+            
+            <!-- Avatar -->
+            <div class="shrink-0 mr-4">
+                <a href="{% url 'tweetapp:profile' username=u.username %}" class="relative inline-block">
+                    {% if u.profile.profile_image %}
+                        <img src="{{ u.profile.profile_image.url }}" class="w-14 h-14 rounded-full object-cover border-2 transition-transform group-hover:scale-105" style="border-color: var(--surface-bg);">
+                    {% else %}
+                        <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl border-2 transition-transform group-hover:scale-105" style="background: var(--deep-bg); border-color: var(--surface-bg); color: var(--text-primary);">
+                            {{ u.username|first|upper }}
+                        </div>
+                    {% endif %}
+                </a>
             </div>
 
-            {% if request.user.is_staff %}
-            <div class="text-right">
-                <span class="text-xs px-2 py-1 rounded" style="background: rgba(255,255,255,0.05); color: var(--text-muted)">
-                    {% if u.profile.last_active %}
+            <!-- User Info (Name, Username, Bio) -->
+            <div class="flex-1 min-w-0 pr-4">
+                <div class="flex items-center gap-2 mb-0.5">
+                    <a href="{% url 'tweetapp:profile' username=u.username %}" class="font-bold text-base leading-tight hover:underline decoration-transparent truncate" style="color: var(--text-primary)">
+                        {% if u.profile.first_name or u.profile.last_name %}
+                            {{ u.profile.first_name }} {{ u.profile.last_name }}
+                        {% else %}
+                            {{ u.username }}
+                        {% endif %}
+                    </a>
+                </div>
+                
+                <a href="{% url 'tweetapp:profile' username=u.username %}" class="text-xs font-medium inline-block truncate mb-1" style="color: var(--neon-green)">@{{ u.username }}</a>
+
+                {% if u.profile.bio %}
+                    <p class="text-xs leading-relaxed text-[var(--text-muted)] line-clamp-1 max-w-lg">
+                        {{ u.profile.bio }}
+                    </p>
+                {% endif %}
+                
+                {% if request.user.is_staff and u.profile.last_active %}
+                <div class="mt-1">
+                    <span class="text-[9px] px-1.5 py-0.5 rounded uppercase font-bold" style="background: rgba(255,255,255,0.05); color: var(--text-muted);">
                         Seen: {{ u.profile.last_active|date:"M d, H:i" }}
-                    {% else %}
-                        Never
-                    {% endif %}
-                </span>
+                    </span>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
+
+            <!-- Right Actions Area (Stats + Buttons) -->
+            <div class="shrink-0 flex items-center gap-3 sm:gap-6">
+                <!-- Followers Stat (Hidden on super narrow mobile, visible on sm+) -->
+                <div class="hidden sm:flex items-center gap-1.5 text-xs text-[var(--text-muted)] whitespace-nowrap">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                    <span class="font-bold text-[var(--text-primary)]">{{ u.follower_count|default:"0" }}</span> Followers
+                </div>
+
+                <!-- Action Buttons: Message & Follow -->
+                <div class="flex items-center gap-2">
+                    {% if u != request.user %}
+                        <a href="{% url 'tweetapp:start_chat' username=u.username %}" class="p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--neon-green)] hover:bg-[rgba(16,242,140,0.1)] transition-colors flex items-center justify-center shrink-0" title="Send Message">
+                            <i data-lucide="message-square" class="w-4 h-4"></i>
+                        </a>
+
+                        <form action="{% url 'tweetapp:follow_user' username=u.username %}" method="POST" class="m-0 shrink-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}?page={{ page_obj.number }}">
+                            {% if u.is_following %}
+                                <button class="px-4 py-1.5 rounded-full text-xs font-bold transition-colors bg-[rgba(255,255,255,0.05)] text-[var(--text-primary)] hover:bg-[rgba(255,107,107,0.1)] hover:text-[#ff6b6b] hover:border-[#ff6b6b] border border-transparent whitespace-nowrap">
+                                    Unfollow
+                                </button>
+                            {% else %}
+                                <button class="px-4 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-[rgba(16,242,140,0.1)] border whitespace-nowrap" style="border-color: var(--neon-green); color: var(--neon-green)">
+                                    Follow
+                                </button>
+                            {% endif %}
+                        </form>
+                    {% else %}
+                        <span class="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider rounded-full whitespace-nowrap shrink-0" style="background: rgba(255,255,255,0.05); color: var(--text-muted)">You</span>
+                    {% endif %}
+                </div>
+            </div>
+            
         </div>
         {% empty %}
-            <div class="col-span-full glass-card p-6 text-center" style="color: var(--text-muted)">No users found.</div>
+            <div class="glass-card p-12 text-center flex flex-col items-center justify-center">
+                <i data-lucide="users" class="w-12 h-12 mb-4" style="color: var(--border-subtle)"></i>
+                <h3 class="text-lg font-bold" style="color: var(--text-primary)">No users found.</h3>
+                <p class="text-sm mt-2" style="color: var(--text-muted)">It looks like it's pretty quiet around here.</p>
+            </div>
         {% endfor %}
     </div>
 
