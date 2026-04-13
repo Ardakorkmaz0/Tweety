@@ -155,9 +155,11 @@
         <span class="px-4 py-2 rounded-xl font-bold text-sm" style="background: var(--neon-green); color: #07070f;">{{
             page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}"
+        <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}"
             class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(16,242,140,0.1)] decoration-transparent"
-            style="border: 1px solid var(--border-subtle); color: var(--text-primary);">Next →</a>
+            style="border: 1px solid var(--border-subtle); color: var(--text-primary);">
+            Next →
+        </a>
         {% endif %}
     </div>
     {% endif %}
