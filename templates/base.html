@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -10,24 +11,38 @@
     <!-- Critical inline theme — applied before any external CSS loads to
          eliminate the dark→light flash on navigation. Mirrors theme.css. -->
     <style>
-      :root { --deep-bg:#07070f; --text-primary:#f0f0f0; color-scheme:dark; }
-      :root.light-theme { --deep-bg:#f8fafc; --text-primary:#0f172a; color-scheme:light; }
-      html, body { background-color: var(--deep-bg); color: var(--text-primary); }
+        :root {
+            --deep-bg: #07070f;
+            --text-primary: #f0f0f0;
+            color-scheme: dark;
+        }
+
+        :root.light-theme {
+            --deep-bg: #f8fafc;
+            --text-primary: #0f172a;
+            color-scheme: light;
+        }
+
+        html,
+        body {
+            background-color: var(--deep-bg);
+            color: var(--text-primary);
+        }
     </style>
     <script>
-      // Run theme detection ASAP so the html.light-theme class is set before
-      // first paint, even if theme.css is still loading.
-      (function(){
-        try {
-          var isAuth = {{ user.is_authenticated|yesno:"true,false" }};
-          var u = "{{ user.username|default:''|escapejs }}";
-          var key = u ? ('tweety_theme_' + u) : 'tweety_theme_guest';
-          var server = "{{ user_theme_preference|default:'dark' }}";
-          var local = localStorage.getItem(key);
-          var saved = isAuth ? (local || server || 'dark') : (local || localStorage.getItem('tweety_theme') || 'dark');
-          if (saved === 'light') document.documentElement.classList.add('light-theme');
-        } catch(e) {}
-      })();
+        // Run theme detection ASAP so the html.light-theme class is set before
+        // first paint, even if theme.css is still loading.
+        (function () {
+            try {
+                var isAuth = {{ user.is_authenticated|yesno:"true,false" }};
+        var u = "{{ user.username|default:''|escapejs }}";
+        var key = u ? ('tweety_theme_' + u) : 'tweety_theme_guest';
+        var server = "{{ user_theme_preference|default:'dark' }}";
+        var local = localStorage.getItem(key);
+        var saved = isAuth ? (local || server || 'dark') : (local || localStorage.getItem('tweety_theme') || 'dark');
+        if (saved === 'light') document.documentElement.classList.add('light-theme');
+        } catch (e) { }
+      }) ();
     </script>
 
     {% block og_meta %}
@@ -43,7 +58,7 @@
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="{% static 'css/theme.css' %}">
-    
+
     <script>
         // Re-export theme constants for inline scripts further down the page
         // (toggle button, etc). Theme class is already applied above.
@@ -56,32 +71,61 @@
     </script>
 
     <style>
-        body { overflow-x: hidden; word-wrap: break-word; background-color: var(--deep-bg); color: var(--text-primary); }
-        .glass-card, #tweet-container { word-break: break-all; overflow-wrap: break-word; content-visibility: auto; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .active-indicator { box-shadow: 0 0 15px currentColor; }
-        .glass-elevated { will-change: transform, opacity; }
+        body {
+            overflow-x: hidden;
+            word-wrap: break-word;
+            background-color: var(--deep-bg);
+            color: var(--text-primary);
+        }
+
+        .glass-card,
+        #tweet-container {
+            word-break: break-all;
+            overflow-wrap: break-word;
+            content-visibility: auto;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .active-indicator {
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .glass-elevated {
+            will-change: transform, opacity;
+        }
     </style>
 </head>
+
 <body class="min-h-screen pb-24 lg:pb-0 relative">
-    
-    <div class="fixed top-20 left-10 w-96 h-96 rounded-full opacity-10 pointer-events-none blur-3xl -z-10" style="background: radial-gradient(circle, var(--neon-green), transparent);"></div>
-    <div class="fixed bottom-20 right-10 w-96 h-96 rounded-full opacity-10 pointer-events-none blur-3xl -z-10" style="background: radial-gradient(circle, var(--neon-purple), transparent);"></div>
+
+    <div class="fixed top-20 left-10 w-96 h-96 rounded-full opacity-10 pointer-events-none blur-3xl -z-10"
+        style="background: radial-gradient(circle, var(--neon-green), transparent);"></div>
+    <div class="fixed bottom-20 right-10 w-96 h-96 rounded-full opacity-10 pointer-events-none blur-3xl -z-10"
+        style="background: radial-gradient(circle, var(--neon-purple), transparent);"></div>
 
     <header class="sticky top-0 z-40 glass-elevated" style="border-bottom: 1px solid var(--border-subtle);">
         <div class="max-w-[1440px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
             <a href="{% url 'tweetapp:listtweet' %}" class="flex items-center gap-3 decoration-transparent group">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center relative glow-green transition-transform group-hover:scale-105" style="background: var(--gradient-primary);">
-                    <img src="{% static 'tweetapp/favicon.png' %}" width="20" height="20" class="z-10 absolute filter invert" style="mix-blend-mode: plus-lighter;">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center relative glow-green transition-transform group-hover:scale-105"
+                    style="background: var(--gradient-primary);">
+                    <img src="{% static 'tweetapp/favicon.png' %}" width="20" height="20"
+                        class="z-10 absolute filter invert" style="mix-blend-mode: plus-lighter;">
                 </div>
-                <h1 class="text-gradient" style="font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin: 0;">Tweety</h1>
+                <h1 class="text-gradient" style="font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin: 0;">
+                    Tweety</h1>
             </a>
-            
+
             <div class="flex items-center gap-2">
-                <a href="{% url 'tweetapp:patchnotes' %}" class="lg:hidden p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)]" style="color: var(--neon-purple);">
+                <a href="{% url 'tweetapp:patchnotes' %}"
+                    class="lg:hidden p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)]"
+                    style="color: var(--neon-purple);">
                     <i data-lucide="clipboard-list" class="w-6 h-6"></i>
                 </a>
-                <button id="themeToggle" class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)] cursor-pointer">
+                <button id="themeToggle"
+                    class="p-2 rounded-xl transition-colors hover:bg-[rgba(255,255,255,0.05)] cursor-pointer">
                     <div id="themeIconContainer"></div>
                 </button>
             </div>
@@ -91,10 +135,13 @@
         <div class="lg:hidden max-w-[1440px] mx-auto px-4 md:px-8 py-3 border-t border-[var(--border-subtle)]">
             <form action="{% url 'tweetapp:searchtweet' %}" method="GET" class="flex gap-2 m-0">
                 <div class="flex-1 relative">
-                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"></i>
-                    <input type="text" name="q" placeholder="Search tweets..." class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--card-bg)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--neon-green)]">
+                    <i data-lucide="search"
+                        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"></i>
+                    <input type="text" name="q" placeholder="Search tweets..."
+                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--card-bg)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--neon-green)]">
                 </div>
-                <button type="submit" class="px-4 py-2.5 rounded-lg font-semibold transition-all" style="background: var(--neon-green); color: black;">
+                <button type="submit" class="px-4 py-2.5 rounded-lg font-semibold transition-all"
+                    style="background: var(--neon-green); color: black;">
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
@@ -103,80 +150,117 @@
 
     <main class="max-w-[1440px] mx-auto px-4 lg:px-8 py-4 lg:py-8">
         <div class="flex flex-col lg:flex-row gap-6 relative justify-center">
-            
+
             <div class="w-full lg:w-[280px] flex-shrink-0 lg:pr-6 space-y-6 lg:sticky lg:top-[90px] h-fit">
                 {% if user.is_authenticated %}
                 <div class="glass-card p-5 hidden lg:block text-center">
-                    <div class="relative mb-3 inline-block p-1 rounded-full active-indicator" style="color: var(--neon-green)">
-                        {% if user.profile.profile_image %}<img src="{{ user.profile.profile_image.url }}" class="w-20 h-20 rounded-full object-cover border-4 border-[var(--deep-bg)]">
-                        {% else %}<div class="w-20 h-20 rounded-full flex items-center justify-center font-bold text-2xl" style="background: var(--surface-bg);">{{ user.username|first|upper }}</div>{% endif %}
+                    <div class="relative mb-3 inline-block p-1 rounded-full active-indicator"
+                        style="color: var(--neon-green)">
+                        {% if user.profile.profile_image %}<img src="{{ user.profile.profile_image.url }}"
+                            class="w-20 h-20 rounded-full object-cover border-4 border-[var(--deep-bg)]">
+                        {% else %}<div
+                            class="w-20 h-20 rounded-full flex items-center justify-center font-bold text-2xl"
+                            style="background: var(--surface-bg);">{{ user.username|first|upper }}</div>{% endif %}
                     </div>
-                    <a href="{% url 'tweetapp:profile' username=user.username %}" class="block font-semibold decoration-transparent hover:underline" style="color: var(--neon-green);">@{{ user.username }}</a>
+                    <a href="{% url 'tweetapp:profile' username=user.username %}"
+                        class="block font-semibold decoration-transparent hover:underline"
+                        style="color: var(--neon-green);">@{{ user.username }}</a>
                 </div>
                 {% else %}
                 <div class="glass-card p-5 hidden lg:block text-center space-y-4">
                     <h3 class="font-bold">New to Tweety?</h3>
                     <div class="flex flex-col gap-2">
-                        <a href="{% url 'login' %}" class="btn-gradient w-full py-2 rounded-xl text-sm font-bold decoration-transparent" style="color: black;">Login</a>
-                        <a href="{% url 'tweetapp:register' %}" class="w-full py-2 rounded-xl text-sm font-bold border border-[var(--border-subtle)] decoration-transparent">Register</a>
+                        <a href="{% url 'login' %}"
+                            class="btn-gradient w-full py-2 rounded-xl text-sm font-bold decoration-transparent"
+                            style="color: black;">Login</a>
+                        <a href="{% url 'tweetapp:register' %}"
+                            class="w-full py-2 rounded-xl text-sm font-bold border border-[var(--border-subtle)] decoration-transparent">Register</a>
                     </div>
                 </div>
                 {% endif %}
 
                 <div class="space-y-2 hidden lg:block">
-                    <a href="{% url 'tweetapp:listtweet' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" 
-                       style="{% if request.resolver_match.url_name == 'listtweet' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if request.resolver_match.url_name == 'listtweet' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                    <a href="{% url 'tweetapp:listtweet' %}"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
+                        style="{% if request.resolver_match.url_name == 'listtweet' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if request.resolver_match.url_name == 'listtweet' %}<div
+                            class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator"
+                            style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                         <i data-lucide="home" class="w-5 h-5"></i><span>Home</span>
                     </a>
 
                     {% if user.is_authenticated %}
-                    <a href="{% url 'tweetapp:notifications' %}" class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" 
-                       style="{% if request.resolver_match.url_name == 'notifications' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                    <a href="{% url 'tweetapp:notifications' %}"
+                        class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
+                        style="{% if request.resolver_match.url_name == 'notifications' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
                         <div class="flex items-center gap-3">
-                            {% if request.resolver_match.url_name == 'notifications' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                            {% if request.resolver_match.url_name == 'notifications' %}<div
+                                class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator"
+                                style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                             <i data-lucide="bell" class="w-5 h-5"></i><span>Notifications</span>
                         </div>
-                        <span class="notif-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_notif_count == 0 %}hidden{% endif %}">{{ unread_notif_count }}</span>
+                        <span
+                            class="notif-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_notif_count == 0 %}hidden{% endif %}">{{
+                            unread_notif_count }}</span>
                     </a>
                     {% endif %}
 
                     {% if user.is_authenticated %}
-                    <a href="{% url 'tweetapp:inbox' %}" class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
-                       style="{% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                    <a href="{% url 'tweetapp:inbox' %}"
+                        class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
+                        style="{% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
                         <div class="flex items-center gap-3">
-                            {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                            {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}<div
+                                class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator"
+                                style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                             <i data-lucide="message-square" class="w-5 h-5"></i><span>Messages</span>
                         </div>
-                        <span class="msg-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_message_count == 0 %}hidden{% endif %}">{{ unread_message_count }}</span>
+                        <span
+                            class="msg-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_message_count == 0 %}hidden{% endif %}">{{
+                            unread_message_count }}</span>
                     </a>
                     {% endif %}
 
-                    <a href="{% url 'tweetapp:group_list' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(0,210,255,0.05)]" 
-                       style="{% if 'group' in request.resolver_match.url_name %}background: rgba(0, 210, 255, 0.1); color: #00d2ff;{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if 'group' in request.resolver_match.url_name %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: #00d2ff; color: #00d2ff;"></div>{% endif %}
+                    <a href="{% url 'tweetapp:group_list' %}"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(0,210,255,0.05)]"
+                        style="{% if 'group' in request.resolver_match.url_name %}background: rgba(0, 210, 255, 0.1); color: #00d2ff;{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if 'group' in request.resolver_match.url_name %}<div
+                            class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator"
+                            style="background: #00d2ff; color: #00d2ff;"></div>{% endif %}
                         <i data-lucide="users" class="w-5 h-5"></i><span>Groups</span>
                     </a>
 
-                    <a href="{% url 'tweetapp:userlist' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]" 
-                       style="{% if request.resolver_match.url_name == 'userlist' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if request.resolver_match.url_name == 'userlist' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                    <a href="{% url 'tweetapp:userlist' %}"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
+                        style="{% if request.resolver_match.url_name == 'userlist' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if request.resolver_match.url_name == 'userlist' %}<div
+                            class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator"
+                            style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                         <i data-lucide="user-search" class="w-5 h-5"></i><span>Users</span>
                     </a>
 
-                    <a href="{% url 'tweetapp:patchnotes' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(167,139,250,0.05)]" 
-                       style="{% if request.resolver_match.url_name == 'patchnotes' %}background: rgba(167, 139, 250, 0.1); color: var(--neon-purple);{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if request.resolver_match.url_name == 'patchnotes' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-purple); color: var(--neon-purple);"></div>{% endif %}
+                    <a href="{% url 'tweetapp:patchnotes' %}"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(167,139,250,0.05)]"
+                        style="{% if request.resolver_match.url_name == 'patchnotes' %}background: rgba(167, 139, 250, 0.1); color: var(--neon-purple);{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if request.resolver_match.url_name == 'patchnotes' %}<div
+                            class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator"
+                            style="background: var(--neon-purple); color: var(--neon-purple);"></div>{% endif %}
                         <i data-lucide="clipboard-list" class="w-5 h-5"></i><span>Patch Notes</span>
                     </a>
 
                     {% if user.is_authenticated %}
-                    <a href="{% url 'tweetapp:account_settings' %}" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
-                       style="{% if request.resolver_match.url_name == 'account_settings' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
-                        {% if request.resolver_match.url_name == 'account_settings' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator" style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
+                    <a href="{% url 'tweetapp:account_settings' %}"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
+                        style="{% if request.resolver_match.url_name == 'account_settings' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
+                        {% if request.resolver_match.url_name == 'account_settings' %}<div
+                            class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator"
+                            style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                         <i data-lucide="settings" class="w-5 h-5"></i><span>Settings</span>
                     </a>
-                    <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="w-full m-0">{% csrf_token %}<button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--danger)] bg-transparent border-none cursor-pointer hover:bg-[rgba(255,107,107,0.1)] transition-all"><i data-lucide="log-out" class="w-5 h-5"></i><span>Logout</span></button></form>
+                    <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="w-full m-0">{% csrf_token %}
+                        <button type="submit"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--danger)] bg-transparent border-none cursor-pointer hover:bg-[rgba(255,107,107,0.1)] transition-all"><i
+                                data-lucide="log-out" class="w-5 h-5"></i><span>Logout</span></button></form>
                     {% endif %}
                 </div>
             </div>
@@ -187,14 +271,20 @@
 
             <div class="w-[320px] hidden lg:flex flex-col gap-6 flex-shrink-0 pl-6 sticky top-[90px] h-fit">
                 <form action="{% url 'tweetapp:searchtweet' %}" method="GET" class="relative m-0">
-                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"></i>
-                    <input type="text" name="q" placeholder="Search..." class="w-full pl-11 pr-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--card-bg)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--neon-green)]">
+                    <i data-lucide="search"
+                        class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"></i>
+                    <input type="text" name="q" placeholder="Search..."
+                        class="w-full pl-11 pr-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--card-bg)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--neon-green)]">
                 </form>
 
                 {% if user.is_authenticated %}
                 {% if request.resolver_match.url_name != 'games' %}
-                <a href="{% url 'tweetapp:games' %}" class="glass-card p-4 flex items-center gap-3 decoration-transparent transition-all hover:scale-[1.02] group" style="border: 1px solid rgba(255, 255, 255, 0.05);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110" style="background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); font-size: 18px;">🐦</div>
+                <a href="{% url 'tweetapp:games' %}"
+                    class="glass-card p-4 flex items-center gap-3 decoration-transparent transition-all hover:scale-[1.02] group"
+                    style="border: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                        style="background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); font-size: 18px;">
+                        🐦</div>
                     <div class="flex-1">
                         <div class="font-bold text-sm" style="color: var(--text-primary);">Flappy Tweet</div>
                         <div class="text-xs" style="color: var(--text-muted);">Tap to play!</div>
@@ -206,21 +296,27 @@
 
                 {% if online_users %}
                 <div class="glass-card p-5">
-                    <h3 class="mb-4 flex items-center gap-2" style="color: var(--text-secondary); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <span class="w-2 h-2 rounded-full" style="background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green);"></span>
+                    <h3 class="mb-4 flex items-center gap-2"
+                        style="color: var(--text-secondary); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <span class="w-2 h-2 rounded-full"
+                            style="background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green);"></span>
                         Online Now
                     </h3>
                     <div class="flex flex-wrap gap-3">
                         {% for ou in online_users %}
-                        <a href="{% url 'tweetapp:profile' username=ou.username %}" class="flex items-center gap-2 decoration-transparent group hover:bg-[rgba(255,255,255,0.05)] p-1 rounded-full transition-colors pr-3">
+                        <a href="{% url 'tweetapp:profile' username=ou.username %}"
+                            class="flex items-center gap-2 decoration-transparent group hover:bg-[rgba(255,255,255,0.05)] p-1 rounded-full transition-colors pr-3">
                             {% if ou.profile.profile_image %}
-                                <img src="{{ ou.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover" style="border: 2px solid var(--neon-green);">
+                            <img src="{{ ou.profile.profile_image.url }}" class="w-8 h-8 rounded-full object-cover"
+                                style="border: 2px solid var(--neon-green);">
                             {% else %}
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style="background: var(--surface-bg); border: 2px solid var(--neon-green); color: var(--text-primary);">
-                                    {{ ou.username|first|upper }}
-                                </div>
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs"
+                                style="background: var(--surface-bg); border: 2px solid var(--neon-green); color: var(--text-primary);">
+                                {{ ou.username|first|upper }}
+                            </div>
                             {% endif %}
-                            <span class="text-sm font-medium transition-colors group-hover:text-[var(--neon-green)]" style="color: var(--text-primary)">{{ ou.username }}</span>
+                            <span class="text-sm font-medium transition-colors group-hover:text-[var(--neon-green)]"
+                                style="color: var(--text-primary)">{{ ou.username }}</span>
                         </a>
                         {% endfor %}
                     </div>
@@ -231,29 +327,39 @@
 
                 {% if suggested_users %}
                 <div class="glass-card p-5">
-                    <h3 class="mb-4" style="color: var(--text-secondary); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Suggested for you</h3>
+                    <h3 class="mb-4"
+                        style="color: var(--text-secondary); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Suggested for you</h3>
                     <div class="space-y-4">
                         {% for su in suggested_users %}
                         <div class="flex items-center justify-between">
-                            <a href="{% url 'tweetapp:profile' username=su.username %}" class="flex items-center gap-2 decoration-transparent group">
+                            <a href="{% url 'tweetapp:profile' username=su.username %}"
+                                class="flex items-center gap-2 decoration-transparent group">
                                 {% if su.profile.profile_image %}
-                                    <img src="{{ su.profile.profile_image.url }}" class="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)]">
+                                <img src="{{ su.profile.profile_image.url }}"
+                                    class="w-10 h-10 rounded-full object-cover border border-[var(--border-subtle)]">
                                 {% else %}
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold" style="background: var(--surface-bg); border: 1px solid var(--border-subtle); color: var(--text-primary);">
-                                        {{ su.username|first|upper }}
-                                    </div>
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold"
+                                    style="background: var(--surface-bg); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                                    {{ su.username|first|upper }}
+                                </div>
                                 {% endif %}
                                 <div>
-                                    <strong class="block text-sm transition-colors group-hover:text-[var(--neon-green)]" style="color: var(--text-primary)">{{ su.username }}</strong>
+                                    <strong class="block text-sm transition-colors group-hover:text-[var(--neon-green)]"
+                                        style="color: var(--text-primary)">{{ su.username }}</strong>
                                     {% if su.profile.bio %}
-                                    <span class="block text-xs" style="color: var(--text-muted)">{{ su.profile.bio|truncatewords:5 }}</span>
+                                    <span class="block text-xs" style="color: var(--text-muted)">{{
+                                        su.profile.bio|truncatewords:5 }}</span>
                                     {% endif %}
                                 </div>
                             </a>
                             {% if user.is_authenticated %}
-                            <form action="{% url 'tweetapp:follow_user' username=su.username %}" method="POST" class="m-0">
+                            <form action="{% url 'tweetapp:follow_user' username=su.username %}" method="POST"
+                                class="m-0">
                                 {% csrf_token %}
-                                <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors hover:bg-[rgba(16,242,140,0.1)]" style="color: var(--neon-green); border: 1px solid var(--neon-green);">Follow</button>
+                                <button type="submit"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors hover:bg-[rgba(16,242,140,0.1)]"
+                                    style="color: var(--neon-green); border: 1px solid var(--neon-green);">Follow</button>
                             </form>
                             {% endif %}
                         </div>
@@ -265,70 +371,116 @@
         </div>
     </main>
 
-    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-50 transition-all duration-300" style="background: rgba(15, 15, 20, 0.96); backdrop-filter: blur(20px); border-top: 1px solid var(--border-subtle); height: 70px;">
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-50 transition-all duration-300"
+        style="background: rgba(15, 15, 20, 0.96); backdrop-filter: blur(20px); border-top: 1px solid var(--border-subtle); height: 70px;">
         <div class="flex justify-between items-center h-full px-2">
-            <a href="{% url 'tweetapp:listtweet' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'listtweet' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="home" class="w-6 h-6"></i></a>
-            
+            <a href="{% url 'tweetapp:listtweet' %}" class="p-1 flex-1 flex justify-center transition-colors"
+                style="color: {% if request.resolver_match.url_name == 'listtweet' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
+                    data-lucide="home" class="w-6 h-6"></i></a>
+
             {% if user.is_authenticated %}
-                <a href="{% url 'tweetapp:inbox' %}" class="p-1 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="message-square" class="w-6 h-6" style="margin-right: -4px;"></i><span class="msg-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_message_count == 0 %}hidden{% endif %}">{{ unread_message_count }}</span></a>
+            <a href="{% url 'tweetapp:inbox' %}" class="p-1 flex-1 flex justify-center relative transition-colors"
+                style="color: {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
+                    data-lucide="message-square" class="w-6 h-6" style="margin-right: -4px;"></i><span
+                    class="msg-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_message_count == 0 %}hidden{% endif %}">{{
+                    unread_message_count }}</span></a>
 
-                <a href="{% url 'tweetapp:group_list' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if 'group' in request.resolver_match.url_name %}#00d2ff{% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="users" class="w-6 h-6" style="margin-right: -6px;"></i></a>
-                
-                <a href="{% url 'tweetapp:addtweetbyform' %}" class="flex items-center justify-center w-11 h-11 mx-1 rounded-full bg-[var(--neon-green)] text-black relative -top-3 shadow-lg border-4 border-[var(--deep-bg)] flex-shrink-0" style="margin-left:8px; margin-right:8px;"><i data-lucide="plus" class="w-5 h-5" style="stroke-width: 3px;"></i></a>
-                
-                <a href="{% url 'tweetapp:notifications' %}" class="p-1 flex-1 flex justify-center relative transition-colors" style="color: {% if request.resolver_match.url_name == 'notifications' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="bell" class="w-6 h-6" style="margin-left: -6px;"></i><span class="notif-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_notif_count == 0 %}hidden{% endif %}">{{ unread_notif_count }}</span></a>
-                
-                <a href="{% url 'tweetapp:userlist' %}" class="p-1 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'userlist' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="user-search" class="w-6 h-6" style="margin-left: -4px;"></i></a>
+            <a href="{% url 'tweetapp:group_list' %}" class="p-1 flex-1 flex justify-center transition-colors"
+                style="color: {% if 'group' in request.resolver_match.url_name %}#00d2ff{% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
+                    data-lucide="users" class="w-6 h-6" style="margin-right: -6px;"></i></a>
 
-                <div class="flex-1 flex justify-center relative">
-                    <button class="p-1 w-full flex justify-center menu-toggle transition-colors" style="color: rgba(255, 255, 255, 0.5);" id="moreBtn"><i data-lucide="more-horizontal" class="w-6 h-6"></i></button>
-                    <div class="absolute bottom-full right-0 mb-2 bg-[var(--card-bg)] rounded-lg border border-[var(--border-subtle)] shadow-xl menu-dropdown hidden transition-all duration-200 z-50" style="width: 140px; min-width: max-content;">
-                        <a href="{% url 'tweetapp:games' %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(255,255,255,0.05)] transition-colors text-sm" style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
-                            <span class="text-base">🎮</span>
-                            <span>Games</span>
-                        </a>
-                        <a href="{% url 'tweetapp:profile' username=user.username %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] transition-colors text-sm" style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
-                            <i data-lucide="user" class="w-4 h-4"></i>
-                            <span>Profile</span>
-                        </a>
-                        <a href="{% url 'tweetapp:account_settings' %}" class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] transition-colors text-sm" style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
-                            <i data-lucide="settings" class="w-4 h-4"></i>
-                            <span>Settings</span>
-                        </a>
-                        <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="m-0 w-full">
-                            {% csrf_token %}
-                            <button type="submit" class="w-full flex items-center gap-2 px-4 py-3 hover:bg-[rgba(255,59,48,0.05)] rounded-b-lg transition-colors text-sm border-none bg-transparent cursor-pointer" style="color: var(--danger);">
-                                <i data-lucide="log-out" class="w-4 h-4"></i>
-                                <span>Logout</span>
-                            </button>
-                        </form>
-                    </div>
+            <a href="{% url 'tweetapp:addtweetbyform' %}"
+                class="flex items-center justify-center w-11 h-11 mx-1 rounded-full bg-[var(--neon-green)] text-black relative -top-3 shadow-lg border-4 border-[var(--deep-bg)] flex-shrink-0"
+                style="margin-left:8px; margin-right:8px;"><i data-lucide="plus" class="w-5 h-5"
+                    style="stroke-width: 3px;"></i></a>
+
+            <a href="{% url 'tweetapp:notifications' %}"
+                class="p-1 flex-1 flex justify-center relative transition-colors"
+                style="color: {% if request.resolver_match.url_name == 'notifications' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
+                    data-lucide="bell" class="w-6 h-6" style="margin-left: -6px;"></i><span
+                    class="notif-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_notif_count == 0 %}hidden{% endif %}">{{
+                    unread_notif_count }}</span></a>
+
+            <a href="{% url 'tweetapp:userlist' %}" class="p-1 flex-1 flex justify-center transition-colors"
+                style="color: {% if request.resolver_match.url_name == 'userlist' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
+                    data-lucide="user-search" class="w-6 h-6" style="margin-left: -4px;"></i></a>
+
+            <div class="flex-1 flex justify-center relative">
+                <button class="p-1 w-full flex justify-center menu-toggle transition-colors"
+                    style="color: rgba(255, 255, 255, 0.5);" id="moreBtn"><i data-lucide="more-horizontal"
+                        class="w-6 h-6"></i></button>
+                <div class="absolute bottom-full right-0 mb-2 bg-[var(--card-bg)] rounded-lg border border-[var(--border-subtle)] shadow-xl menu-dropdown hidden transition-all duration-200 z-50"
+                    style="width: 140px; min-width: max-content;">
+                    <a href="{% url 'tweetapp:games' %}"
+                        class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(255,255,255,0.05)] transition-colors text-sm"
+                        style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
+                        <span class="text-base">🎮</span>
+                        <span>Games</span>
+                    </a>
+                    <a href="{% url 'tweetapp:profile' username=user.username %}"
+                        class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] transition-colors text-sm"
+                        style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        <span>Profile</span>
+                    </a>
+                    <a href="{% url 'tweetapp:account_settings' %}"
+                        class="flex items-center gap-2 px-4 py-3 hover:bg-[rgba(16,242,140,0.05)] transition-colors text-sm"
+                        style="color: var(--text-primary); border-bottom: 1px solid var(--border-subtle);">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                        <span>Settings</span>
+                    </a>
+                    <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="m-0 w-full">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="w-full flex items-center gap-2 px-4 py-3 hover:bg-[rgba(255,59,48,0.05)] rounded-b-lg transition-colors text-sm border-none bg-transparent cursor-pointer"
+                            style="color: var(--danger);">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span>Logout</span>
+                        </button>
+                    </form>
                 </div>
+            </div>
             {% else %}
-                <a href="{% url 'tweetapp:userlist' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'userlist' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="user-search" class="w-6 h-6"></i></a>
-                <a href="{% url 'login' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'login' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="log-in" class="w-6 h-6"></i></a>
-                <a href="{% url 'tweetapp:register' %}" class="p-2 flex-1 flex justify-center transition-colors" style="color: {% if request.resolver_match.url_name == 'register' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i data-lucide="user-plus" class="w-6 h-6"></i></a>
+            <a href="{% url 'tweetapp:userlist' %}" class="p-2 flex-1 flex justify-center transition-colors"
+                style="color: {% if request.resolver_match.url_name == 'userlist' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
+                    data-lucide="user-search" class="w-6 h-6"></i></a>
+            <a href="{% url 'login' %}" class="p-2 flex-1 flex justify-center transition-colors"
+                style="color: {% if request.resolver_match.url_name == 'login' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
+                    data-lucide="log-in" class="w-6 h-6"></i></a>
+            <a href="{% url 'tweetapp:register' %}" class="p-2 flex-1 flex justify-center transition-colors"
+                style="color: {% if request.resolver_match.url_name == 'register' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
+                    data-lucide="user-plus" class="w-6 h-6"></i></a>
             {% endif %}
         </div>
     </div>
 
     <!-- Image Modal -->
-    <div id="imageModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-[#07070f]/95 p-4 transition-opacity duration-300 opacity-0" onclick="closeImageModal()">
+    <div id="imageModal"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-[#07070f]/95 p-4 transition-opacity duration-300 opacity-0"
+        onclick="closeImageModal()">
         <!-- Navigation Buttons -->
-        <button id="modalPrevBtn" class="absolute left-4 top-1/2 -translate-y-1/2 text-white p-3 hover:bg-white/10 rounded-full transition-all z-50 hidden" onclick="navigateImage(-1); event.stopPropagation();">
+        <button id="modalPrevBtn"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-white p-3 hover:bg-white/10 rounded-full transition-all z-50 hidden"
+            onclick="navigateImage(-1); event.stopPropagation();">
             <i data-lucide="chevron-left" class="w-8 h-8"></i>
         </button>
-        <button id="modalNextBtn" class="absolute right-4 top-1/2 -translate-y-1/2 text-white p-3 hover:bg-white/10 rounded-full transition-all z-50 hidden" onclick="navigateImage(1); event.stopPropagation();">
+        <button id="modalNextBtn"
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-white p-3 hover:bg-white/10 rounded-full transition-all z-50 hidden"
+            onclick="navigateImage(1); event.stopPropagation();">
             <i data-lucide="chevron-right" class="w-8 h-8"></i>
         </button>
 
         <div class="relative max-w-5xl max-h-screen flex flex-col items-center justify-center w-full h-full">
-            <button onclick="closeImageModal(); event.stopPropagation();" class="absolute top-4 right-4 md:top-8 md:right-8 text-white p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer z-50">
+            <button onclick="closeImageModal(); event.stopPropagation();"
+                class="absolute top-4 right-4 md:top-8 md:right-8 text-white p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer z-50">
                 <i data-lucide="x" class="w-8 h-8"></i>
             </button>
-            <img id="modalImage" src="" alt="Full size image" class="max-w-full max-h-[85vh] rounded-lg object-contain cursor-default" onclick="event.stopPropagation()">
+            <img id="modalImage" src="" alt="Full size image"
+                class="max-w-full max-h-[85vh] rounded-lg object-contain cursor-default"
+                onclick="event.stopPropagation()">
             <!-- Index indicator -->
-            <div id="modalIndex" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 font-medium text-sm hidden">
+            <div id="modalIndex"
+                class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 font-medium text-sm hidden">
                 1 / 1
             </div>
         </div>
@@ -347,7 +499,7 @@
                 currentModalImages = imgSrcs;
                 currentModalIndex = index;
             }
-            
+
             updateModalImage();
 
             const modal = document.getElementById('imageModal');
@@ -364,9 +516,9 @@
             const prevBtn = document.getElementById('modalPrevBtn');
             const nextBtn = document.getElementById('modalNextBtn');
             const indexDisplay = document.getElementById('modalIndex');
-            
+
             modalImg.src = currentModalImages[currentModalIndex];
-            
+
             if (currentModalImages.length > 1) {
                 prevBtn.classList.remove('hidden');
                 nextBtn.classList.remove('hidden');
@@ -378,7 +530,7 @@
                 indexDisplay.classList.add('hidden');
             }
         }
-        
+
         function navigateImage(direction) {
             if (currentModalImages.length <= 1) return;
             currentModalIndex = (currentModalIndex + direction + currentModalImages.length) % currentModalImages.length;
@@ -393,8 +545,8 @@
                 document.body.style.overflow = '';
             }, 300);
         }
-        
-        document.addEventListener('keydown', function(event) {
+
+        document.addEventListener('keydown', function (event) {
             const modal = document.getElementById('imageModal');
             if (modal && !modal.classList.contains('hidden')) {
                 if (event.key === "Escape") {
@@ -406,11 +558,11 @@
                 }
             }
         });
-        
+
         // Lucide is loaded with `defer`, so it may not be ready when this
         // inline script executes. Wait for DOMContentLoaded before calling.
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function(){ if (window.lucide) lucide.createIcons(); });
+            document.addEventListener('DOMContentLoaded', function () { if (window.lucide) lucide.createIcons(); });
         } else if (window.lucide) {
             lucide.createIcons();
         }
@@ -444,12 +596,12 @@
         const themeIconContainer = document.getElementById('themeIconContainer');
 
         function updateThemeIcon() {
-            if(!themeIconContainer) return;
+            if (!themeIconContainer) return;
             const isLight = document.documentElement.classList.contains('light-theme');
             themeIconContainer.innerHTML = isLight ? '<i data-lucide="moon" class="w-6 h-6"></i>' : '<i data-lucide="sun" class="w-6 h-6"></i>';
             // lucide is loaded with `defer`; guard so this never throws if called
             // before the CDN script has executed.
-            if (window.lucide) lucide.createIcons({root: themeIconContainer});
+            if (window.lucide) lucide.createIcons({ root: themeIconContainer });
         }
 
         if (themeToggle) {
@@ -469,7 +621,7 @@
                             'X-Requested-With': 'XMLHttpRequest'
                         },
                         body: JSON.stringify({ theme: nextTheme })
-                    }).catch(() => {});
+                    }).catch(() => { });
                 } else {
                     localStorage.setItem('tweety_theme', nextTheme);
                 }
@@ -499,26 +651,26 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (iconWrap) {
-                    iconWrap.innerHTML = data.liked
-                        ? '<i data-lucide="heart" fill="currentColor" class="w-5 h-5 text-[var(--danger)]"></i>'
-                        : '<i data-lucide="heart" class="w-5 h-5"></i>';
-                    lucide.createIcons({ root: iconWrap });
-                }
-                if (countSpan) {
-                    countSpan.innerText = data.count;
-                }
-            })
-            .catch(error => {
-                console.error('Like toggle error:', error);
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (iconWrap) {
+                        iconWrap.innerHTML = data.liked
+                            ? '<i data-lucide="heart" fill="currentColor" class="w-5 h-5 text-[var(--danger)]"></i>'
+                            : '<i data-lucide="heart" class="w-5 h-5"></i>';
+                        lucide.createIcons({ root: iconWrap });
+                    }
+                    if (countSpan) {
+                        countSpan.innerText = data.count;
+                    }
+                })
+                .catch(error => {
+                    console.error('Like toggle error:', error);
+                });
         }
 
         function shareTweet(url, username) {
@@ -537,7 +689,7 @@
 
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const tab = this.dataset.tab;
                 const urlParams = new URLSearchParams(window.location.search);
                 urlParams.set('tab', tab);
@@ -547,12 +699,12 @@
 
         // Mobile menu toggle
         document.querySelectorAll('.menu-toggle').forEach(btn => {
-            btn.addEventListener('click', function(e) {
+            btn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 const dropdown = this.nextElementSibling;
                 const isOpen = !dropdown.classList.contains('hidden');
                 dropdown.classList.toggle('hidden');
-                
+
                 // Change button color based on open/close state
                 if (isOpen) {
                     this.style.color = 'rgba(255, 255, 255, 0.5)';
@@ -563,7 +715,7 @@
         });
 
         // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             document.querySelectorAll('.menu-dropdown').forEach(dropdown => {
                 if (!dropdown.parentElement.contains(e.target)) {
                     if (!dropdown.classList.contains('hidden')) {
@@ -578,18 +730,18 @@
         // ─── Web Push Notification Registration ───
         {% if user.is_authenticated %}
         if ('serviceWorker' in navigator && 'PushManager' in window) {
-            navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            navigator.serviceWorker.register('/sw.js').then(function (reg) {
                 console.log('SW registered');
 
                 function subscribePush(r) {
                     fetch('/tweetapp/push/vapid-key/')
-                        .then(function(resp) { return resp.json(); })
-                        .then(function(data) {
+                        .then(function (resp) { return resp.json(); })
+                        .then(function (data) {
                             var applicationServerKey = urlBase64ToUint8Array(data.public_key);
                             r.pushManager.subscribe({
                                 userVisibleOnly: true,
                                 applicationServerKey: applicationServerKey
-                            }).then(function(subscription) {
+                            }).then(function (subscription) {
                                 var subJson = subscription.toJSON();
                                 fetch('/tweetapp/push/subscribe/', {
                                     method: 'POST',
@@ -602,13 +754,13 @@
                                         keys: subJson.keys
                                     })
                                 });
-                            }).catch(function(err) {
+                            }).catch(function (err) {
                                 console.log('Push subscription failed:', err);
                             });
                         });
                 }
 
-                reg.pushManager.getSubscription().then(function(sub) {
+                reg.pushManager.getSubscription().then(function (sub) {
                     if (sub) {
                         // Always re-send existing subscription to backend to keep it fresh
                         var subJson = sub.toJSON();
@@ -627,7 +779,7 @@
                         subscribePush(reg);
                     }
                 });
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('SW registration failed:', err);
             });
         }
@@ -645,9 +797,9 @@
         // ─── Real-time badge polling ───
         function pollUnreadCounts() {
             fetch('/tweetapp/api/unread-counts/')
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    document.querySelectorAll('.notif-badge').forEach(function(el) {
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    document.querySelectorAll('.notif-badge').forEach(function (el) {
                         if (data.notif_count > 0) {
                             el.textContent = data.notif_count;
                             el.classList.remove('hidden');
@@ -655,7 +807,7 @@
                             el.classList.add('hidden');
                         }
                     });
-                    document.querySelectorAll('.msg-badge').forEach(function(el) {
+                    document.querySelectorAll('.msg-badge').forEach(function (el) {
                         if (data.msg_count > 0) {
                             el.textContent = data.msg_count;
                             el.classList.remove('hidden');
@@ -664,149 +816,152 @@
                         }
                     });
                 })
-                .catch(function() {});
+                .catch(function () { });
         }
         setInterval(pollUnreadCounts, 15000);
         {% endif %}
     </script>
-    
+
     <!-- Global Mention Autocomplete Component -->
-    <div id="global-mention-autocomplete" style="display:none; position:fixed; z-index:9999; width:220px; background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
-        <div id="mention-results" style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; scrollbar-width:none;"></div>
+    <div id="global-mention-autocomplete"
+        style="display:none; position:fixed; z-index:9999; width:220px; background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
+        <div id="mention-results"
+            style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; scrollbar-width:none;"></div>
     </div>
 
     <script>
-    (function(){
-        const mentionBox = document.getElementById('global-mention-autocomplete');
-        const resultsContainer = document.getElementById('mention-results');
-        let currentInput = null;
-        let mentionMatchStr = '';
-        let mentionStartIndex = -1;
+        (function () {
+            const mentionBox = document.getElementById('global-mention-autocomplete');
+            const resultsContainer = document.getElementById('mention-results');
+            let currentInput = null;
+            let mentionMatchStr = '';
+            let mentionStartIndex = -1;
 
-        function closeMentions() {
-            mentionBox.style.display = 'none';
-            currentInput = null;
-        }
-
-        function positionMentionBox(inputEl) {
-            const rect = inputEl.getBoundingClientRect();
-            mentionBox.style.left = Math.max(10, rect.left) + 'px';
-            const spaceBelow = window.innerHeight - rect.bottom;
-            if (spaceBelow > 220) {
-                mentionBox.style.top = (rect.bottom + 4) + 'px';
-                mentionBox.style.bottom = 'auto';
-            } else {
-                mentionBox.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-                mentionBox.style.top = 'auto';
+            function closeMentions() {
+                mentionBox.style.display = 'none';
+                currentInput = null;
             }
-        }
 
-        function onSelectUser(username) {
-            if (!currentInput) return;
-            const val = currentInput.value;
-            const before = val.substring(0, mentionStartIndex);
-            const after = val.substring(mentionStartIndex + mentionMatchStr.length);
-            
-            currentInput.value = before + '@' + username + ' ' + after;
-            
-            // Restore focus and cursor position
-            currentInput.focus();
-            currentInput.setSelectionRange(before.length + username.length + 2, before.length + username.length + 2);
-            
-            closeMentions();
-            
-            // Trigger input event manually so autosizing/validation logic runs
-            currentInput.dispatchEvent(new Event('input', {bubbles: true}));
-        }
+            function positionMentionBox(inputEl) {
+                const rect = inputEl.getBoundingClientRect();
+                mentionBox.style.left = Math.max(10, rect.left) + 'px';
+                const spaceBelow = window.innerHeight - rect.bottom;
+                if (spaceBelow > 220) {
+                    mentionBox.style.top = (rect.bottom + 4) + 'px';
+                    mentionBox.style.bottom = 'auto';
+                } else {
+                    mentionBox.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                    mentionBox.style.top = 'auto';
+                }
+            }
 
-        let debounceTimer;
-        function fetchMentions(query, inputEl) {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                fetch('/tweetapp/api/mentions-autocomplete/?q=' + encodeURIComponent(query))
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data.users || data.users.length === 0) {
-                            closeMentions();
-                            return;
-                        }
-                        
-                        resultsContainer.innerHTML = '';
-                        data.users.forEach(u => {
-                            const el = document.createElement('div');
-                            el.style.display = 'flex';
-                            el.style.alignItems = 'center';
-                            el.style.gap = '10px';
-                            el.style.padding = '10px 14px';
-                            el.style.cursor = 'pointer';
-                            el.style.borderBottom = '1px solid var(--border-subtle)';
-                            el.onmouseover = () => el.style.background = 'var(--input)';
-                            el.onmouseout = () => el.style.background = 'transparent';
-                            
-                            const avatar = u.avatar_url 
-                                ? `<img src="${u.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`
-                                : `<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--card-bg);border:1px solid var(--border-subtle);color:var(--text-primary);font-size:12px;font-weight:bold;">${u.username.charAt(0).toUpperCase()}</div>`;
-                            
-                            el.innerHTML = `
+            function onSelectUser(username) {
+                if (!currentInput) return;
+                const val = currentInput.value;
+                const before = val.substring(0, mentionStartIndex);
+                const after = val.substring(mentionStartIndex + mentionMatchStr.length);
+
+                currentInput.value = before + '@' + username + ' ' + after;
+
+                // Restore focus and cursor position
+                currentInput.focus();
+                currentInput.setSelectionRange(before.length + username.length + 2, before.length + username.length + 2);
+
+                closeMentions();
+
+                // Trigger input event manually so autosizing/validation logic runs
+                currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+
+            let debounceTimer;
+            function fetchMentions(query, inputEl) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    fetch('/tweetapp/api/mentions-autocomplete/?q=' + encodeURIComponent(query))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data.users || data.users.length === 0) {
+                                closeMentions();
+                                return;
+                            }
+
+                            resultsContainer.innerHTML = '';
+                            data.users.forEach(u => {
+                                const el = document.createElement('div');
+                                el.style.display = 'flex';
+                                el.style.alignItems = 'center';
+                                el.style.gap = '10px';
+                                el.style.padding = '10px 14px';
+                                el.style.cursor = 'pointer';
+                                el.style.borderBottom = '1px solid var(--border-subtle)';
+                                el.onmouseover = () => el.style.background = 'var(--input)';
+                                el.onmouseout = () => el.style.background = 'transparent';
+
+                                const avatar = u.avatar_url
+                                    ? `<img src="${u.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`
+                                    : `<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--card-bg);border:1px solid var(--border-subtle);color:var(--text-primary);font-size:12px;font-weight:bold;">${u.username.charAt(0).toUpperCase()}</div>`;
+
+                                el.innerHTML = `
                                 ${avatar}
                                 <div style="flex:1;min-width:0;line-height:1.2;text-align:left;">
                                     <div style="font-weight:700;font-size:13px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;">@${u.username}</div>
                                     <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.full_name}</div>
                                 </div>
                             `;
-                            el.addEventListener('mousedown', (e) => {
-                                e.preventDefault(); // Prevents input from losing focus
-                                onSelectUser(u.username);
+                                el.addEventListener('mousedown', (e) => {
+                                    e.preventDefault(); // Prevents input from losing focus
+                                    onSelectUser(u.username);
+                                });
+                                resultsContainer.appendChild(el);
                             });
-                            resultsContainer.appendChild(el);
-                        });
-                        
-                        mentionBox.style.display = 'block';
-                        positionMentionBox(inputEl);
-                    })
-                    .catch(()=>closeMentions());
-            }, 150); // slight debounce
-        }
 
-        function handleInputLogic(e) {
-            const input = e.target;
-            if (input.tagName !== 'TEXTAREA' && input.tagName !== 'INPUT') return;
-            if (input.type === 'password' || input.type === 'file' || input.type === 'hidden') return;
-            
-            const val = input.value;
-            const curs = input.selectionStart;
-            if (curs === undefined || curs === null) return;
-            
-            const textBeforeCursor = val.substring(0, curs);
-            
-            // Find the word just before cursor
-            const match = textBeforeCursor.match(/(?:^|\s)(@[\w.]*)$/);
-            
-            if (match) {
-                const query = match[1].substring(1); // remove @
-                if (query.trim() !== '') {
-                    currentInput = input;
-                    mentionMatchStr = match[1];
-                    mentionStartIndex = textBeforeCursor.lastIndexOf(mentionMatchStr);
-                    fetchMentions(query, input);
-                    return;
-                }
+                            mentionBox.style.display = 'block';
+                            positionMentionBox(inputEl);
+                        })
+                        .catch(() => closeMentions());
+                }, 150); // slight debounce
             }
-            closeMentions();
-        }
 
-        document.addEventListener('input', handleInputLogic);
-        document.addEventListener('keyup', handleInputLogic);
-        document.addEventListener('click', handleInputLogic);
-        window.addEventListener('resize', closeMentions);
-        
-        // Close on click outside
-        document.addEventListener('mousedown', function(e) {
-            if (mentionBox.style.display === 'block' && !mentionBox.contains(e.target) && e.target !== currentInput) {
+            function handleInputLogic(e) {
+                const input = e.target;
+                if (input.tagName !== 'TEXTAREA' && input.tagName !== 'INPUT') return;
+                if (input.type === 'password' || input.type === 'file' || input.type === 'hidden') return;
+
+                const val = input.value;
+                const curs = input.selectionStart;
+                if (curs === undefined || curs === null) return;
+
+                const textBeforeCursor = val.substring(0, curs);
+
+                // Find the word just before cursor
+                const match = textBeforeCursor.match(/(?:^|\s)(@[\w.]*)$/);
+
+                if (match) {
+                    const query = match[1].substring(1); // remove @
+                    if (query.trim() !== '') {
+                        currentInput = input;
+                        mentionMatchStr = match[1];
+                        mentionStartIndex = textBeforeCursor.lastIndexOf(mentionMatchStr);
+                        fetchMentions(query, input);
+                        return;
+                    }
+                }
                 closeMentions();
             }
-        });
-    })();
+
+            document.addEventListener('input', handleInputLogic);
+            document.addEventListener('keyup', handleInputLogic);
+            document.addEventListener('click', handleInputLogic);
+            window.addEventListener('resize', closeMentions);
+
+            // Close on click outside
+            document.addEventListener('mousedown', function (e) {
+                if (mentionBox.style.display === 'block' && !mentionBox.contains(e.target) && e.target !== currentInput) {
+                    closeMentions();
+                }
+            });
+        })();
     </script>
 </body>
+
 </html>

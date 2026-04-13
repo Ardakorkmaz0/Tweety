@@ -2,79 +2,31 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
-    <!-- Online Users & Suggestions (Mobile) -->
-    <div class="lg:hidden space-y-4">
-        {% if online_users %}
-        <div class="glass-card p-6">
-            <h5 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.05em;">Online Now ({{ online_users.count }})</h5>
-            <div class="space-y-3 max-h-[250px] overflow-y-auto pr-2">
-                {% for online_user in online_users %}
-                <a href="{% url 'tweetapp:profile' username=online_user.username %}" class="flex items-center gap-2 p-3 rounded-lg hover:bg-[rgba(16,242,140,0.05)] transition-colors decoration-transparent group">
-                    {% if online_user.profile.profile_image %}
-                        <img src="{{ online_user.profile.profile_image.url }}" loading="lazy" decoding="async" class="w-8 h-8 rounded-full object-cover shrink-0">
-                    {% else %}
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">{{ online_user.username|first|upper }}</div>
-                    {% endif %}
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-sm truncate group-hover:text-[var(--neon-green)]" style="color: var(--text-primary);">@{{ online_user.username }}</div>
-                        <div class="inline-flex items-center gap-1 mt-0.5">
-                            <div class="w-2 h-2 rounded-full" style="background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green);"></div>
-                            <span class="text-xs" style="color: var(--neon-green);">Online</span>
-                        </div>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        {% if suggested_users %}
-        <div class="glass-card p-6">
-            <h5 class="font-bold text-sm uppercase mb-4" style="color: var(--text-secondary); letter-spacing: 0.05em;">Suggestions for You</h5>
-            <div class="space-y-3 max-h-[250px] overflow-y-auto pr-2">
-                {% for suggested in suggested_users %}
-                <div class="flex items-center justify-between p-3 rounded-lg hover:bg-[rgba(16,242,140,0.05)] transition-colors group">
-                    <a href="{% url 'tweetapp:profile' username=suggested.username %}" class="flex items-center gap-2 flex-1 decoration-transparent min-w-0">
-                        {% if suggested.profile.profile_image %}
-                            <img src="{{ suggested.profile.profile_image.url }}" loading="lazy" decoding="async" class="w-8 h-8 rounded-full object-cover shrink-0">
-                        {% else %}
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style="background: var(--surface-bg); color: var(--text-primary);">{{ suggested.username|first|upper }}</div>
-                        {% endif %}
-                        <div class="flex-1 min-w-0">
-                            <div class="font-medium text-sm truncate group-hover:text-[var(--neon-green)]" style="color: var(--text-primary);">@{{ suggested.username }}</div>
-                        </div>
-                    </a>
-                    <form action="{% url 'tweetapp:follow_user' username=suggested.username %}" method="POST" class="m-0 shrink-0 ml-2">
-                        {% csrf_token %}
-                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-[rgba(16,242,140,0.2)]" style="border: 1px solid var(--neon-green); color: var(--neon-green);">Follow</button>
-                    </form>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
+    <!-- The main user list starts below without mobile-specific sidebar injections -->
 
     <div class="flex flex-col gap-4 mb-6">
         <h2 class="text-2xl font-bold" style="color: var(--text-primary)">Connect with Users</h2>
-        
+
         <!-- Search Bar -->
         <form action="{% url 'tweetapp:userlist' %}" method="GET" class="relative w-full max-w-xl">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i data-lucide="search" class="w-5 h-5 text-[var(--text-muted)]"></i>
             </div>
-            <input type="text" name="q" value="{{ search_query|default:'' }}" 
-                   placeholder="Search users by name or username..." 
-                   class="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--surface-bg)] text-[var(--text-primary)] border transition-colors focus:outline-none"
-                   style="border-color: var(--border-subtle); box-shadow: 0 2px 10px rgba(0,0,0,0.05);"
-                   onfocus="this.style.borderColor='var(--neon-green)'"
-                   onblur="this.style.borderColor='var(--border-subtle)'">
+            <input type="text" name="q" value="{{ search_query|default:'' }}"
+                placeholder="Search users by name or username..."
+                class="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--surface-bg)] text-[var(--text-primary)] border transition-colors focus:outline-none"
+                style="border-color: var(--border-subtle); box-shadow: 0 2px 10px rgba(0,0,0,0.05);"
+                onfocus="this.style.borderColor='var(--neon-green)'"
+                onblur="this.style.borderColor='var(--border-subtle)'">
             {% if search_query %}
-            <a href="{% url 'tweetapp:userlist' %}" class="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-muted)] hover:text-[#ff6b6b] transition-colors" title="Clear Search">
+            <a href="{% url 'tweetapp:userlist' %}"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-muted)] hover:text-[#ff6b6b] transition-colors"
+                title="Clear Search">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </a>
             {% else %}
-            <button type="submit" class="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-muted)] hover:text-[var(--neon-green)] transition-colors">
+            <button type="submit"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-muted)] hover:text-[var(--neon-green)] transition-colors">
                 <i data-lucide="arrow-right" class="w-5 h-5"></i>
             </button>
             {% endif %}
@@ -83,17 +35,21 @@
 
     <div class="space-y-4">
         {% for u in users %}
-        <div class="glass-card flex items-center p-4 transition-all hover:bg-[rgba(255,255,255,0.02)] group" style="border: 1px solid var(--border-subtle); border-radius: 16px;">
-            
+        <div class="glass-card flex items-center p-4 transition-all hover:bg-[rgba(255,255,255,0.02)] group"
+            style="border: 1px solid var(--border-subtle); border-radius: 16px;">
+
             <!-- Avatar -->
             <div class="shrink-0 mr-4">
                 <a href="{% url 'tweetapp:profile' username=u.username %}" class="relative inline-block">
                     {% if u.profile.profile_image %}
-                        <img src="{{ u.profile.profile_image.url }}" class="w-14 h-14 rounded-full object-cover border-2 transition-transform group-hover:scale-105" style="border-color: var(--surface-bg);">
+                    <img src="{{ u.profile.profile_image.url }}"
+                        class="w-14 h-14 rounded-full object-cover border-2 transition-transform group-hover:scale-105"
+                        style="border-color: var(--surface-bg);">
                     {% else %}
-                        <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl border-2 transition-transform group-hover:scale-105" style="background: var(--deep-bg); border-color: var(--surface-bg); color: var(--text-primary);">
-                            {{ u.username|first|upper }}
-                        </div>
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl border-2 transition-transform group-hover:scale-105"
+                        style="background: var(--deep-bg); border-color: var(--surface-bg); color: var(--text-primary);">
+                        {{ u.username|first|upper }}
+                    </div>
                     {% endif %}
                 </a>
             </div>
@@ -101,26 +57,35 @@
             <!-- User Info (Name, Username, Bio) -->
             <div class="flex-1 min-w-0 pr-4">
                 <div class="flex items-center gap-2 mb-0.5">
-                    <a href="{% url 'tweetapp:profile' username=u.username %}" class="font-bold text-base leading-tight hover:underline decoration-transparent truncate" style="color: var(--text-primary)">
+                    <a href="{% url 'tweetapp:profile' username=u.username %}"
+                        class="font-bold text-base leading-tight hover:underline decoration-transparent truncate"
+                        style="color: var(--text-primary)">
                         {% if u.profile.first_name or u.profile.last_name %}
-                            {{ u.profile.first_name }} {{ u.profile.last_name }}
+                        {{ u.profile.first_name }} {{ u.profile.last_name }}
                         {% else %}
-                            {{ u.username }}
+                        {{ u.username }}
                         {% endif %}
                     </a>
                 </div>
-                
-                <a href="{% url 'tweetapp:profile' username=u.username %}" class="text-xs font-medium inline-block truncate mb-1" style="color: var(--neon-green)">@{{ u.username }}</a>
 
+                <a href="{% url 'tweetapp:profile' username=u.username %}"
+                    class="text-xs font-medium inline-block truncate mb-1" style="color: var(--neon-green)">
+                    @{{u.username }}</a>
                 {% if u.profile.bio %}
-                    <p class="text-xs leading-relaxed text-[var(--text-muted)] line-clamp-1 max-w-lg">
-                        {{ u.profile.bio }}
-                    </p>
+                <p class="text-xs leading-relaxed text-[var(--text-muted)] line-clamp-1 max-w-lg min-h-[18px]">
+                    {{ u.profile.bio }}
+                </p>
+                {% else %}
+                <p
+                    class="text-xs leading-relaxed text-[var(--text-muted)] opacity-50 italic line-clamp-1 max-w-lg min-h-[18px]">
+                    No bio provided.
+                </p>
                 {% endif %}
-                
+
                 {% if request.user.is_staff and u.profile.last_active %}
                 <div class="mt-1">
-                    <span class="text-[9px] px-1.5 py-0.5 rounded uppercase font-bold" style="background: rgba(255,255,255,0.05); color: var(--text-muted);">
+                    <span class="text-[9px] px-1.5 py-0.5 rounded uppercase font-bold"
+                        style="background: rgba(255,255,255,0.05); color: var(--text-muted);">
                         Seen: {{ u.profile.last_active|date:"M d, H:i" }}
                     </span>
                 </div>
@@ -132,53 +97,67 @@
                 <!-- Followers Stat (Hidden on super narrow mobile, visible on sm+) -->
                 <div class="hidden sm:flex items-center gap-1.5 text-xs text-[var(--text-muted)] whitespace-nowrap">
                     <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                    <span class="font-bold text-[var(--text-primary)]">{{ u.follower_count|default:"0" }}</span> Followers
+                    <span class="font-bold text-[var(--text-primary)]">{{ u.follower_count|default:"0" }}</span>
+                    Followers
                 </div>
 
                 <!-- Action Buttons: Message & Follow -->
                 <div class="flex items-center gap-2">
                     {% if u != request.user %}
-                        <a href="{% url 'tweetapp:start_chat' username=u.username %}" class="p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--neon-green)] hover:bg-[rgba(16,242,140,0.1)] transition-colors flex items-center justify-center shrink-0" title="Send Message">
-                            <i data-lucide="message-square" class="w-4 h-4"></i>
-                        </a>
+                    <a href="{% url 'tweetapp:start_chat' username=u.username %}"
+                        class="p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--neon-green)] hover:bg-[rgba(16,242,140,0.1)] transition-colors flex items-center justify-center shrink-0"
+                        title="Send Message">
+                        <i data-lucide="message-square" class="w-4 h-4"></i>
+                    </a>
 
-                        <form action="{% url 'tweetapp:follow_user' username=u.username %}" method="POST" class="m-0 shrink-0">
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.path }}?page={{ page_obj.number }}">
-                            {% if u.is_following %}
-                                <button class="px-4 py-1.5 rounded-full text-xs font-bold transition-colors bg-[rgba(255,255,255,0.05)] text-[var(--text-primary)] hover:bg-[rgba(255,107,107,0.1)] hover:text-[#ff6b6b] hover:border-[#ff6b6b] border border-transparent whitespace-nowrap">
-                                    Unfollow
-                                </button>
-                            {% else %}
-                                <button class="px-4 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-[rgba(16,242,140,0.1)] border whitespace-nowrap" style="border-color: var(--neon-green); color: var(--neon-green)">
-                                    Follow
-                                </button>
-                            {% endif %}
-                        </form>
+                    <form action="{% url 'tweetapp:follow_user' username=u.username %}" method="POST"
+                        class="m-0 shrink-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.path }}?page={{ page_obj.number }}">
+                        {% if u.is_following %}
+                        <button
+                            class="px-4 py-1.5 rounded-full text-xs font-bold transition-colors bg-[rgba(255,255,255,0.05)] text-[var(--text-primary)] hover:bg-[rgba(255,107,107,0.1)] hover:text-[#ff6b6b] hover:border-[#ff6b6b] border border-transparent whitespace-nowrap">
+                            Unfollow
+                        </button>
+                        {% else %}
+                        <button
+                            class="px-4 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-[rgba(16,242,140,0.1)] border whitespace-nowrap"
+                            style="border-color: var(--neon-green); color: var(--neon-green)">
+                            Follow
+                        </button>
+                        {% endif %}
+                    </form>
                     {% else %}
-                        <span class="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider rounded-full whitespace-nowrap shrink-0" style="background: rgba(255,255,255,0.05); color: var(--text-muted)">You</span>
+                    <span
+                        class="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider rounded-full whitespace-nowrap shrink-0"
+                        style="background: rgba(255,255,255,0.05); color: var(--text-muted)">You</span>
                     {% endif %}
                 </div>
             </div>
-            
+
         </div>
         {% empty %}
-            <div class="glass-card p-12 text-center flex flex-col items-center justify-center">
-                <i data-lucide="users" class="w-12 h-12 mb-4" style="color: var(--border-subtle)"></i>
-                <h3 class="text-lg font-bold" style="color: var(--text-primary)">No users found.</h3>
-                <p class="text-sm mt-2" style="color: var(--text-muted)">It looks like it's pretty quiet around here.</p>
-            </div>
+        <div class="glass-card p-12 text-center flex flex-col items-center justify-center">
+            <i data-lucide="users" class="w-12 h-12 mb-4" style="color: var(--border-subtle)"></i>
+            <h3 class="text-lg font-bold" style="color: var(--text-primary)">No users found.</h3>
+            <p class="text-sm mt-2" style="color: var(--text-muted)">It looks like it's pretty quiet around here.</p>
+        </div>
         {% endfor %}
     </div>
 
     {% if page_obj and page_obj.paginator.num_pages > 1 %}
     <div class="flex items-center justify-center gap-2 mt-6">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(16,242,140,0.1)] decoration-transparent" style="border: 1px solid var(--border-subtle); color: var(--text-primary);">← Prev</a>
+        <a href="?page={{ page_obj.previous_page_number }}"
+            class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(16,242,140,0.1)] decoration-transparent"
+            style="border: 1px solid var(--border-subtle); color: var(--text-primary);">← Prev</a>
         {% endif %}
-        <span class="px-4 py-2 rounded-xl font-bold text-sm" style="background: var(--neon-green); color: #07070f;">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        <span class="px-4 py-2 rounded-xl font-bold text-sm" style="background: var(--neon-green); color: #07070f;">{{
+            page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(16,242,140,0.1)] decoration-transparent" style="border: 1px solid var(--border-subtle); color: var(--text-primary);">Next →</a>
+        <a href="?page={{ page_obj.next_page_number }}"
+            class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-[rgba(16,242,140,0.1)] decoration-transparent"
+            style="border: 1px solid var(--border-subtle); color: var(--text-primary);">Next →</a>
         {% endif %}
     </div>
     {% endif %}
