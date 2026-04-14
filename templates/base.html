@@ -34,7 +34,8 @@
         // first paint, even if theme.css is still loading.
         (function () {
             try {
-                var isAuth = {{ user.is_authenticated|yesno:"true,false" }};
+                var isAuth = {{ user.is_authenticated| yesno: "true,false"
+            }};
         var u = "{{ user.username|default:''|escapejs }}";
         var key = u ? ('tweety_theme_' + u) : 'tweety_theme_guest';
         var server = "{{ user_theme_preference|default:'dark' }}";
@@ -62,7 +63,7 @@
     <script>
         // Re-export theme constants for inline scripts further down the page
         // (toggle button, etc). Theme class is already applied above.
-        const isAuthenticatedUser = {{ user.is_authenticated|yesno:"true,false" }};
+        const isAuthenticatedUser = {{ user.is_authenticated| yesno: "true,false" }};
         const authUsername = "{{ user.username|default:''|escapejs }}";
         const userThemeKey = authUsername ? `tweety_theme_${authUsername}` : 'tweety_theme_guest';
         const serverTheme = "{{ user_theme_preference|default:'dark' }}";
@@ -210,7 +211,8 @@
                         class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all relative decoration-transparent hover:bg-[rgba(16,242,140,0.05)]"
                         style="{% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}background: rgba(16, 242, 140, 0.1); color: var(--neon-green);{% else %}color: var(--text-inactive);{% endif %}">
                         <div class="flex items-center gap-3">
-                            {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}<div
+                            {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name ==
+                            'chat_detail' %}<div
                                 class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full active-indicator"
                                 style="background: var(--neon-green); color: var(--neon-green);"></div>{% endif %}
                             <i data-lucide="message-square" class="w-5 h-5"></i><span>Messages</span>
@@ -260,7 +262,8 @@
                     <form action="{% url 'logout' %}?next=/tweetapp" method="POST" class="w-full m-0">{% csrf_token %}
                         <button type="submit"
                             class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--danger)] bg-transparent border-none cursor-pointer hover:bg-[rgba(255,107,107,0.1)] transition-all"><i
-                                data-lucide="log-out" class="w-5 h-5"></i><span>Logout</span></button></form>
+                                data-lucide="log-out" class="w-5 h-5"></i><span>Logout</span></button>
+                    </form>
                     {% endif %}
                 </div>
             </div>
@@ -348,8 +351,8 @@
                                     <strong class="block text-sm transition-colors group-hover:text-[var(--neon-green)]"
                                         style="color: var(--text-primary)">{{ su.username }}</strong>
                                     {% if su.profile.bio %}
-                                    <span class="block text-xs" style="color: var(--text-muted)">{{
-                                        su.profile.bio|truncatewords:5 }}</span>
+                                    <span class="block text-xs" style="color: var(--text-muted)">
+                                        {{ su.profile.bio|truncatewords:5 }}</span>
                                     {% endif %}
                                 </div>
                             </a>
