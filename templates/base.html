@@ -201,8 +201,8 @@
                             <i data-lucide="bell" class="w-5 h-5"></i><span>Notifications</span>
                         </div>
                         <span
-                            class="notif-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_notif_count == 0 %}hidden{% endif %}">{{
-                            unread_notif_count }}</span>
+                            class="notif-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_notif_count == 0 %}hidden{% endif %}">
+                            {{ unread_notif_count }}</span>
                     </a>
                     {% endif %}
 
@@ -352,7 +352,8 @@
                                         style="color: var(--text-primary)">{{ su.username }}</strong>
                                     {% if su.profile.bio %}
                                     <span class="block text-xs" style="color: var(--text-muted)">
-                                        {{ su.profile.bio|truncatewords:5 }}</span>
+                                        {{ su.profile.bio|truncatewords:5 }}
+                                    </span>
                                     {% endif %}
                                 </div>
                             </a>
@@ -401,8 +402,8 @@
                 class="p-1 flex-1 flex justify-center relative transition-colors"
                 style="color: {% if request.resolver_match.url_name == 'notifications' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
                     data-lucide="bell" class="w-6 h-6" style="margin-left: -6px;"></i><span
-                    class="notif-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_notif_count == 0 %}hidden{% endif %}">{{
-                    unread_notif_count }}</span></a>
+                    class="notif-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_notif_count == 0 %}hidden{% endif %}">
+                    {{ unread_notif_count }}</span></a>
 
             <a href="{% url 'tweetapp:userlist' %}" class="p-1 flex-1 flex justify-center transition-colors"
                 style="color: {% if request.resolver_match.url_name == 'userlist' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i

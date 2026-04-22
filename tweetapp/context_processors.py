@@ -28,36 +28,59 @@ def global_sidebar_data(request):
         }
 
     try:
-        user_theme_preference = request.user.profile.theme_preference
-    except Profile.DoesNotExist:
+        profile = getattr(request.user, 'profile', None)
+        if profile is None:
+            profile = Profile.objects.get_or_create(user=request.user)[0]
+        user_theme_preference = profile.theme_preference
+    except Exception:
         user_theme_preference = 'dark'
 
-    # Suggested users — avoid ORDER BY RANDOM() (full table sort).
-    # Pull a small candidate window of IDs and shuffle in Python.
-    following_ids = list(
-        Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
-    )
-    candidate_ids = list(
-        User.objects.exclude(pk__in=following_ids + [request.user.pk])
-            .values_list('pk', flat=True)[:200]
-    )
-    random.shuffle(candidate_ids)
-    suggested_users = list(
-        User.objects.filter(pk__in=candidate_ids[:5]).select_related('profile')
-    )
+    try:
+        # Suggested users — avoid ORDER BY RANDOM() (full table sort).
+        # Pull a small candidate window of IDs and shuffle in Python.
+        following_ids = list(
+            Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
+        )
+        candidate_ids = list(
+            User.objects.exclude(pk__in=following_ids + [request.user.pk])
+                .values_list('pk', flat=True)[:200]
+        )
+        random.shuffle(candidate_ids)
+        suggested_users = list(
+            User.objects.filter(pk__in=candidate_ids[:5]).select_related('profile')
+        )
+        # Ensure all suggested users have a profile
+        for su in suggested_users:
+            if not hasattr(su, 'profile') or su.profile is None:
+                try:
+                    Profile.objects.get_or_create(user=su)
+                except Exception:
+                    pass
+    except Exception:
+        suggested_users = []
 
-    five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
-    online_users = User.objects.filter(
-        profile__last_active__gte=five_minutes_ago
-    ).select_related('profile')[:10]
+    try:
+        five_minutes_ago = timezone.now() - datetime.timedelta(minutes=5)
+        online_users = User.objects.filter(
+            profile__last_active__gte=five_minutes_ago
+        ).select_related('profile')[:10]
+    except Exception:
+        online_users = User.objects.none()
 
-    unread_notif_count = Notification.objects.filter(
-        recipient=request.user, is_read=False
-    ).count()
-    unread_message_count = Message.objects.filter(
-        thread__participants=request.user,
-        is_read=False,
-    ).exclude(sender=request.user).count()
+    try:
+        unread_notif_count = Notification.objects.filter(
+            recipient=request.user, is_read=False
+        ).count()
+    except Exception:
+        unread_notif_count = 0
+
+    try:
+        unread_message_count = Message.objects.filter(
+            thread__participants=request.user,
+            is_read=False,
+        ).exclude(sender=request.user).count()
+    except Exception:
+        unread_message_count = 0
 
     return {
         'suggested_users': suggested_users,
@@ -66,3 +89,4 @@ def global_sidebar_data(request):
         'unread_notif_count': unread_notif_count,
         'unread_message_count': unread_message_count,
     }
+
