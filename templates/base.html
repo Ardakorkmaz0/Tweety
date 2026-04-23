@@ -216,8 +216,8 @@
                             <i data-lucide="message-square" class="w-5 h-5"></i><span>Messages</span>
                         </div>
                         <span
-                            class="msg-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_message_count == 0 %}hidden{% endif %}">{{
-                            unread_message_count }}</span>
+                            class="msg-badge px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--danger)] {% if unread_message_count == 0 %}hidden{% endif %}">
+                            {{ unread_message_count }}</span>
                     </a>
                     {% endif %}
 
@@ -384,8 +384,8 @@
             <a href="{% url 'tweetapp:inbox' %}" class="p-1 flex-1 flex justify-center relative transition-colors"
                 style="color: {% if request.resolver_match.url_name == 'inbox' or request.resolver_match.url_name == 'chat_detail' %}var(--neon-green){% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
                     data-lucide="message-square" class="w-6 h-6" style="margin-right: -4px;"></i><span
-                    class="msg-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_message_count == 0 %}hidden{% endif %}">{{
-                    unread_message_count }}</span></a>
+                    class="msg-badge absolute top-0 right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[8px] font-bold text-white rounded-full bg-[var(--danger)] border border-[#0f0f14] {% if unread_message_count == 0 %}hidden{% endif %}">
+                    {{unread_message_count }}</span></a>
 
             <a href="{% url 'tweetapp:group_list' %}" class="p-1 flex-1 flex justify-center transition-colors"
                 style="color: {% if 'group' in request.resolver_match.url_name %}#00d2ff{% else %}rgba(255, 255, 255, 0.5){% endif %};"><i
