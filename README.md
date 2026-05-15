@@ -7,8 +7,7 @@ A full-featured Twitter-inspired social media application built with **Django** 
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple)
 
 ## 🌐 Live Demo
-https://tweetapptweety.com  New Website <br>  
-[https://ardakorkmaz0.pythonanywhere.com](https://ardakorkmaz0.pythonanywhere.com)  Old Website
+https://tweetapptweety.com   Website <br>  
 
 > Feel free to visit the site while it is up and running!
 
