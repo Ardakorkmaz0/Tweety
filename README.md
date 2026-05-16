@@ -5,6 +5,13 @@ A full-featured Twitter-inspired social media application built with **Django** 
 ![Python](https://img.shields.io/badge/Python-3.14-blue)
 ![Django](https://img.shields.io/badge/Django-6.0-green)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple)
+## Screenshots
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/50f3b845-7262-4c93-b02b-9004f006b24f" width="62%" />
+  &nbsp;&nbsp;
+  <img src="https://github.com/user-attachments/assets/fc3a230c-9f7a-4544-867b-e3fb217ec00b" width="32%" />
+</p>
+
 
 ## 🌐 Live Demo
 https://tweetapptweety.com   Website <br>  
