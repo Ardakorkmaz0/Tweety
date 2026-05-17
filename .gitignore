@@ -8,6 +8,7 @@ ENV/
 nohup.out
 *.log
 db.sqlite3
+cache_data/
 
 # Python cache files
 __pycache__/
