@@ -96,6 +96,11 @@
         .glass-elevated {
             will-change: transform, opacity;
         }
+
+        .page-content > .container {
+            margin-left: auto;
+            margin-right: auto;
+        }
     </style>
 </head>
 
@@ -132,7 +137,7 @@
         </div>
 
         <!-- Mobile Search Bar -->
-        <div class="lg:hidden max-w-[1440px] mx-auto px-4 md:px-8 py-3 border-t border-[var(--border-subtle)]">
+        <div class="lg:hidden max-w-[600px] mx-auto px-4 py-3 border-t border-[var(--border-subtle)]">
             <form action="{% url 'tweetapp:searchtweet' %}" method="GET" class="flex gap-2 m-0">
                 <div class="flex-1 relative">
                     <i data-lucide="search"
@@ -148,8 +153,8 @@
         </div>
     </header>
 
-    <main class="max-w-[1440px] mx-auto px-4 lg:px-8 py-4 lg:py-8">
-        <div class="flex flex-col lg:flex-row gap-6 relative justify-center">
+    <main class="max-w-[1240px] mx-auto px-4 lg:px-8 py-4 lg:py-8">
+        <div class="flex flex-col lg:flex-row gap-6 relative items-center lg:items-start lg:justify-center">
 
             <div class="w-full lg:w-[280px] flex-shrink-0 lg:pr-6 space-y-6 lg:sticky lg:top-[90px] h-fit">
                 {% if user.is_authenticated %}
@@ -266,7 +271,7 @@
                 </div>
             </div>
 
-            <div class="flex-1 w-full {% block content_width_class %}max-w-[600px]{% endblock %} lg:px-6">
+            <div class="page-content flex-1 w-full min-w-0 mx-auto lg:mx-0 {% block content_width_class %}max-w-[600px]{% endblock %} lg:px-6">
                 {% block content %}{% endblock %}
             </div>
 
