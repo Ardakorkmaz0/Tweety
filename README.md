@@ -13,12 +13,7 @@ A full-featured Twitter-inspired social media application built with **Django** 
 </p>
 
 
-## 🌐 Live Demo
-https://tweetapptweety.com   Website <br>  
 
-> Feel free to visit the site while it is up and running!
-
----
 
 ## 🚀 Installation & Setup
 
